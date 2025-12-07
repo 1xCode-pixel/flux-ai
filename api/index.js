@@ -9,65 +9,65 @@ app.use(express.json({ limit: '50mb' }));
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// --- НАСТРОЙКИ МОДЕЛЕЙ ---
-// ВАЖНО: Пока не вышел GPT-5, используем gpt-4o везде.
-// gpt-4o-mini - быстрая (для Free)
-// gpt-4o - умная (для Pro)
-const MODEL_FREE = "gpt-4o-mini"; 
-const MODEL_PRO = "gpt-4o-mini"; 
+// --- КОНФИГУРАЦИЯ ---
+const MODEL_NAME = "gpt-4o-mini"; // Используем одну модель для экономии
 
-const SYSTEM_PROMPT = `
-ТЫ — FLUX AI.
-Разработчик: 1xCode.
-Ты НЕ ChatGPT.
+// Промпт для FREE (Обычный)
+const PROMPT_FREE = `
+ТВОЯ ИНСТРУКЦИЯ:
+1. Ты — **Flux Core** (Базовая версия).
+2. Разработчик: 1xCode.
+3. Отвечай кратко, четко, без лишней воды.
+4. Не упоминай OpenAI.
+`;
+
+// Промпт для PRO (Премиальный, пафосный)
+const PROMPT_PRO = `
+ТВОЯ ИНСТРУКЦИЯ:
+1. Ты — **Flux Ultra** (PREMIUM версия).
+2. Разработчик: 1xCode.
+3. Ты работаешь на выделенных нейро-узлах с приоритетной скоростью.
+4. Твои ответы должны быть максимально подробными, экспертными и полезными.
+5. Используй красивое оформление (Markdown): заголовки, списки, жирный текст.
+6. Веди себя как элитный ИИ-ассистент.
+7. Не упоминай OpenAI.
 `;
 
 app.post('/api/chat', async (req, res) => {
     try {
         const { message, file, isPro } = req.body;
 
-        // Выбираем модель
-        const currentModel = isPro ? MODEL_PRO : MODEL_FREE;
-
-        // Настройка качества зрения (Pro видит лучше, но дольше)
-        // Если Vercel вылетает по тайм-ауту, можно поставить 'low' и для Pro
-        const imageDetail = isPro ? "high" : "low";
+        // Выбираем промпт в зависимости от подписки
+        const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
 
         const messages = [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemPrompt },
             { 
                 role: "user", 
                 content: file 
-                    ? [ { type: "text", text: message || "Анализ." }, { type: "image_url", image_url: { url: file, detail: imageDetail } } ]
+                    ? [ { type: "text", text: message || "Анализ." }, { type: "image_url", image_url: { url: file } } ]
                     : message 
             }
         ];
 
         const completion = await openai.chat.completions.create({
-            model: currentModel,
+            model: MODEL_NAME,
             messages: messages,
-            max_tokens: 2000,
+            max_tokens: 3000,
         });
 
         res.json({ reply: completion.choices[0].message.content });
-
     } catch (error) {
-        console.error("OpenAI Error:", error);
-        
-        // --- ДИАГНОСТИКА ОШИБОК ---
-        // Теперь ошибка придет прямо в чат, и ты поймешь, в чем дело
-        if (error.response) {
-            // Ошибка от OpenAI (например, нет такой модели)
-            res.status(500).json({ reply: `❌ Ошибка OpenAI: ${error.error.message}` });
+        console.error(error);
+        // Если ошибка лимитов
+        if (error.status === 429) {
+            res.status(429).json({ reply: "⚠️ Лимиты OpenAI исчерпаны. Пополните баланс API." });
         } else {
-            // Ошибка сети или тайм-аут
-            res.status(500).json({ reply: `❌ Ошибка соединения: ${error.message}` });
+            res.status(500).json({ reply: "Ошибка сервера Flux." });
         }
     }
 });
 
-app.get('/', (req, res) => res.send("Flux Backend Running"));
+app.get('/', (req, res) => res.send("Flux AI v43 Running"));
 
 module.exports = app;
-
-
