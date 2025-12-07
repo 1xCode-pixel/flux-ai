@@ -14,7 +14,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // gpt-4o-mini - быстрая (для Free)
 // gpt-4o - умная (для Pro)
 const MODEL_FREE = "gpt-4o-mini"; 
-const MODEL_PRO = "gpt-5-mini"; 
+const MODEL_PRO = "gpt-4o-mini"; 
 
 const SYSTEM_PROMPT = `
 ТЫ — FLUX AI.
@@ -69,4 +69,5 @@ app.post('/api/chat', async (req, res) => {
 app.get('/', (req, res) => res.send("Flux Backend Running"));
 
 module.exports = app;
+
 
