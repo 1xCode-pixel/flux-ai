@@ -8,12 +8,11 @@ app.use(express.json({ limit: '50mb' }));
 
 const HF_TOKEN = process.env.HF_TOKEN;
 
-// --- ИЗМЕНЕНИЕ: Берем Zephyr 7B Beta ---
-// Эта модель работает стабильнее всего на бесплатном тарифе
-const MODEL_ID = "HuggingFaceH4/zephyr-7b-beta";
+// МОДЕЛЬ (Mistral v0.3 - самая стабильная)
+const MODEL_ID = "mistralai/Mistral-7B-Instruct-v0.3";
 
-// Используем стандартный адрес (он работает для этой модели лучше всего)
-const API_URL = `https://api-inference.huggingface.co/models/${MODEL_ID}`;
+// !!! ИСПРАВЛЕННАЯ ССЫЛКА (ROUTER) !!!
+const API_URL = `https://router.huggingface.co/models/${MODEL_ID}`;
 
 app.get('/api/status', (req, res) => {
     if (process.env.MAINTENANCE_MODE === 'true') res.json({ status: 'maintenance' });
@@ -31,22 +30,15 @@ app.post('/api/chat', async (req, res) => {
         const { message, file, isPro } = req.body;
 
         if (file) {
-            return res.json({ reply: "⚠️ В бесплатном сервере анализ фото недоступен. Только текст." });
+            return res.json({ reply: "⚠️ В бесплатном сервере анализ фото недоступен. Отправьте текст." });
         }
 
-        // Промпт для Zephyr (он любит формат <|system|>...<|user|>)
-        const systemPart = isPro 
-            ? "Ты Flux Ultra. Отвечай экспертно, на русском языке."
+        const systemPrompt = isPro 
+            ? "Ты Flux Ultra. Отвечай экспертно, на русском языке. Используй Markdown."
             : "Ты Flux Core. Отвечай кратко, на русском языке.";
 
-        const payload = {
-            inputs: `<|system|>\n${systemPart}</s>\n<|user|>\n${message}</s>\n<|assistant|>\n`,
-            parameters: {
-                max_new_tokens: 1024,
-                temperature: 0.7,
-                return_full_text: false
-            }
-        };
+        // Формат для Mistral
+        const finalPrompt = `<s>[INST] ${systemPrompt}\n\n${message} [/INST]`;
 
         const response = await fetch(API_URL, {
             method: "POST",
@@ -54,14 +46,20 @@ app.post('/api/chat', async (req, res) => {
                 "Authorization": `Bearer ${HF_TOKEN}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                inputs: finalPrompt,
+                parameters: {
+                    max_new_tokens: 2048,
+                    temperature: 0.7,
+                    return_full_text: false
+                }
+            })
         });
 
         if (!response.ok) {
             const errText = await response.text();
-            // Если модель грузится (503)
             if (response.status === 503) {
-                 return res.json({ reply: "🔄 Нейросеть просыпается... Повторите вопрос через 20 секунд." });
+                 return res.json({ reply: "🔄 Нейросеть запускается... Повторите через 20 секунд." });
             }
             throw new Error(`HF Error ${response.status}: ${errText}`);
         }
@@ -85,6 +83,6 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Zephyr Node) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Router Fixed) Ready"));
 
 module.exports = app;
