@@ -12,7 +12,7 @@ app.use(express.json({ limit: '50mb' }));
 const HF_TOKEN = process.env.HF_TOKEN;
 
 // МОДЕЛЬ (Qwen 2.5 - Топ для русского)
-const MODEL_ID = "Qwen/Qwen2.5-72B-Instruct";
+const MODEL_ID = "Qwen/Qwen2.5-7B-Instruct";
 
 // !!! ИСПРАВЛЕННЫЙ АДРЕС (ROUTER) !!!
 const API_URL = `https://router.huggingface.co/models/${MODEL_ID}`;
@@ -100,3 +100,4 @@ app.post('/api/chat', async (req, res) => {
 app.get('/', (req, res) => res.send("Flux AI (HF Router) Ready"));
 
 module.exports = app;
+
