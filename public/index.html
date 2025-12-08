@@ -3,61 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FLUX /// 2025</title>
+    <title>FLUX /// SYSTEM</title>
     
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap');
 
         :root {
-            --bg-body: #020205; --sidebar-bg: #080a0c; --chat-bg: #000000;
+            --bg-body: #050505; --sidebar-bg: #0a0a0a; --chat-bg: #000000;
             --border: #222; --text-main: #ECECEC; --text-muted: #888;
             --accent: #ffffff; --pro-color: #d4af37; --danger: #ff4444; --success: #00ff88;
-            --frost: #a8e6cf; /* Новогодний цвет */
         }
 
         body.pro-enabled { --accent: var(--pro-color); }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--bg-body); color: var(--text-main); font-family: 'Inter', sans-serif; margin: 0; height: 100dvh; display: flex; overflow: hidden; transition: --accent 0.5s; }
 
-        /* --- SNOW ANIMATION --- */
+        /* --- SNOW (СНЕГ ПОВЕРХ ВСЕГО) --- */
         #snow-container {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 50; opacity: 0.4;
+            pointer-events: none; z-index: 1000000; /* Самый верхний слой для красоты */
+            opacity: 0.6;
         }
         .snowflake {
-            position: absolute; top: -10px; background: #fff;
-            border-radius: 50%; opacity: 0.8;
+            position: absolute; top: -10px; background: #fff; border-radius: 50%; opacity: 0.8;
             animation: fall linear infinite;
         }
-        @keyframes fall {
-            to { transform: translateY(105vh); }
-        }
+        @keyframes fall { to { transform: translateY(105vh); } }
 
-        /* --- MAINTENANCE SCREEN --- */
-        #maintenance-screen {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: #050505; z-index: 20000;
-            display: none; flex-direction: column; align-items: center; justify-content: center;
+        /* --- MAINTENANCE SCREEN (ИСПРАВЛЕНО) --- */
+        #maint-screen {
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100dvh; /* dvh решает проблему на мобилах */
+            background: #050505; 
+            z-index: 999999; /* Перекрывает всё */
+            display: none; 
+            flex-direction: column; align-items: center; justify-content: center;
             text-align: center; padding: 20px;
         }
-        #maintenance-screen.active { display: flex; }
+        #maint-screen.active { display: flex; }
         
-        .maint-icon { font-size: 4rem; margin-bottom: 20px; animation: pulse-red 2s infinite; }
-        .maint-title { font-family: 'JetBrains Mono'; font-size: 1.5rem; font-weight: bold; color: var(--danger); margin-bottom: 10px; letter-spacing: 2px; }
-        .maint-text { color: #888; font-size: 0.9rem; max-width: 400px; line-height: 1.5; }
-        .maint-id-box { 
-            background: #111; border: 1px dashed #444; padding: 10px 20px; 
-            margin-top: 30px; border-radius: 8px; font-family: 'JetBrains Mono'; 
-            color: #fff; font-size: 0.8rem; cursor: pointer;
+        .maint-icon { font-size: 5rem; margin-bottom: 20px; animation: pulse-red 2s infinite; cursor: pointer; }
+        .maint-title { font-family: 'JetBrains Mono'; font-size: 1.5rem; font-weight: bold; color: var(--danger); margin-bottom: 15px; letter-spacing: 2px; }
+        .maint-text { color: #aaa; font-size: 0.95rem; max-width: 90%; line-height: 1.6; margin-bottom: 30px; }
+        .maint-timer {
+            font-family: 'JetBrains Mono'; font-size: 2rem; color: #fff; border: 1px solid #333;
+            padding: 15px 30px; border-radius: 12px; background: #111;
+            box-shadow: 0 0 50px rgba(255, 68, 68, 0.1);
         }
-        .maint-id-box:hover { border-color: #fff; }
-
-        @keyframes pulse-red { 0% { text-shadow: 0 0 0 rgba(255,68,68,0); } 50% { text-shadow: 0 0 20px rgba(255,68,68,0.5); } 100% { text-shadow: 0 0 0 rgba(255,68,68,0); } }
+        @keyframes pulse-red { 0% { text-shadow: 0 0 0 rgba(255,68,68,0); } 50% { text-shadow: 0 0 30px rgba(255,68,68,0.4); } 100% { text-shadow: 0 0 0 rgba(255,68,68,0); } }
 
         /* --- UI CSS --- */
         .message-text { line-height: 1.6; font-size: 1rem; margin-top: 4px; overflow-x: auto; }
@@ -115,7 +113,7 @@
         .legal-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 8500; display: none; flex-direction: column; padding: 30px; }
         .legal-modal.active { display: flex; animation: slideUp 0.4s ease; }
         .legal-content { flex: 1; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.8rem; color: #888; line-height: 1.6; padding-right: 15px; white-space: pre-wrap; text-align: left; }
-
+        
         .popup-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 8000; display: none; align-items: center; justify-content: center; }
         .popup-overlay.active { display: flex; }
         .small-modal { width: 340px; background: #080808; border: 1px solid var(--accent); border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); animation: slideUp 0.4s ease; }
@@ -123,12 +121,12 @@
 
         /* LAYOUT */
         #app { display: flex; width: 100%; height: 100%; flex-direction: row; }
-        .sidebar { width: 280px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; transition: transform 0.3s; z-index: 100; backdrop-filter: blur(10px); }
+        .sidebar { width: 280px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; transition: transform 0.3s; z-index: 100; }
         .logo { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 1.4rem; display: flex; align-items: center; gap: 8px; margin-bottom: 25px; }
         .pro-badge-logo { font-size: 0.6rem; background: var(--pro-color); color: #000; padding: 2px 5px; border-radius: 4px; display: none; }
         body.pro-enabled .pro-badge-logo { display: inline-block; }
 
-        .btn-new-chat { width: 100%; padding: 12px; background: var(--frost); border: 1px solid #333; color: #fff; border-radius: 8px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .btn-new-chat { width: 100%; padding: 12px; background: #151515; border: 1px solid #333; color: #fff; border-radius: 8px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px; }
         .history-item { padding: 10px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; color: #aaa; display: flex; justify-content: space-between; }
         .history-item:hover { background: #1a1a1a; color: #fff; }
@@ -168,10 +166,14 @@
 
         .message-text { line-height: 1.6; font-size: 1rem; margin-top: 4px; word-wrap: break-word; overflow-x: auto; }
         .message-text p { margin: 5px 0; }
-        .message-text pre { background: #151515 !important; padding: 10px; border-radius: 8px; border: 1px solid #333; overflow-x: auto; }
-        .message-text code { font-family: 'JetBrains Mono'; font-size: 0.85rem; color: #ff79c6; }
-        .typing::after { content: '▋'; animation: blink 1s infinite; margin-left: 2px; color: var(--accent); }
-        @keyframes blink { 50% { opacity: 0; } }
+        .message-text pre { background: #151515 !important; padding: 10px; border-radius: 8px; border: 1px solid #333; overflow-x: auto; margin: 10px 0; }
+        .message-text code { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #ff79c6; background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; }
+        .message-text pre code { color: #e6edf3; background: none; padding: 0; }
+        .message-text table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+        .message-text th, .message-text td { border: 1px solid #444; padding: 8px; text-align: left; }
+        .message-text th { background: #222; }
+        .katex { font-size: 1.1em; }
+        .katex-display { overflow-x: auto; overflow-y: hidden; }
 
         .input-wrapper { max-width: 800px; margin: 0 auto; width: 100%; padding: 20px; background: linear-gradient(to top, #000 80%, transparent); display: flex; flex-direction: column; }
         .input-box { background: #111; border: 1px solid var(--border); border-radius: 14px; padding: 10px 14px; display: flex; align-items: flex-end; gap: 10px; transition: 0.2s; }
@@ -201,18 +203,17 @@
     <div id="splash-screen">
         <div class="splash-logo">FLUX 🎄 AI</div>
         <div class="loading-container"><div class="loading-bar"></div></div>
-        <div class="splash-credit">HAPPY NEW YEAR 2025</div>
+        <div class="splash-credit">BY 1XCODE TEAM</div>
     </div>
 
     <div id="maint-screen">
-        <div class="maint-icon">⚠️</div>
+        <div class="maint-icon" onclick="secretUnblock()" title="Разблокировать (5 кликов)">⚠️</div>
         <div class="maint-title">СЕРВЕР НА ОБСЛУЖИВАНИИ</div>
         <div class="maint-text">
-            Мы обновляем архитектуру Flux Neural Nodes.<br>
-            Доступ ограничен. Ваш ID не в списке доступа.
+            Flux AI обновляется. Доступ временно ограничен.<br>
+            Приносим извинения за неудобства.
         </div>
-        <div class="maint-id-box" id="maintUID" onclick="navigator.clipboard.writeText(this.innerText)">...</div>
-        <div style="margin-top:10px; font-size:0.7rem; color:#555;">Нажмите на ID чтобы скопировать</div>
+        <div class="maint-timer" id="maintTimer">00:00:00</div>
     </div>
 
     <div class="popup-overlay" id="disclaimerPopup">
@@ -235,7 +236,7 @@
     <div class="admin-modal" id="adminModal">
         <div class="admin-panel">
             <button style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: #555; cursor: pointer; font-size: 1.2rem;" onclick="closeAdmin()">✕</button>
-            <div style="font-family: 'JetBrains Mono'; color: var(--success); font-weight: bold; margin-bottom: 20px;">ДОСТУП РАЗРЕШЕН</div>
+            <div style="font-family: 'JetBrains Mono'; color: var(--success); font-weight: bold; margin-bottom: 20px;">АДМИН ПАНЕЛЬ</div>
             
             <div class="admin-section">
                 <span style="color: #888; font-size: 0.7rem; letter-spacing: 1px; display: block; margin-bottom: 10px;">МОЙ АККАУНТ</span>
@@ -252,9 +253,20 @@
                     <option value="24h">1 День</option>
                     <option value="3d">3 Дня</option>
                     <option value="1w">Неделя</option>
+                    <option value="1m">Месяц</option>
                     <option value="perm">Навсегда</option>
                 </select>
-                <button class="unlock-btn" style="background:#222; border:1px solid #444; color:#fff;" onclick="grantSubscription()">🎁 ВЫДАТЬ</button>
+                <button class="unlock-btn" style="background:#222; border:1px solid #444; color:#fff;" onclick="grantSubscription()">🎁 ВЫДАТЬ PRO</button>
+            </div>
+
+            <div class="admin-section" style="border:none; padding-bottom:0;">
+                <span style="color: var(--danger); font-size: 0.7rem; letter-spacing: 1px; display: block; margin-bottom: 10px;">УПРАВЛЕНИЕ СЕРВЕРОМ</span>
+                <select id="maintTime" class="admin-select">
+                    <option value="1">1 Час</option>
+                    <option value="2">2 Часа</option>
+                    <option value="24">24 Часа</option>
+                </select>
+                <button class="unlock-btn" style="background:var(--danger); border:none; color:#fff;" onclick="activateMaintenance()">⛔ ВКЛЮЧИТЬ ТЕХ. РАБОТЫ</button>
             </div>
         </div>
     </div>
@@ -271,7 +283,7 @@
 
     <div id="app" style="display:flex; height: 100%; width: 100%; flex-direction: row;">
         <aside class="sidebar" id="sidebar">
-            <div class="logo">FLUX <span>AI</span> <div class="pro-badge-logo">PRO</div></div>
+            <div class="logo">FLUX 🎄 AI <div class="pro-badge-logo">PRO</div></div>
             <button class="btn-new-chat" onclick="startNewChat()">+ Новый чат</button>
             <div class="history-list" id="historyList"></div>
             <div class="sidebar-footer">
@@ -308,7 +320,7 @@
             <div id="chat-stream">
                 <div class="message-container">
                     <div class="avatar ai">◈</div>
-                    <div class="message-text">Система готова. С Новым Годом! 🎄</div>
+                    <div class="message-text">Система готова. С Новым Годом! 🎅</div>
                 </div>
             </div>
 
@@ -335,21 +347,15 @@
     </div>
 
     <script type="module">
-        // --- НАСТРОЙКИ ДОСТУПА ---
-        const MAINTENANCE_MODE = false; // true = включить техработы
-        const ALLOWED_IDS = [
-            "K9-X42B", // Впиши сюда СВОЙ ID
-            "ADMIN-01"
-        ];
-        
         const PASS_HASH = "Zmx1eDIwMjU="; 
         
-        let chats = JSON.parse(localStorage.getItem('chats_v47') || '[]');
+        let chats = JSON.parse(localStorage.getItem('chats_v48') || '[]');
         let activeId = null;
-        let isPro = localStorage.getItem('isPro_v47') === 'true';
-        let proExpiry = parseInt(localStorage.getItem('proExpiry_v47') || '0');
+        let isPro = localStorage.getItem('isPro_v48') === 'true';
+        let proExpiry = parseInt(localStorage.getItem('proExpiry_v48') || '0');
         let myUID = localStorage.getItem('myUID');
         let clicks = 0;
+        let maintClicks = 0;
         let currFile = null;
 
         // INIT SNOW
@@ -380,24 +386,58 @@
             generateLegalText();
             createSnow();
             
-            // INTRO
             setTimeout(() => { document.getElementById('splash-screen').classList.add('hidden'); }, 3000);
 
-            // ПРОВЕРКА НА БЛОКИРОВКУ
-            if(MAINTENANCE_MODE && !ALLOWED_IDS.includes(myUID)) {
-                document.getElementById('splash-screen').style.display = 'none';
-                document.getElementById('maint-screen').classList.add('active');
-                document.getElementById('maintUID').innerText = "ВАШ ID: " + myUID;
-                return; 
-            }
+            checkMaintenance();
 
-            if(!localStorage.getItem('disc_v47')) document.getElementById('disclaimerPopup').classList.add('active');
+            if(!localStorage.getItem('disc_v48')) document.getElementById('disclaimerPopup').classList.add('active');
             
             checkProStatus();
             setInterval(checkProStatus, 1000);
             updateProUI();
             renderHistory();
         };
+
+        // --- MAINTENANCE LOGIC ---
+        function checkMaintenance() {
+            const maintEnd = parseInt(localStorage.getItem('maintEnd_v48') || '0');
+            const now = Date.now();
+
+            if (maintEnd > now) {
+                document.getElementById('maint-screen').classList.add('active');
+                
+                setInterval(() => {
+                    const left = maintEnd - Date.now();
+                    if (left <= 0) {
+                        localStorage.setItem('maintEnd_v48', '0');
+                        location.reload();
+                    }
+                    const h = Math.floor(left / 3600000).toString().padStart(2,'0');
+                    const m = Math.floor((left % 3600000) / 60000).toString().padStart(2,'0');
+                    const s = Math.floor((left % 60000) / 1000).toString().padStart(2,'0');
+                    document.getElementById('maintTimer').innerText = `${h}:${m}:${s}`;
+                }, 1000);
+            }
+        }
+
+        window.activateMaintenance = function() {
+            const hours = parseInt(document.getElementById('maintTime').value);
+            const endTime = Date.now() + (hours * 60 * 60 * 1000);
+            localStorage.setItem('maintEnd_v48', endTime.toString());
+            alert(`⛔ ТЕХНИЧЕСКИЕ РАБОТЫ ВКЛЮЧЕНЫ НА ${hours} ЧАС(А).`);
+            location.reload();
+        }
+
+        window.secretUnblock = function() {
+            maintClicks++;
+            if(maintClicks === 5) {
+                if(confirm("АДМИН: Снять блокировку?")) {
+                    localStorage.setItem('maintEnd_v48', '0');
+                    location.reload();
+                }
+                maintClicks = 0;
+            }
+        }
 
         // --- FETCH TO BACKEND ---
         window.sendMsg = async function() {
@@ -420,7 +460,7 @@
             inp.value=''; currFile=null;
             document.getElementById('filePreview').style.display='none';
             document.getElementById('fileIn').value='';
-            localStorage.setItem('chats_v47', JSON.stringify(chats));
+            localStorage.setItem('chats_v48', JSON.stringify(chats));
             renderHistory();
 
             const aiDiv = appendMsg('ai', '', null, true);
@@ -430,7 +470,6 @@
                 const response = await fetch('/api/chat', { 
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                 });
-                
                 const data = await response.json();
                 let ans = data.reply || "Ошибка сервера";
                 if (response.status === 429) textEl.style.color = '#ff4444';
@@ -440,7 +479,7 @@
                 renderMathInElement(textEl, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}] });
 
                 c.msgs.push({role:'ai', text:ans});
-                localStorage.setItem('chats_v47', JSON.stringify(chats));
+                localStorage.setItem('chats_v48', JSON.stringify(chats));
 
             } catch (error) {
                 textEl.innerText = "Ошибка соединения.";
@@ -473,7 +512,7 @@
             if(proExpiry > 4000000000000) { document.getElementById('subTimer').innerText = "БЕССРОЧНО"; return; }
             if (left <= 0) {
                 isPro = false;
-                localStorage.setItem('isPro_v47', 'false');
+                localStorage.setItem('isPro_v48', 'false');
                 updateProUI();
                 alert("⏳ PRO истек.");
             } else {
@@ -500,9 +539,8 @@
         }
 
         window.acceptDisclaimer = function() {
-            localStorage.setItem('disc_v47', 'true');
+            localStorage.setItem('disc_v48', 'true');
             document.getElementById('disclaimerPopup').classList.remove('active');
-            fetch('/api/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({uid:myUID}) }).catch(e=>{});
         }
 
         document.getElementById('secretTrigger').onclick = () => {
@@ -533,8 +571,8 @@
             if(uid === myUID) {
                 isPro = true;
                 proExpiry = Date.now() + add;
-                localStorage.setItem('isPro_v47', 'true');
-                localStorage.setItem('proExpiry_v47', proExpiry.toString());
+                localStorage.setItem('isPro_v48', 'true');
+                localStorage.setItem('proExpiry_v48', proExpiry.toString());
                 updateProUI();
                 alert(`✅ PRO выдан себе!`);
             } else alert(`✅ PRO выдан юзеру ${uid} (Симуляция)`);
@@ -544,8 +582,8 @@
 
         window.togglePro = function() {
             isPro = !isPro;
-            if(isPro) { proExpiry = 5000000000000; localStorage.setItem('proExpiry_v47', proExpiry); }
-            localStorage.setItem('isPro_v47', isPro);
+            if(isPro) { proExpiry = 5000000000000; localStorage.setItem('proExpiry_v48', proExpiry); }
+            localStorage.setItem('isPro_v48', isPro);
             updateProUI();
             checkProStatus();
         }
@@ -569,7 +607,7 @@
         }
         window.startNewChat = function() { activeId=null; document.getElementById('chat-stream').innerHTML=`<div class="message-container"><div class="avatar ai">◈</div><div class="message-text">Система готова. С Новым Годом! 🎄</div></div>`; renderHistory(); if(window.innerWidth<768) toggleSidebar(false); }
         window.loadChat = function(id) { const c=chats.find(x=>x.id===id); if(c){ activeId=id; renderMsgs(c.msgs); renderHistory(); if(window.innerWidth<768) toggleSidebar(false); } }
-        window.delChat = function(e,id) { e.stopPropagation(); if(confirm('Del?')){ chats=chats.filter(x=>x.id!==id); localStorage.setItem('chats_v47', JSON.stringify(chats)); if(activeId===id) startNewChat(); else renderHistory(); } }
+        window.delChat = function(e,id) { e.stopPropagation(); if(confirm('Del?')){ chats=chats.filter(x=>x.id!==id); localStorage.setItem('chats_v48', JSON.stringify(chats)); if(activeId===id) startNewChat(); else renderHistory(); } }
         window.updateProUI = function() {
             const b = document.body; const btns = ['deskPro','mobPro'];
             if(isPro) { b.classList.add('pro-enabled'); btns.forEach(x=>document.getElementById(x).classList.remove('locked')); }
@@ -584,6 +622,7 @@
     </script>
 </body>
 </html>
+
 
 
 
