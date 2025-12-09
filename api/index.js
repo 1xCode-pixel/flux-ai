@@ -6,22 +6,18 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-const HF_TOKEN = process.env.HF_TOKEN;
-
-// МОДЕЛЬ (Mistral v0.3 - самая стабильная)
-const MODEL_ID = "mistralai/Mistral-7B-Instruct-v0.3";
-
-// !!! ИСПРАВЛЕННАЯ ССЫЛКА (ROUTER) !!!
-const API_URL = `https://router.huggingface.co/models/${MODEL_ID}`;
-
+// --- ПРОВЕРКА СТАТУСА ---
 app.get('/api/status', (req, res) => {
     if (process.env.MAINTENANCE_MODE === 'true') res.json({ status: 'maintenance' });
     else res.json({ status: 'active' });
 });
 
+// --- РЕГИСТРАЦИЯ ---
 app.post('/api/register', (req, res) => res.json({ status: 'ok' }));
 
+// --- ЧАТ (POLLINATIONS - БЕЗ КЛЮЧЕЙ) ---
 app.post('/api/chat', async (req, res) => {
+    // 1. Проверка тех. работ
     if (process.env.MAINTENANCE_MODE === 'true') {
         return res.status(503).json({ reply: "⛔ СЕРВЕР НА ОБСЛУЖИВАНИИ" });
     }
@@ -29,60 +25,43 @@ app.post('/api/chat', async (req, res) => {
     try {
         const { message, file, isPro } = req.body;
 
+        // Если есть файл - говорим, что пока только текст (Pollinations текст принимает лучше всего)
         if (file) {
-            return res.json({ reply: "⚠️ В бесплатном сервере анализ фото недоступен. Отправьте текст." });
+            return res.json({ reply: "⚠️ Анализ изображений временно недоступен. Работает текстовый режим." });
         }
 
+        // 2. Формируем промпт
+        // Делаем его строгим, чтобы он не болтал лишнего
         const systemPrompt = isPro 
-            ? "Ты Flux Ultra. Отвечай экспертно, на русском языке. Используй Markdown."
-            : "Ты Flux Core. Отвечай кратко, на русском языке.";
+            ? "Ты Flux Ultra (v5.0). Отвечай экспертно, используй Markdown, заголовки, списки. Ты профессионал."
+            : "Ты Flux Core. Отвечай кратко и по делу.";
+        
+        const fullPrompt = `${systemPrompt}\n\nUser Question: ${message}\n\nFlux Answer (in Russian):`;
 
-        // Формат для Mistral
-        const finalPrompt = `<s>[INST] ${systemPrompt}\n\n${message} [/INST]`;
+        // 3. Отправка запроса на Pollinations (КЛЮЧ НЕ НУЖЕН)
+        // encodeURIComponent нужен, чтобы русский текст не сломал ссылку
+        const url = `https://text.pollinations.ai/${encodeURIComponent(fullPrompt)}?model=openai`;
 
-        const response = await fetch(API_URL, {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${HF_TOKEN}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                inputs: finalPrompt,
-                parameters: {
-                    max_new_tokens: 2048,
-                    temperature: 0.7,
-                    return_full_text: false
-                }
-            })
-        });
-
+        const response = await fetch(url);
+        
         if (!response.ok) {
-            const errText = await response.text();
-            if (response.status === 503) {
-                 return res.json({ reply: "🔄 Нейросеть запускается... Повторите через 20 секунд." });
-            }
-            throw new Error(`HF Error ${response.status}: ${errText}`);
+            throw new Error(`Pollinations Error: ${response.status}`);
         }
 
-        const result = await response.json();
-        
-        let replyText = "";
-        if (Array.isArray(result) && result[0]) {
-            replyText = result[0].generated_text;
-        } else if (result.generated_text) {
-            replyText = result.generated_text;
-        } else {
-            replyText = "Ошибка генерации.";
-        }
-        
-        res.json({ reply: replyText });
+        const text = await response.text();
+
+        // 4. Отправляем ответ
+        res.json({ reply: text });
 
     } catch (error) {
         console.error("Server Error:", error.message);
-        res.status(500).json({ reply: `❌ Ошибка сервера: ${error.message}` });
+        // Режим "Автопилот" при ошибке, чтобы сайт не выглядел сломанным
+        res.json({ 
+            reply: "**Flux Offline:** К сожалению, сервер перегружен. \n\n*Попробуйте повторить запрос через 10 секунд.*" 
+        });
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Router Fixed) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Pollinations Node) Ready"));
 
 module.exports = app;
