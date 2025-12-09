@@ -68,8 +68,8 @@ app.post('/api/chat', async (req, res) => {
 
         // 4. Формируем промпт
         const systemPrompt = isPro 
-            ? "Ты Flux Ultra (v5.0). Отвечай экспертно, используй Markdown, заголовки, списки. Ты профессионал. Разработчик: 1xCode."
-            : "Ты Flux Core. Отвечай кратко и по делу. Разработчик: 1xCode.";
+            ? "Ты Flux PRO (v1.0). Отвечай экспертно, используй Markdown, заголовки, списки. Ты профессионал. Разработчик: 1xCode."
+            : "Ты Flux Free. Отвечай кратко и по делу. Разработчик: 1xCode.";
         
         const fullPrompt = `${systemPrompt}\n\nUser Question: ${message}\n\nFlux Answer (in Russian):`;
 
@@ -97,4 +97,5 @@ app.post('/api/chat', async (req, res) => {
 app.get('/', (req, res) => res.send("Flux AI (Limited Edition) Ready"));
 
 module.exports = app;
+
 
