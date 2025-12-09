@@ -24,58 +24,40 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--bg-body); color: var(--text-main); font-family: 'Inter', sans-serif; margin: 0; height: 100dvh; display: flex; overflow: hidden; transition: --accent 0.5s; }
 
-        /* --- SNOW --- */
+        /* --- STYLES FOR MATH & TEXT --- */
+        .message-text { line-height: 1.6; font-size: 1rem; margin-top: 4px; overflow-x: auto; }
+        .message-text p { margin-bottom: 10px; } /* Абзацы */
+        .message-text strong { color: var(--accent); font-weight: bold; } /* Жирный */
+        .message-text ul, .message-text ol { padding-left: 20px; margin-bottom: 10px; }
+        
+        /* Формулы */
+        .katex { font-size: 1.1em; color: #fff; }
+        .katex-display { overflow-x: auto; overflow-y: hidden; padding: 10px 0; }
+
+        /* Код */
+        .message-text pre { background: #151515 !important; padding: 10px; border-radius: 8px; border: 1px solid #333; overflow-x: auto; margin: 10px 0; }
+        .message-text code { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #ff79c6; background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; }
+        .message-text pre code { color: #e6edf3; background: none; padding: 0; }
+
+        /* --- REST OF CSS (UNCHANGED) --- */
         .snowflake { position: absolute; top: -10px; background: #fff; border-radius: 50%; opacity: 0.8; animation: fall linear infinite; pointer-events: none; z-index: 100000; }
         @keyframes fall { to { transform: translateY(105vh); } }
 
-        /* --- ANIMATIONS --- */
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        @keyframes pulse-red { 0% { text-shadow: 0 0 0 rgba(255,68,68,0); } 50% { text-shadow: 0 0 20px rgba(255,68,68,0.6); } 100% { text-shadow: 0 0 0 rgba(255,68,68,0); } }
-
-        /* --- MAINTENANCE SCREEN (КРАСИВЫЙ) --- */
-        #maint-screen {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: #050505; z-index: 999999;
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; padding: 20px;
-        }
+        #maint-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #050505; z-index: 999999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
         #maint-screen.active { display: flex; }
-        
-        .maint-panel {
-            background: #0a0a0a; border: 1px solid var(--danger);
-            padding: 40px; border-radius: 20px; width: 90%; max-width: 400px;
-            box-shadow: 0 0 50px rgba(255, 68, 68, 0.15);
-        }
+        .maint-panel { background: #0a0a0a; border: 1px solid var(--danger); padding: 40px; border-radius: 20px; width: 90%; max-width: 400px; box-shadow: 0 0 50px rgba(255, 68, 68, 0.15); }
         .maint-icon { font-size: 4rem; margin-bottom: 20px; animation: pulse-red 2s infinite; cursor: pointer; }
         .maint-title { font-family: 'JetBrains Mono'; font-size: 1.4rem; font-weight: bold; color: var(--danger); margin-bottom: 15px; letter-spacing: 2px; }
         .maint-text { color: #aaa; font-size: 0.9rem; line-height: 1.6; margin-bottom: 25px; }
-        .maint-timer {
-            font-family: 'JetBrains Mono'; font-size: 2rem; color: #fff; 
-            background: #111; border: 1px solid #333; padding: 15px; 
-            border-radius: 12px; margin-bottom: 20px; letter-spacing: 2px;
-        }
+        .maint-timer { font-family: 'JetBrains Mono'; font-size: 2rem; color: #fff; background: #111; border: 1px solid #333; padding: 15px; border-radius: 12px; margin-bottom: 20px; letter-spacing: 2px; }
+        @keyframes pulse-red { 0% { text-shadow: 0 0 0 rgba(255,68,68,0); } 50% { text-shadow: 0 0 30px rgba(255,68,68,0.5); } 100% { text-shadow: 0 0 0 rgba(255,68,68,0); } }
 
-        /* --- UI CSS --- */
-        .message-text { line-height: 1.6; font-size: 1rem; margin-top: 4px; overflow-x: auto; }
-        .message-text p { margin: 5px 0; }
-        .message-text pre { background: #151515 !important; padding: 10px; border-radius: 8px; border: 1px solid #333; overflow-x: auto; margin: 10px 0; }
-        .message-text code { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #ff79c6; background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; }
-        .message-text table { border-collapse: collapse; width: 100%; margin: 10px 0; }
-        .message-text th, .message-text td { border: 1px solid #444; padding: 8px; text-align: left; }
-        .message-text th { background: #222; }
-        .katex { font-size: 1.1em; }
-        
-        .typing::after { content: '▋'; animation: blink 1s infinite; margin-left: 2px; color: var(--accent); }
-        @keyframes blink { 50% { opacity: 0; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes pulse-gold { 0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(212, 175, 55, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); } }
 
-        /* INTRO */
-        #splash-screen {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: #000; z-index: 15000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.8s ease, visibility 0.8s;
-        }
+        #splash-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 15000; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.8s ease, visibility 0.8s; }
         #splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
         .splash-logo { font-family: 'JetBrains Mono'; font-size: 3rem; font-weight: 800; letter-spacing: -2px; color: #fff; }
         .loading-container { width: 220px; height: 3px; background: #222; border-radius: 3px; margin: 25px 0; overflow: hidden; }
@@ -83,13 +65,7 @@
         .splash-credit { font-family: 'Inter'; font-size: 0.8rem; letter-spacing: 4px; color: var(--pro-color); opacity: 0; animation: fadeIn 1s ease 1.2s forwards; }
         @keyframes loadProgress { 0% { width: 0%; } 40% { width: 30%; } 70% { width: 85%; } 100% { width: 100%; } }
 
-        /* POPUPS */
-        .admin-pass-popup {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: #000; border: 1px solid var(--pro-color); padding: 40px;
-            border-radius: 16px; z-index: 9500; display: none; text-align: center;
-            box-shadow: 0 0 50px rgba(212, 175, 55, 0.2); width: 320px;
-        }
+        .admin-pass-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 1px solid var(--pro-color); padding: 40px; border-radius: 16px; z-index: 9500; display: none; text-align: center; box-shadow: 0 0 50px rgba(212, 175, 55, 0.2); width: 320px; }
         .security-title { color: var(--pro-color); margin-bottom: 25px; font-weight: bold; letter-spacing: 3px; font-family: 'JetBrains Mono'; font-size: 1.1rem; }
         .admin-key-input { background: #111; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 8px; width: 100%; margin-bottom: 20px; text-align: center; font-family: inherit; outline: none; }
         .unlock-btn { background: #fff; color: #000; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; text-transform: uppercase; }
@@ -98,23 +74,22 @@
         .admin-modal.active { display: flex; animation: fadeIn 0.3s ease; }
         .admin-panel { background: #0a0a0a; border: 1px solid #333; padding: 30px; border-radius: 20px; width: 400px; text-align: center; position: relative; }
         .admin-section { border-bottom: 1px solid #222; padding-bottom: 20px; margin-bottom: 20px; }
-        .admin-input { background: #111; border: 1px solid #333; padding: 12px; border-radius: 8px; color: #fff; width: 100%; margin-bottom: 10px; text-align: center; font-family: 'JetBrains Mono'; }
-        .admin-select { width: 100%; background: #111; color: #fff; border: 1px solid #333; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-family: inherit; cursor: pointer; text-align: center; }
+        .admin-input { background: #111; border: 1px solid #333; padding: 12px; border-radius: 8px; color: #fff; width: 100%; margin-bottom: 10px; text-align: center; }
+        .admin-select { width: 100%; background: #111; color: #fff; border: 1px solid #333; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-family: inherit; cursor: pointer; }
         .toggle-switch { width: 50px; height: 26px; background: #333; border-radius: 13px; position: relative; cursor: pointer; margin: 0 auto; transition: 0.3s; }
         .toggle-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: 0.3s; }
         .toggle-switch.active { background: var(--pro-color); }
         .toggle-switch.active::after { transform: translateX(24px); }
 
         .legal-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 8500; display: none; flex-direction: column; padding: 30px; }
-        .legal-modal.active { display: flex; animation: fadeIn 0.4s ease; }
+        .legal-modal.active { display: flex; animation: slideUp 0.4s ease; }
         .legal-content { flex: 1; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.8rem; color: #888; line-height: 1.6; padding-right: 15px; white-space: pre-wrap; text-align: left; }
-        
+
         .popup-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 8000; display: none; align-items: center; justify-content: center; }
         .popup-overlay.active { display: flex; }
         .small-modal { width: 340px; background: #080808; border: 1px solid var(--accent); border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); animation: zoomIn 0.3s ease; }
         .auth-btn { background: #fff; color: #000; padding: 10px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; text-transform: uppercase; }
 
-        /* LAYOUT */
         #app { display: flex; width: 100%; height: 100%; flex-direction: row; }
         .sidebar { width: 280px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; transition: transform 0.3s; z-index: 100; backdrop-filter: blur(10px); }
         .logo { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 1.4rem; display: flex; align-items: center; gap: 8px; margin-bottom: 25px; }
@@ -132,7 +107,6 @@
         .user-profile { display: flex; align-items: center; gap: 10px; padding: 5px; user-select: none; }
         .user-avatar { width: 32px; height: 32px; background: #222; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 1px solid #333; }
         body.pro-enabled .user-avatar { border-color: var(--pro-color); color: var(--pro-color); }
-        
         #userId { font-size: 0.65rem; color: #666; font-family: 'JetBrains Mono'; cursor: pointer; margin-top: 2px; }
         #userId:hover { color: var(--accent); }
         .pro-timer { font-size: 0.6rem; color: var(--pro-color); font-family: 'JetBrains Mono'; margin-top: 4px; display: none; }
@@ -159,7 +133,6 @@
         .avatar.user { background: #222; color: #fff; }
         .avatar.ai.pro-mode { background: var(--pro-color); box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
 
-        .message-text { line-height: 1.6; font-size: 1rem; margin-top: 4px; word-wrap: break-word; overflow-x: auto; }
         .typing::after { content: '▋'; animation: blink 1s infinite; margin-left: 2px; color: var(--accent); }
         @keyframes blink { 50% { opacity: 0; } }
 
@@ -191,7 +164,7 @@
     <div id="splash-screen">
         <div class="splash-logo">FLUX 🎄 AI</div>
         <div class="loading-container"><div class="loading-bar"></div></div>
-        <div class="splash-credit">HAPPY NEW YEAR 2025</div>
+        <div class="splash-credit">BY 1XCODE TEAM</div>
     </div>
 
     <div id="maint-screen">
@@ -227,7 +200,7 @@
     <div class="admin-modal" id="adminModal">
         <div class="admin-panel">
             <button style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: #555; cursor: pointer; font-size: 1.2rem;" onclick="closeAdmin()">✕</button>
-            <div style="font-family: 'JetBrains Mono'; color: var(--success); font-weight: bold; margin-bottom: 20px;">ДОСТУП РАЗРЕШЕН</div>
+            <div style="font-family: 'JetBrains Mono'; color: var(--success); font-weight: bold; margin-bottom: 20px;">АДМИН ПАНЕЛЬ</div>
             
             <div class="admin-section">
                 <span style="color: #888; font-size: 0.7rem; letter-spacing: 1px; display: block; margin-bottom: 10px;">МОЙ АККАУНТ</span>
@@ -241,13 +214,13 @@
                 <span style="color: #888; font-size: 0.7rem; letter-spacing: 1px; display: block; margin-bottom: 10px;">ВЫДАТЬ ПОДПИСКУ (ПО UID)</span>
                 <input type="text" id="targetUID" class="admin-input" placeholder="UID (напр. K9-X42B)">
                 <select id="proDuration" class="admin-select">
-                    <option value="24h">1 День (24ч)</option>
+                    <option value="24h">1 День</option>
                     <option value="3d">3 Дня</option>
-                    <option value="1w">Неделя (7д)</option>
-                    <option value="1m">Месяц (30д)</option>
+                    <option value="1w">Неделя</option>
+                    <option value="1m">Месяц</option>
                     <option value="perm">Навсегда</option>
                 </select>
-                <button class="unlock-btn" style="background:#222; border:1px solid #444; color:#fff;" onclick="grantSubscription()">🎁 ВЫДАТЬ PRO</button>
+                <button class="unlock-btn" style="background:#222; border:1px solid #444; color:#fff;" onclick="grantSubscription()">🎁 ВЫДАТЬ</button>
             </div>
 
             <div class="admin-section" style="border:none; padding-bottom:0;">
@@ -274,7 +247,7 @@
 
     <div id="app" style="display:flex; height: 100%; width: 100%; flex-direction: row;">
         <aside class="sidebar" id="sidebar">
-            <div class="logo">FLUX 🎄 AI <div class="pro-badge-logo">PRO</div></div>
+            <div class="logo">FLUX <span>AI</span> <div class="pro-badge-logo">PRO</div></div>
             <button class="btn-new-chat" onclick="startNewChat()">+ Новый чат</button>
             <div class="history-list" id="historyList"></div>
             <div class="sidebar-footer">
@@ -340,10 +313,10 @@
     <script type="module">
         const PASS_HASH = "Zmx1eDIwMjU="; 
         
-        let chats = JSON.parse(localStorage.getItem('chats_v49') || '[]');
+        let chats = JSON.parse(localStorage.getItem('chats_v52') || '[]');
         let activeId = null;
-        let isPro = localStorage.getItem('isPro_v49') === 'true';
-        let proExpiry = parseInt(localStorage.getItem('proExpiry_v49') || '0');
+        let isPro = localStorage.getItem('isPro_v52') === 'true';
+        let proExpiry = parseInt(localStorage.getItem('proExpiry_v52') || '0');
         let myUID = localStorage.getItem('myUID');
         let clicks = 0;
         let maintClicks = 0;
@@ -391,7 +364,7 @@
             } catch(e){}
 
             // LOCAL MAINT CHECK
-            const mEnd = parseInt(localStorage.getItem('maintEnd_v49')||'0');
+            const mEnd = parseInt(localStorage.getItem('maintEnd_v52')||'0');
             if(mEnd > Date.now()) {
                 document.getElementById('maint-screen').classList.add('active');
                 setInterval(()=>{
@@ -404,7 +377,7 @@
                 },1000);
             }
 
-            if(!localStorage.getItem('disc_v49')) document.getElementById('disclaimerPopup').classList.add('active');
+            if(!localStorage.getItem('disc_v52')) document.getElementById('disclaimerPopup').classList.add('active');
             
             checkProStatus();
             setInterval(checkProStatus, 1000);
@@ -415,7 +388,7 @@
         window.activateMaintenance = function() {
             const hours = parseInt(document.getElementById('maintTime').value);
             const endTime = Date.now() + (hours * 60 * 60 * 1000);
-            localStorage.setItem('maintEnd_v49', endTime.toString());
+            localStorage.setItem('maintEnd_v52', endTime.toString());
             alert(`⛔ ТЕХНИЧЕСКИЕ РАБОТЫ ВКЛЮЧЕНЫ НА ${hours} ЧАС(А).`);
             location.reload();
         }
@@ -424,13 +397,14 @@
             maintClicks++;
             if(maintClicks === 5) {
                 if(confirm("АДМИН: Снять блокировку?")) {
-                    localStorage.setItem('maintEnd_v49', '0');
+                    localStorage.setItem('maintEnd_v52', '0');
                     location.reload();
                 }
                 maintClicks = 0;
             }
         }
 
+        // --- FETCH TO BACKEND ---
         window.sendMsg = async function() {
             const inp = document.getElementById('userInput');
             const txt = inp.value.trim();
@@ -451,7 +425,7 @@
             inp.value=''; currFile=null;
             document.getElementById('filePreview').style.display='none';
             document.getElementById('fileIn').value='';
-            localStorage.setItem('chats_v49', JSON.stringify(chats));
+            localStorage.setItem('chats_v52', JSON.stringify(chats));
             renderHistory();
 
             const aiDiv = appendMsg('ai', '', null, true);
@@ -466,11 +440,19 @@
                 if (response.status === 429) textEl.style.color = '#ff4444';
 
                 textEl.classList.remove('typing'); 
+                
+                // === MARKDOWN & MATH RENDER ===
                 textEl.innerHTML = marked.parse(ans);
-                renderMathInElement(textEl, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}] });
+                renderMathInElement(textEl, { 
+                    delimiters: [
+                        {left: "$$", right: "$$", display: true}, 
+                        {left: "\\[", right: "\\]", display: true}, 
+                        {left: "\\(", right: "\\)", display: false}
+                    ] 
+                });
 
                 c.msgs.push({role:'ai', text:ans});
-                localStorage.setItem('chats_v49', JSON.stringify(chats));
+                localStorage.setItem('chats_v52', JSON.stringify(chats));
 
             } catch (error) {
                 textEl.innerText = "Ошибка соединения.";
@@ -484,10 +466,19 @@
             let fh = '';
             if(file) fh = `<div>📄 ${file.name}</div>`;
             let ac = role==='user'?'avatar user':(isPro?'avatar ai pro-mode':'avatar ai');
-            let content = anim ? `<div class="message-text typing"></div>` : `<div class="message-text">${marked.parse(text)}</div>`;
+            
+            // Если анимация, ставим пустой div. Если история - парсим.
+            let content = anim 
+                ? `<div class="message-text typing"></div>` 
+                : `<div class="message-text">${marked.parse(text)}</div>`;
+                
             d.innerHTML = `<div class="${ac}">${role==='user'?'U':'◈'}</div><div>${fh}${content}</div>`;
             s.appendChild(d); 
-            if(!anim && role === 'ai') renderMathInElement(d, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}] });
+            
+            // Если из истории (не анимация), рендерим формулы
+            if(!anim && role === 'ai') {
+                renderMathInElement(d, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\[", right: "\\]", display: true}, {left: "\\(", right: "\\)", display: false}] });
+            }
             s.scrollTop = s.scrollHeight;
             return d;
         }
@@ -503,7 +494,7 @@
             if(proExpiry > 4000000000000) { document.getElementById('subTimer').innerText = "БЕССРОЧНО"; return; }
             if (left <= 0) {
                 isPro = false;
-                localStorage.setItem('isPro_v49', 'false');
+                localStorage.setItem('isPro_v52', 'false');
                 updateProUI();
                 alert("⏳ PRO истек.");
             } else {
@@ -522,11 +513,15 @@
 
         window.copyID = function() {
             navigator.clipboard.writeText(myUID);
-            alert("ID скопирован!");
+            const el = document.getElementById('userId');
+            const old = el.innerText;
+            el.innerText = "COPIED!";
+            el.style.color = "var(--success)";
+            setTimeout(() => { el.innerText = old; el.style.color = "#666"; }, 1000);
         }
 
         window.acceptDisclaimer = function() {
-            localStorage.setItem('disc_v49', 'true');
+            localStorage.setItem('disc_v52', 'true');
             document.getElementById('disclaimerPopup').classList.remove('active');
             fetch('/api/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({uid:myUID}) }).catch(e=>{});
         }
@@ -559,8 +554,8 @@
             if(uid === myUID) {
                 isPro = true;
                 proExpiry = Date.now() + add;
-                localStorage.setItem('isPro_v49', 'true');
-                localStorage.setItem('proExpiry_v49', proExpiry.toString());
+                localStorage.setItem('isPro_v52', 'true');
+                localStorage.setItem('proExpiry_v52', proExpiry.toString());
                 updateProUI();
                 alert(`✅ PRO выдан себе!`);
             } else alert(`✅ PRO выдан юзеру ${uid} (Симуляция)`);
@@ -570,8 +565,8 @@
 
         window.togglePro = function() {
             isPro = !isPro;
-            if(isPro) { proExpiry = 5000000000000; localStorage.setItem('proExpiry_v49', proExpiry); }
-            localStorage.setItem('isPro_v49', isPro);
+            if(isPro) { proExpiry = 5000000000000; localStorage.setItem('proExpiry_v52', proExpiry); }
+            localStorage.setItem('isPro_v52', isPro);
             updateProUI();
             checkProStatus();
         }
@@ -595,7 +590,7 @@
         }
         window.startNewChat = function() { activeId=null; document.getElementById('chat-stream').innerHTML=`<div class="message-container"><div class="avatar ai">◈</div><div class="message-text">Система готова. С Новым Годом! 🎄</div></div>`; renderHistory(); if(window.innerWidth<768) toggleSidebar(false); }
         window.loadChat = function(id) { const c=chats.find(x=>x.id===id); if(c){ activeId=id; renderMsgs(c.msgs); renderHistory(); if(window.innerWidth<768) toggleSidebar(false); } }
-        window.delChat = function(e,id) { e.stopPropagation(); if(confirm('Del?')){ chats=chats.filter(x=>x.id!==id); localStorage.setItem('chats_v49', JSON.stringify(chats)); if(activeId===id) startNewChat(); else renderHistory(); } }
+        window.delChat = function(e,id) { e.stopPropagation(); if(confirm('Del?')){ chats=chats.filter(x=>x.id!==id); localStorage.setItem('chats_v52', JSON.stringify(chats)); if(activeId===id) startNewChat(); else renderHistory(); } }
         window.updateProUI = function() {
             const b = document.body; const btns = ['deskPro','mobPro'];
             if(isPro) { b.classList.add('pro-enabled'); btns.forEach(x=>document.getElementById(x).classList.remove('locked')); }
@@ -609,7 +604,8 @@
         document.getElementById('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
     </script>
 </body>
-    </html>
+</html>
+
 
 
 
