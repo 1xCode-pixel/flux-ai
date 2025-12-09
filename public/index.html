@@ -62,7 +62,6 @@
         .message-text th { background: #222; }
         .katex { font-size: 1.1em; }
         
-        /* КУРСОР ПЕЧАТИ */
         .typing::after { content: '▋'; animation: blink 1s infinite; margin-left: 2px; color: var(--accent); }
         @keyframes blink { 50% { opacity: 0; } }
 
@@ -104,12 +103,12 @@
         .toggle-switch.active::after { transform: translateX(24px); }
 
         .legal-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 8500; display: none; flex-direction: column; padding: 30px; }
-        .legal-modal.active { display: flex; animation: fadeIn 0.4s ease; }
+        .legal-modal.active { display: flex; animation: slideUp 0.4s ease; }
         .legal-content { flex: 1; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.8rem; color: #888; line-height: 1.6; padding-right: 15px; white-space: pre-wrap; text-align: left; }
 
         .popup-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 8000; display: none; align-items: center; justify-content: center; }
         .popup-overlay.active { display: flex; }
-        .small-modal { width: 340px; background: #080808; border: 1px solid var(--accent); border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); animation: zoomIn 0.3s ease; }
+        .small-modal { width: 340px; background: #080808; border: 1px solid var(--accent); border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); animation: slideUp 0.4s ease; }
         .auth-btn { background: #fff; color: #000; padding: 10px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; text-transform: uppercase; }
 
         /* LAYOUT */
@@ -429,6 +428,7 @@
             }
         }
 
+        // --- FETCH TO BACKEND ---
         window.sendMsg = async function() {
             const inp = document.getElementById('userInput');
             const txt = inp.value.trim();
@@ -454,6 +454,8 @@
 
             const aiDiv = appendMsg('ai', '', null, true);
             const textEl = aiDiv.querySelector('.message-text');
+
+            // 1. Анимация курсора (пока думает)
             textEl.innerHTML = "";
             textEl.classList.add('typing');
 
@@ -465,17 +467,16 @@
                 let ans = data.reply || "Ошибка сервера";
                 if (response.status === 429) textEl.style.color = '#ff4444';
 
-                // --- ПЕЧАТНАЯ МАШИНКА ---
-                // Сначала печатаем raw text, чтобы было красиво
+                // 2. Печатная машинка
                 let buffer = "";
                 for(let char of ans) {
                     buffer += char;
-                    textEl.innerText = buffer; // Печатаем как текст, без форматирования пока
+                    textEl.innerText = buffer; 
                     document.getElementById('chat-stream').scrollTop = document.getElementById('chat-stream').scrollHeight;
-                    await new Promise(r=>setTimeout(r, 10)); // Скорость печати
+                    await new Promise(r=>setTimeout(r, 10)); 
                 }
 
-                // В КОНЦЕ ПРЕВРАЩАЕМ В КРАСОТУ
+                // 3. Финал: Превращаем в Markdown и формулы
                 textEl.classList.remove('typing'); 
                 textEl.innerHTML = marked.parse(ans);
                 renderMathInElement(textEl, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}] });
@@ -499,6 +500,7 @@
             let content = anim ? `<div class="message-text"></div>` : `<div class="message-text">${marked.parse(text)}</div>`;
             d.innerHTML = `<div class="${ac}">${role==='user'?'U':'◈'}</div><div>${fh}${content}</div>`;
             s.appendChild(d); 
+            // Если история, рендерим формулы
             if(!anim && role === 'ai') renderMathInElement(d, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}] });
             s.scrollTop = s.scrollHeight;
             return d;
@@ -565,7 +567,7 @@
         window.grantSubscription = function() {
             let uid = document.getElementById('targetUID').value.trim();
             const dur = document.getElementById('proDuration').value;
-            if(uid === "" || uid === "me") uid = myUID;
+            if(uid.length < 3) return alert("Неверный UID");
             
             let add = 0;
             if(dur==='24h') add=86400000; if(dur==='3d') add=259200000;
@@ -625,18 +627,4 @@
         document.getElementById('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
     </script>
 </body>
-    </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+</html>
