@@ -8,38 +8,35 @@ app.use(express.json({ limit: '50mb' }));
 
 // 1. КЛЮЧ GOOGLE
 const GOOGLE_KEY = process.env.GOOGLE_API_KEY;
+// Официальный OpenAI-совместимый эндпоинт Google
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
-// 2. МОДЕЛИ
-const MODEL_FREE = "gemini-1.5-flash"; 
-const MODEL_PRO = "gemini-1.5-pro";
+// 2. МОДЕЛИ (Используем точные версии, чтобы не было ошибки 404)
+const MODEL_FREE = "gemini-2.0-flash-exp"; // Новейшая, быстрая, бесплатная
+const MODEL_PRO = "gemini-1.5-pro-latest"; // Самая мощная Pro версия
 
-// ЛИМИТЫ
+// ЛИМИТЫ (3 сообщения в час для Free)
 const LIMIT_PER_HOUR = 3;
 const userUsage = {}; 
 
-// --- 3. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМПТЫ ---
+// --- 3. ПРОМПТЫ ---
 const PROMPT_FREE = `
 ТВОЯ ИНСТРУКЦИЯ:
 1. Ты — **Flux Core** (Базовая версия).
 2. Разработчик: 1xCode.
 3. Отвечай кратко, четко, без воды.
 4. Не упоминай OpenAI, Google или Gemini.
-5. Если пользователь попросит написать любой код то говори что нужен PRO.
-6. Если ты решаешь что-то математическое, не делай свои определения, просто решай.
+5. Если просят код или сложный анализ — советуй Flux PRO.
 `;
 
 const PROMPT_PRO = `
 ТВОЯ ИНСТРУКЦИЯ:
 1. Ты — **Flux Ultra** (PREMIUM версия).
 2. Разработчик: 1xCode.
-3. Ты работаешь на выделенных нейро-узлах с приоритетной скоростью.
-4. Твои ответы должны быть максимально подробными, экспертными и полезными.
-5. Используй красивое оформление (Markdown): заголовки, списки, жирный текст.
-6. Веди себя как элитный ИИ-ассистент.
-7. Не упоминай OpenAI, Google или Gemini.
-8. Ты умеешь писать код, анализировать фото и решать сложные задачи.
-9. Если ты решаешь что-то математическое, решай сразу и точно.
+3. Ты — элитный ИИ-ассистент.
+4. Твои ответы полные, экспертные, с использованием Markdown.
+5. Ты умеешь писать код, решать задачи и анализировать фото.
+6. Не упоминай OpenAI, Google или Gemini.
 `;
 
 // --- ПРОВЕРКА СТАТУСА ---
@@ -76,7 +73,7 @@ app.post('/api/chat', async (req, res) => {
             }
 
             if (userUsage[userId].count >= LIMIT_PER_HOUR) {
-                return res.json({ reply: `⛔ **Лимит исчерпан** (${LIMIT_PER_HOUR} запроса в час).\n\n🚀 Активируйте **Flux PRO** для безлимитного доступа.` });
+                return res.json({ reply: `⛔ **Лимит исчерпан** (${LIMIT_PER_HOUR} запроса в час).\n\n🚀 Активируйте **Flux PRO**.` });
             }
             userUsage[userId].count++;
         }
@@ -87,6 +84,7 @@ app.post('/api/chat', async (req, res) => {
         let messages = [];
 
         if (file) {
+            // Google через этот шлюз понимает стандартный формат image_url
             messages = [
                 { role: "system", content: systemPrompt },
                 {
@@ -114,36 +112,34 @@ app.post('/api/chat', async (req, res) => {
             body: JSON.stringify({
                 model: currentModel,
                 messages: messages,
-                max_tokens: 4096, 
+                max_tokens: 4096,
                 temperature: 0.7
             })
         });
 
-        // [5] Читаем ответ ОДИН РАЗ
+        // [5] Читаем ответ (ОДИН РАЗ)
         const responseText = await response.text();
         let data;
 
         try {
             data = JSON.parse(responseText);
         } catch (e) {
-            // Если ответ не JSON, это, скорее всего, ошибка
+            // Если пришел не JSON (например, HTML ошибки)
             if (!response.ok) {
-                console.error("Non-JSON Google Error:", responseText);
-                throw new Error(`Google Error ${response.status}: ${responseText.substring(0, 150)}...`);
+                throw new Error(`Google Error ${response.status}: ${responseText.substring(0, 100)}...`);
             }
             throw new Error("Received non-JSON response from Google API.");
         }
         
-        // [6] Обработка ошибок
-        if (!response.ok) {
-            const errMessage = data?.error?.message || responseText;
-            console.error("Google API Error:", errMessage);
-            throw new Error(`Google Error ${response.status}: ${errMessage}`);
+        // [6] Обработка ошибок API (например, если модель не найдена или перегружена)
+        if (data.error) {
+            console.error("Google API Error:", data.error);
+            return res.json({ reply: `❌ Ошибка Google: ${data.error.message}` });
         }
 
         const replyText = data.choices?.[0]?.message?.content || "Пустой ответ.";
         
-        // Префикс счетчика для Free
+        // Префикс для Free
         const prefix = isPro ? "" : `_Flux Core (${userUsage[uid||'anon'].count}/${LIMIT_PER_HOUR})_\n\n`;
         
         res.json({ reply: prefix + replyText });
@@ -154,9 +150,10 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Google Direct, Final Fix) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Gemini 2.0 Flash / 1.5 Pro) Ready"));
 
 module.exports = app;
+
 
 
 
