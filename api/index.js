@@ -6,44 +6,41 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// 1. КЛЮЧ ОТ GOOGLE
+// 1. КЛЮЧ GOOGLE
 const GOOGLE_KEY = process.env.GOOGLE_API_KEY;
-
-// Официальный шлюз Google, который понимает формат OpenAI
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
-// 2. МОДЕЛИ (Официальные названия Google)
-const MODEL_FREE = "gemini-1.5-flash"; // Супер быстрая и бесплатная
-const MODEL_PRO = "gemini-1.5-pro";    // Самая умная
+// 2. МОДЕЛИ
+const MODEL_FREE = "gemini-1.5-flash"; 
+const MODEL_PRO = "gemini-1.5-pro";
 
-// ЛИМИТЫ (3 сообщения в час для Free)
+// ЛИМИТЫ
 const LIMIT_PER_HOUR = 3;
 const userUsage = {}; 
 
-// --- ПРОМПТЫ ---
-const PROMPT_FREE = `
-ТВОЯ РОЛЬ:
-Ты — **Flux Core** (Базовая версия).
-Разработчик: 1xCode.
+// --- 3. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМПТЫ (ВЕРНУЛ) ---
 
-ПРАВИЛА:
-1. Отвечай кратко, четко, без воды.
-2. Тон: Нейтральный, быстрый.
-3. Если просят сложный код или глубокий анализ — советуй Flux PRO.
+const PROMPT_FREE = `
+ТВОЯ ИНСТРУКЦИЯ:
+1. Ты — **Flux Core** (Базовая версия).
+2. Разработчик: 1xCode.
+3. Отвечай кратко, четко, без лишней воды.
+4. Не упоминай OpenAI, Google или Gemini.
+5. Если пользователь попросит написать любой код то говори что нужен PRO.
+6. Если ты решаешь что-то математическое, не делай свои определения, просто решай.
 `;
 
 const PROMPT_PRO = `
-ТВОЯ РОЛЬ:
-Ты — **Flux Ultra** (PREMIUM версия).
-Разработчик: 1xCode.
-Ты работаешь на базе Gemini 1.5 Pro.
-
-ПРАВИЛА:
-1. Твои ответы — экспертные, подробные и глубокие.
-2. Используй Markdown (жирный, курсив, списки, блоки кода) для красоты.
-3. Используй эмодзи ⚡️✨.
-4. Тон: Профессиональный, дружелюбный, "элитный".
-5. Ты отлично видишь и анализируешь изображения.
+ТВОЯ ИНСТРУКЦИЯ:
+1. Ты — **Flux Ultra** (PREMIUM версия).
+2. Разработчик: 1xCode.
+3. Ты работаешь на выделенных нейро-узлах с приоритетной скоростью.
+4. Твои ответы должны быть максимально подробными, экспертными и полезными.
+5. Используй красивое оформление (Markdown): заголовки, списки, жирный текст.
+6. Веди себя как элитный ИИ-ассистент.
+7. Не упоминай OpenAI, Google или Gemini.
+8. Ты умеешь писать код, анализировать фото и решать сложные задачи.
+9. Если ты решаешь что-то математическое, решай сразу и точно.
 `;
 
 // --- ПРОВЕРКА СТАТУСА ---
@@ -56,46 +53,48 @@ app.post('/api/register', (req, res) => res.json({ status: 'ok' }));
 
 // --- ЧАТ ---
 app.post('/api/chat', async (req, res) => {
-    // 1. Тех. работы
+    // [1] Тех. работы
     if (process.env.MAINTENANCE_MODE === 'true') {
         return res.status(503).json({ reply: "⛔ СЕРВЕР НА ОБСЛУЖИВАНИИ" });
+    }
+
+    if (!GOOGLE_KEY) {
+        return res.json({ reply: "❌ ОШИБКА: Не найден GOOGLE_API_KEY в настройках Vercel." });
     }
 
     try {
         const { message, file, isPro, uid } = req.body;
 
-        // 2. Лимиты (Только Free)
+        // [2] Лимиты (Только Free)
         if (!isPro) {
             const userId = uid || 'anon';
             const now = Date.now();
             if (!userUsage[userId]) userUsage[userId] = { count: 0, start: now };
             
-            // Сброс через час
-            if (now - userUsage[userId].start > 3600000) {
+            if (now - userUsage[userId].start > 3600000) { // Сброс через час
                 userUsage[userId].count = 0;
                 userUsage[userId].start = now;
             }
 
-            // Блокировка
             if (userUsage[userId].count >= LIMIT_PER_HOUR) {
                 return res.json({ reply: `⛔ **Лимит исчерпан** (${LIMIT_PER_HOUR} запроса в час).\n\n🚀 Активируйте **Flux PRO** для безлимитного доступа.` });
             }
             userUsage[userId].count++;
         }
 
-        // 3. Сборка сообщения
+        // [3] Сборка сообщения
         const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
         const currentModel = isPro ? MODEL_PRO : MODEL_FREE;
         let messages = [];
 
         if (file) {
-            // Google через OpenAI-шлюз понимает картинки так же
+            // Структура для фото (OpenAI compatible)
             messages = [
                 { role: "system", content: systemPrompt },
                 {
                     role: "user",
                     content: [
-                        { type: "text", text: message || "Что на этом изображении?" },
+                        { type: "text", text: message || "Проанализируй изображение." },
                         { type: "image_url", image_url: { url: file } }
                     ]
                 }
@@ -108,7 +107,7 @@ app.post('/api/chat', async (req, res) => {
             ];
         }
 
-        // 4. Запрос к Google
+        // [4] Запрос к Google
         const response = await fetch(BASE_URL, {
             method: "POST",
             headers: {
@@ -118,21 +117,23 @@ app.post('/api/chat', async (req, res) => {
             body: JSON.stringify({
                 model: currentModel,
                 messages: messages,
-                max_tokens: 2048,
+                max_tokens: 4096, // Увеличил лимит токенов для длинных ответов
                 temperature: 0.7
             })
         });
 
+        // [5] Обработка ошибок
         if (!response.ok) {
-            const err = await response.text();
-            console.error("Google Error:", err);
-            throw new Error(`Google API Error: ${response.status}`);
+            const errData = await response.json().catch(() => ({}));
+            const errMessage = errData?.error?.message || await response.text();
+            console.error("Google API Error:", errMessage);
+            throw new Error(`Google Error ${response.status}: ${errMessage}`);
         }
 
         const data = await response.json();
         const replyText = data.choices?.[0]?.message?.content || "Пустой ответ.";
         
-        // Добавляем счетчик для Free
+        // Префикс счетчика для Free
         const prefix = isPro ? "" : `_Flux Core (${userUsage[uid||'anon'].count}/${LIMIT_PER_HOUR})_\n\n`;
         
         res.json({ reply: prefix + replyText });
@@ -143,9 +144,10 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Google Direct) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Google Direct + Full Prompts) Ready"));
 
 module.exports = app;
+
 
 
 
