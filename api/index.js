@@ -10,9 +10,9 @@ app.use(express.json({ limit: '50mb' }));
 const GOOGLE_KEY = process.env.GOOGLE_API_KEY;
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
-// 2. МОДЕЛИ (Самые стабильные)
-const MODEL_FREE = "gemini-1.5-flash"; 
-const MODEL_PRO = "gemini-1.5-pro";
+// 2. МОДЕЛИ (Используем старые, стабильные и проверенные алиасы для Free)
+const MODEL_FREE = "gemini-pro"; 
+const MODEL_PRO = "gemini-1.5-pro"; // Оставляем Pro для Premium-пользователей
 
 // ЛИМИТЫ
 const LIMIT_PER_HOUR = 3;
@@ -89,6 +89,9 @@ app.post('/api/chat', async (req, res) => {
         let messages = [];
 
         if (file) {
+            // Если есть файл, и это Free-версия, нужно явно использовать vision-модель
+            const visionModel = isPro ? MODEL_PRO : 'gemini-pro-vision'; 
+            
             messages = [
                 { role: "system", content: systemPrompt },
                 {
@@ -99,13 +102,16 @@ app.post('/api/chat', async (req, res) => {
                     ]
                 }
             ];
+            // Переключаем модель, если Free-пользователь отправил фото
+            if (!isPro) currentModel = visionModel;
+            
         } else {
             messages = [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: message }
             ];
         }
-
+        
         // 4. Запрос к Google
         const response = await fetch(BASE_URL, {
             method: "POST",
@@ -116,7 +122,7 @@ app.post('/api/chat', async (req, res) => {
             body: JSON.stringify({
                 model: currentModel,
                 messages: messages,
-                max_tokens: 4096, // Большой лимит для длинных ответов
+                max_tokens: 4096, 
                 temperature: 0.7
             })
         });
@@ -140,10 +146,10 @@ app.post('/api/chat', async (req, res) => {
         const content = choice?.message?.content;
 
         if (!content) {
-            // Если сработал фильтр безопасности
+            // Если сработал фильтр безопасности или лимиты
             const reason = choice?.finish_reason || "UNKNOWN";
             return res.json({ 
-                reply: `⚠️ **Пустой ответ.**\nСкорее всего, сработал фильтр безопасности Google.\nПричина: \`${reason}\`` 
+                reply: `⚠️ **Пустой ответ.**\nВероятная причина: блокировка безопасности, лимит, или модель не доступна.\nПричина: \`${reason}\`` 
             });
         }
 
@@ -157,9 +163,10 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Full Version) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Stable Models) Ready"));
 
 module.exports = app;
+
 
 
 
