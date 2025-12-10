@@ -6,20 +6,18 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// 1. КЛЮЧ
-const GOOGLE_KEY = process.env.GOOGLE_API_KEY;
-const BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+// 1. КЛЮЧ ОТ OPENROUTER
+const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
+const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// 2. МОДЕЛИ (Используем старые, стабильные и проверенные алиасы для Free)
-const MODEL_FREE = "gemini-pro"; 
-const MODEL_PRO = "gemini-1.5-pro"; // Оставляем Pro для Premium-пользователей
+// 2. МОДЕЛЬ (Gemini 2.0 Flash - Бесплатная, мощная, видит фото)
+const MODEL_ID = "google/gemini-2.0-flash-exp:free"; 
 
-// ЛИМИТЫ
+// ЛИМИТЫ (3 сообщения в час для Free)
 const LIMIT_PER_HOUR = 3;
 const userUsage = {}; 
 
-// --- 3. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМПТЫ ---
-
+// --- 3. ТВОИ ПРОМПТЫ ---
 const PROMPT_FREE = `
 ТВОЯ ИНСТРУКЦИЯ:
 1. Ты — **Flux Core** (Базовая версия).
@@ -53,119 +51,107 @@ app.post('/api/register', (req, res) => res.json({ status: 'ok' }));
 
 // --- ЧАТ ---
 app.post('/api/chat', async (req, res) => {
-    // 1. Тех. работы
+    // [1] Тех. работы
     if (process.env.MAINTENANCE_MODE === 'true') {
         return res.status(503).json({ reply: "⛔ СЕРВЕР НА ОБСЛУЖИВАНИИ" });
     }
 
-    // Проверка ключа
-    if (!GOOGLE_KEY) return res.json({ reply: "❌ ОШИБКА: Нет ключа GOOGLE_API_KEY." });
+    if (!OPENROUTER_KEY) return res.json({ reply: "❌ ОШИБКА: Нет ключа OPENROUTER_API_KEY." });
 
     try {
         const { message, file, isPro, uid } = req.body;
 
-        // 2. Лимиты (Только Free)
+        // [2] Лимиты (Только Free)
         if (!isPro) {
             const userId = uid || 'anon';
             const now = Date.now();
             if (!userUsage[userId]) userUsage[userId] = { count: 0, start: now };
             
-            // Сброс через час
-            if (now - userUsage[userId].start > 3600000) {
+            if (now - userUsage[userId].start > 3600000) { // Сброс через час
                 userUsage[userId].count = 0;
                 userUsage[userId].start = now;
             }
 
-            // Блокировка
             if (userUsage[userId].count >= LIMIT_PER_HOUR) {
-                return res.json({ reply: `⛔ **Лимит исчерпан** (${LIMIT_PER_HOUR} запроса в час).\n\n🚀 Активируйте **Flux PRO** для безлимитного доступа.` });
+                return res.json({ reply: `⛔ **Лимит исчерпан** (${LIMIT_PER_HOUR} запроса в час).\n\n🚀 Активируйте **Flux PRO**.` });
             }
             userUsage[userId].count++;
         }
 
-        // 3. Сборка сообщения
+        // [3] Сборка сообщения
         const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
-        const currentModel = isPro ? MODEL_PRO : MODEL_FREE;
         let messages = [];
 
         if (file) {
-            // Если есть файл, и это Free-версия, нужно явно использовать vision-модель
-            const visionModel = isPro ? MODEL_PRO : 'gemini-pro-vision'; 
-            
+            // OpenRouter формат для картинок
             messages = [
                 { role: "system", content: systemPrompt },
                 {
                     role: "user",
                     content: [
-                        { type: "text", text: message || "Анализ." },
+                        { type: "text", text: message || "Проанализируй изображение." },
                         { type: "image_url", image_url: { url: file } }
                     ]
                 }
             ];
-            // Переключаем модель, если Free-пользователь отправил фото
-            if (!isPro) currentModel = visionModel;
-            
         } else {
+            // Только текст
             messages = [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: message }
             ];
         }
-        
-        // 4. Запрос к Google
+
+        // [4] Запрос к OpenRouter
         const response = await fetch(BASE_URL, {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${GOOGLE_KEY}`,
-                "Content-Type": "application/json"
+                "Authorization": `Bearer ${OPENROUTER_KEY}`,
+                "Content-Type": "application/json",
+                // Обязательные заголовки для OpenRouter (иначе заблокируют)
+                "HTTP-Referer": "https://flux-ai.vercel.app", 
+                "X-Title": "Flux AI"
             },
             body: JSON.stringify({
-                model: currentModel,
+                model: MODEL_ID,
                 messages: messages,
-                max_tokens: 4096, 
+                max_tokens: 4000, 
                 temperature: 0.7
             })
         });
 
-        // 5. Обработка ответа
-        const responseText = await response.text();
-        let data;
+        // [5] Обработка ответа
+        if (!response.ok) {
+            const errText = await response.text();
+            let errJson;
+            try { errJson = JSON.parse(errText); } catch(e) {}
+            
+            // Если лимит OpenRouter (429)
+            if (response.status === 429) {
+                return res.json({ reply: "⚠️ Сервер нейросети перегружен. Попробуйте через 30 секунд." });
+            }
+            
+            throw new Error(`OpenRouter Error: ${errJson?.error?.message || errText}`);
+        }
+
+        const data = await response.json();
+        const replyText = data.choices?.[0]?.message?.content || "⚠️ Пустой ответ от нейросети.";
         
-        try {
-            data = JSON.parse(responseText);
-        } catch (e) {
-            throw new Error(`Google Error: Ответ не JSON. ${responseText.substring(0, 50)}...`);
-        }
-
-        if (data.error) {
-            console.error("Google API Error:", data.error);
-            return res.json({ reply: `❌ Ошибка Google API:\n${data.error.message}` });
-        }
-
-        const choice = data.choices?.[0];
-        const content = choice?.message?.content;
-
-        if (!content) {
-            // Если сработал фильтр безопасности или лимиты
-            const reason = choice?.finish_reason || "UNKNOWN";
-            return res.json({ 
-                reply: `⚠️ **Пустой ответ.**\nВероятная причина: блокировка безопасности, лимит, или модель не доступна.\nПричина: \`${reason}\`` 
-            });
-        }
-
-        // 6. Успех + префикс
+        // Префикс счетчика для Free
         const prefix = isPro ? "" : `_Flux Core (${userUsage[uid||'anon'].count}/${LIMIT_PER_HOUR})_\n\n`;
-        res.json({ reply: prefix + content });
+        
+        res.json({ reply: prefix + replyText });
 
     } catch (error) {
         console.error("Server Error:", error);
-        res.status(500).json({ reply: `❌ Критическая ошибка: ${error.message}` });
+        res.status(500).json({ reply: `❌ Ошибка сервера: ${error.message}` });
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Stable Models) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (OpenRouter Gemini 2.0) Ready"));
 
 module.exports = app;
+
 
 
 
