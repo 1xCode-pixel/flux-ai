@@ -13,7 +13,7 @@ const BASE_URL = "https://zenmux.ai/api/v1/chat/completions";
 // 2. СТАБИЛЬНЫЕ МОДЕЛИ ZENMUX
 // Используем 1.5 Pro, она работает железно. 
 // (Названия типа "gemini-3-free" часто ломаются, так как это не официальный API)
-const MODEL_ID = "google/gemini-1.5-pro"; 
+const MODEL_ID = "google/gemini-3-pro-image-preview-free"; 
 
 // ЛИМИТЫ (3 сообщения в час для Free)
 const LIMIT_PER_HOUR = 3;
@@ -142,6 +142,7 @@ app.post('/api/chat', async (req, res) => {
 app.get('/', (req, res) => res.send("Flux AI (Zenmux) Ready"));
 
 module.exports = app;   
+
 
 
 
