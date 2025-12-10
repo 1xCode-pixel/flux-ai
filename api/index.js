@@ -18,13 +18,12 @@ const MODEL_PRO = "gemini-1.5-pro";
 const LIMIT_PER_HOUR = 3;
 const userUsage = {}; 
 
-// --- 3. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМПТЫ (ВЕРНУЛ) ---
-
+// --- 3. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМПТЫ ---
 const PROMPT_FREE = `
 ТВОЯ ИНСТРУКЦИЯ:
 1. Ты — **Flux Core** (Базовая версия).
 2. Разработчик: 1xCode.
-3. Отвечай кратко, четко, без лишней воды.
+3. Отвечай кратко, четко, без воды.
 4. Не упоминай OpenAI, Google или Gemini.
 5. Если пользователь попросит написать любой код то говори что нужен PRO.
 6. Если ты решаешь что-то математическое, не делай свои определения, просто решай.
@@ -88,7 +87,6 @@ app.post('/api/chat', async (req, res) => {
         let messages = [];
 
         if (file) {
-            // Структура для фото (OpenAI compatible)
             messages = [
                 { role: "system", content: systemPrompt },
                 {
@@ -100,7 +98,6 @@ app.post('/api/chat', async (req, res) => {
                 }
             ];
         } else {
-            // Только текст
             messages = [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: message }
@@ -117,20 +114,33 @@ app.post('/api/chat', async (req, res) => {
             body: JSON.stringify({
                 model: currentModel,
                 messages: messages,
-                max_tokens: 4096, // Увеличил лимит токенов для длинных ответов
+                max_tokens: 4096, 
                 temperature: 0.7
             })
         });
 
-        // [5] Обработка ошибок
+        // [5] Читаем ответ ОДИН РАЗ
+        const responseText = await response.text();
+        let data;
+
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            // Если ответ не JSON, это, скорее всего, ошибка
+            if (!response.ok) {
+                console.error("Non-JSON Google Error:", responseText);
+                throw new Error(`Google Error ${response.status}: ${responseText.substring(0, 150)}...`);
+            }
+            throw new Error("Received non-JSON response from Google API.");
+        }
+        
+        // [6] Обработка ошибок
         if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            const errMessage = errData?.error?.message || await response.text();
+            const errMessage = data?.error?.message || responseText;
             console.error("Google API Error:", errMessage);
             throw new Error(`Google Error ${response.status}: ${errMessage}`);
         }
 
-        const data = await response.json();
         const replyText = data.choices?.[0]?.message?.content || "Пустой ответ.";
         
         // Префикс счетчика для Free
@@ -144,9 +154,11 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Google Direct + Full Prompts) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Google Direct, Final Fix) Ready"));
 
 module.exports = app;
+
+
 
 
 
