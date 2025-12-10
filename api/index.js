@@ -6,43 +6,41 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// 1. ВЕРНУЛИ ZENMUX
+// 1. КЛЮЧ ZENMUX
 const ZENMUX_KEY = process.env.ZENMUX_KEY;
 const BASE_URL = "https://zenmux.ai/api/v1/chat/completions";
 
-// 2. СТАБИЛЬНЫЕ МОДЕЛИ ZENMUX
-// Используем 1.5 Pro, она работает железно. 
-// (Названия типа "gemini-3-free" часто ломаются, так как это не официальный API)
-const MODEL_ID = "google/gemini-3-pro-image-preview-free"; 
+// 2. РАБОЧИЕ МОДЕЛИ (Zenmux использует стандартные ID)
+const MODEL_PRO = "gpt-4o";          // Самая мощная
+const MODEL_FREE = "gpt-4o-mini";    // Быстрая и дешевая
 
 // ЛИМИТЫ (3 сообщения в час для Free)
 const LIMIT_PER_HOUR = 3;
 const userUsage = {}; 
 
-// --- ПРОМПТЫ (Тут мы говорим ИИ, кто он) ---
+// --- ПРОМПТЫ ---
 const PROMPT_FREE = `
 ТВОЯ РОЛЬ:
 Ты — **Flux Core** (Базовая версия).
 Разработчик: 1xCode.
-Ты работаешь на передовой модели Gemini.
 
 ПРАВИЛА:
-1. Отвечай кратко и по делу.
+1. Отвечай кратко, четко и сжато.
 2. Не используй сложное форматирование.
-3. Тон: Нейтральный.
+3. Не упоминай OpenAI, GPT или Zenmux. Ты — Flux.
 `;
 
 const PROMPT_PRO = `
 ТВОЯ РОЛЬ:
 Ты — **Flux Ultra** (PREMIUM версия).
 Разработчик: 1xCode.
-Ты работаешь на архитектуре Gemini 3 Pro (Vision).
 
 ПРАВИЛА:
-1. Твои ответы — шедевр. Подробные, точные, экспертные.
+1. Твои ответы — экспертные, подробные и точные.
 2. Используй Markdown (жирный, курсив, код, списки).
 3. Используй эмодзи 🚀.
 4. Тон: Профессиональный, дружелюбный.
+5. Не упоминай OpenAI, GPT или Zenmux. Ты — Flux.
 `;
 
 // --- ПРОВЕРКА СТАТУСА ---
@@ -84,10 +82,11 @@ app.post('/api/chat', async (req, res) => {
 
         // 3. Сборка сообщения
         const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
+        const modelId = isPro ? MODEL_PRO : MODEL_FREE;
         let messages = [];
 
         if (file) {
-            // Zenmux принимает картинки в стандартном формате OpenAI
+            // Zenmux (как и OpenAI) принимает картинки так
             messages = [
                 { role: "system", content: systemPrompt },
                 {
@@ -113,7 +112,7 @@ app.post('/api/chat', async (req, res) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: MODEL_ID,
+                model: modelId,
                 messages: messages,
                 max_tokens: 2048,
                 temperature: 0.7
@@ -126,9 +125,15 @@ app.post('/api/chat', async (req, res) => {
         }
 
         const data = await response.json();
+        
+        // Проверка на ошибки внутри JSON
+        if (data.error) {
+             return res.json({ reply: `❌ Ошибка Zenmux: ${data.error.message}` });
+        }
+
         const replyText = data.choices?.[0]?.message?.content || "Пустой ответ.";
         
-        // Добавляем счетчик
+        // Добавляем счетчик для Free
         const prefix = isPro ? "" : `_Flux Core (${userUsage[uid||'anon'].count}/${LIMIT_PER_HOUR})_\n\n`;
         
         res.json({ reply: prefix + replyText });
@@ -139,9 +144,10 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Zenmux) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Zenmux Stable) Ready"));
 
-module.exports = app;   
+module.exports = app;
+
 
 
 
