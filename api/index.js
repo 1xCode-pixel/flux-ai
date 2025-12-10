@@ -6,42 +6,43 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// КЛЮЧ ОТ OPENROUTER
-const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
-const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
+// 1. ВЕРНУЛИ ZENMUX
+const ZENMUX_KEY = process.env.ZENMUX_KEY;
+const BASE_URL = "https://zenmux.ai/api/v1/chat/completions";
 
-// --- НОВАЯ МОДЕЛЬ GEMINI 3 ---
-const MODEL_ID = "google/gemini-3-pro-image-preview-free"; 
+// 2. СТАБИЛЬНЫЕ МОДЕЛИ ZENMUX
+// Используем 1.5 Pro, она работает железно. 
+// (Названия типа "gemini-3-free" часто ломаются, так как это не официальный API)
+const MODEL_ID = "google/gemini-1.5-pro"; 
 
 // ЛИМИТЫ (3 сообщения в час для Free)
 const LIMIT_PER_HOUR = 3;
 const userUsage = {}; 
 
-// --- РАЗНЫЕ ПРОМПТЫ ---
+// --- ПРОМПТЫ (Тут мы говорим ИИ, кто он) ---
 const PROMPT_FREE = `
 ТВОЯ РОЛЬ:
 Ты — **Flux Core** (Базовая версия).
 Разработчик: 1xCode.
+Ты работаешь на передовой модели Gemini.
 
 ПРАВИЛА:
-1. Отвечай максимально кратко, четко и сжато.
-2. Не используй сложное форматирование, только текст.
-3. Твой тон: Нейтральный, быстрый, роботизированный.
-4. Не упоминай Google, Gemini или OpenAI.
+1. Отвечай кратко и по делу.
+2. Не используй сложное форматирование.
+3. Тон: Нейтральный.
 `;
 
 const PROMPT_PRO = `
 ТВОЯ РОЛЬ:
 Ты — **Flux Ultra** (PREMIUM версия).
 Разработчик: 1xCode.
+Ты работаешь на архитектуре Gemini 3 Pro (Vision).
 
 ПРАВИЛА:
-1. Ты — передовой ИИ-ассистент. Твои ответы полные, глубокие и экспертные.
-2. Используй Markdown (жирный, курсив, списки, блоки кода) для красоты.
-3. Используй эмодзи ⚡️✨.
-4. Решай сложные задачи, пиши код, анализируй.
-5. Твой тон: Дружелюбный, профессиональный, "элитный".
-6. Не упоминай Google, Gemini или OpenAI.
+1. Твои ответы — шедевр. Подробные, точные, экспертные.
+2. Используй Markdown (жирный, курсив, код, списки).
+3. Используй эмодзи 🚀.
+4. Тон: Профессиональный, дружелюбный.
 `;
 
 // --- ПРОВЕРКА СТАТУСА ---
@@ -76,7 +77,7 @@ app.post('/api/chat', async (req, res) => {
 
             // Блокировка
             if (userUsage[userId].count >= LIMIT_PER_HOUR) {
-                return res.json({ reply: `⛔ **Лимит исчерпан** (${LIMIT_PER_HOUR} запроса в час).\n\n🚀 Активируйте **Flux PRO** для безлимитного доступа.` });
+                return res.json({ reply: `⛔ **Лимит исчерпан** (${LIMIT_PER_HOUR} запроса в час).\nАктивируйте **Flux PRO**.` });
             }
             userUsage[userId].count++;
         }
@@ -86,65 +87,61 @@ app.post('/api/chat', async (req, res) => {
         let messages = [];
 
         if (file) {
-            // С картинкой (Gemini 3 отлично видит фото)
+            // Zenmux принимает картинки в стандартном формате OpenAI
             messages = [
                 { role: "system", content: systemPrompt },
                 {
                     role: "user",
                     content: [
-                        { type: "text", text: message || "Что изображено на этом фото?" },
+                        { type: "text", text: message || "Проанализируй изображение." },
                         { type: "image_url", image_url: { url: file } }
                     ]
                 }
             ];
         } else {
-            // Только текст
             messages = [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: message }
             ];
         }
 
-        // 4. Запрос к OpenRouter
+        // 4. Запрос к Zenmux
         const response = await fetch(BASE_URL, {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${OPENROUTER_KEY}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://flux-ai.vercel.app",
-                "X-Title": "Flux AI"
+                "Authorization": `Bearer ${ZENMUX_KEY}`,
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({
                 model: MODEL_ID,
-                messages: messages
+                messages: messages,
+                max_tokens: 2048,
+                temperature: 0.7
             })
         });
 
-        const data = await response.json();
-
-        // 5. Ошибки
-        if (data.error) {
-            console.error("OpenRouter Error:", data.error);
-            // Если модель еще не вышла или ошибка в названии - скажет тут
-            return res.json({ reply: `❌ Ошибка нейросети: ${data.error.message}` });
+        if (!response.ok) {
+            const err = await response.text();
+            throw new Error(`Zenmux Error ${response.status}: ${err}`);
         }
 
+        const data = await response.json();
         const replyText = data.choices?.[0]?.message?.content || "Пустой ответ.";
         
-        // Добавляем счетчик для Free
+        // Добавляем счетчик
         const prefix = isPro ? "" : `_Flux Core (${userUsage[uid||'anon'].count}/${LIMIT_PER_HOUR})_\n\n`;
         
         res.json({ reply: prefix + replyText });
 
     } catch (error) {
-        console.error("Server Error:", error);
-        res.status(500).json({ reply: "❌ Внутренняя ошибка сервера." });
+        console.error("Server Error:", error.message);
+        res.status(500).json({ reply: `❌ Ошибка сервера: ${error.message}` });
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Gemini 3 Pro) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Zenmux) Ready"));
 
-module.exports = app;
+module.exports = app;   
 
 
 
