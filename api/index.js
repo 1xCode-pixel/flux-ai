@@ -7,18 +7,20 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
 // 1. КЛЮЧ
-const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
-const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
+const GOOGLE_KEY = process.env.GOOGLE_API_KEY;
+// Новый, стабильный эндпоинт Google
+const BASE_URL = "https://generativelanguage.googleapis.com/v1/models";
 
-// 2. САМЫЕ СТАБИЛЬНЫЕ МОДЕЛИ НА OPENROUTER
-const MODEL_FREE = "mistralai/mistral-7b-instruct:free"; // Быстрая и стабильная бесплатная модель
-const MODEL_PRO = "openai/gpt-4o"; // Премиум модель для PRO-версии (требует оплаты)
+// 2. МОДЕЛИ
+const MODEL_FREE = "gemini-2.5-flash"; // Самая быстрая и стабильная Free
+const MODEL_PRO = "gemini-2.5-pro";    // Самая мощная Pro
 
 // ЛИМИТЫ (3 сообщения в час для Free)
 const LIMIT_PER_HOUR = 3;
 const userUsage = {}; 
 
 // --- 3. ТВОИ ПРОМПТЫ ---
+// ... (Промты оставлены без изменений, как ты хотел) ...
 const PROMPT_FREE = `
 ТВОЯ ИНСТРУКЦИЯ:
 1. Ты — **Flux Core** (Базовая версия).
@@ -57,10 +59,8 @@ app.post('/api/chat', async (req, res) => {
         return res.status(503).json({ reply: "⛔ СЕРВЕР НА ОБСЛУЖИВАНИИ" });
     }
 
-    // Проверка ключа OpenRouter
-    if (!OPENROUTER_KEY) {
-        return res.json({ reply: "❌ ОШИБКА: Ключ OPENROUTER_API_KEY не установлен в Vercel." });
-    }
+    // Проверка ключа
+    if (!GOOGLE_KEY) return res.json({ reply: "❌ ОШИБКА: Нет ключа GOOGLE_API_KEY." });
 
     try {
         const { message, file, isPro, uid } = req.body;
@@ -71,93 +71,103 @@ app.post('/api/chat', async (req, res) => {
             const now = Date.now();
             if (!userUsage[userId]) userUsage[userId] = { count: 0, start: now };
             
-            if (now - userUsage[userId].start > 3600000) { 
+            // Сброс через час
+            if (now - userUsage[userId].start > 3600000) {
                 userUsage[userId].count = 0;
                 userUsage[userId].start = now;
             }
 
+            // Блокировка
             if (userUsage[userId].count >= LIMIT_PER_HOUR) {
-                return res.json({ reply: `⛔ **Лимит исчерпан** (${LIMIT_PER_HOUR} запроса в час).\n\n🚀 Активируйте **Flux PRO**.` });
+                return res.json({ reply: `⛔ **Лимит исчерпан** (${LIMIT_PER_HOUR} запроса в час).\n\n🚀 Активируйте **Flux PRO** для безлимитного доступа.` });
             }
             userUsage[userId].count++;
         }
 
-        // [3] Сборка сообщения и выбор модели
+        // [3] Сборка сообщения (Используем формат Google content/parts)
         const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
         const currentModel = isPro ? MODEL_PRO : MODEL_FREE;
-        let messages = [];
+        
+        let contents = [];
+        
+        // Добавляем системный промт (как отдельный Content)
+        contents.push({ role: "system", parts: [{ text: systemPrompt }] });
+        
+        let userParts = [];
+        // Текстовая часть
+        userParts.push({ text: message || "Проанализируй." });
 
         if (file) {
-            // OpenRouter поддерживает multi-modal
-            messages = [
-                { role: "system", content: systemPrompt },
-                {
-                    role: "user",
-                    content: [
-                        { type: "text", text: message || "Проанализируй изображение." },
-                        { type: "image_url", image_url: { url: file } }
-                    ]
-                }
-            ];
-        } else {
-            // Только текст
-            messages = [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: message }
-            ];
-        }
+            // Если есть файл, добавляем его (Google требует media_type и data)
+            // Мы берем data:image/jpeg;base64,DATA
+            const [metadata, base64Data] = file.split(',');
+            const mimeType = metadata.match(/data:(.*?);/)[1];
 
-        // [4] Запрос к OpenRouter
-        const response = await fetch(BASE_URL, {
+            userParts.push({
+                inlineData: {
+                    mimeType: mimeType,
+                    data: base64Data
+                }
+            });
+        }
+        
+        // Добавляем пользовательскую часть
+        contents.push({ role: "user", parts: userParts });
+
+        // 4. Запрос к Google (новый эндпоинт)
+        const response = await fetch(`${BASE_URL}/${currentModel}:generateContent`, {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${OPENROUTER_KEY}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://flux-ai.vercel.app", // Важно для OpenRouter
-                "X-Title": "Flux AI" // Важно для OpenRouter
+                "X-Goog-Api-Key": GOOGLE_KEY, // Ключ здесь в заголовке
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: currentModel,
-                messages: messages,
-                max_tokens: 4000, 
-                temperature: 0.7
+                contents: contents, // Отправляем новый формат contents
+                config: {
+                    temperature: 0.7,
+                    maxOutputTokens: 4096
+                }
             })
         });
 
-        // [5] Обработка ответа
+        // 5. Обработка ответа
         const responseText = await response.text();
         let data;
         
         try {
             data = JSON.parse(responseText);
-        } catch(e) {
-            // Если ответ не JSON (часто бывает при ошибках сети)
-            throw new Error(`OpenRouter Network Error: ${responseText.substring(0, 50)}...`);
+        } catch (e) {
+            throw new Error(`Google Error: Ответ не JSON. ${responseText.substring(0, 50)}...`);
         }
-        
-        // Проверка ошибок от API
+
+        // Проверка на ошибку (часто в data.error)
         if (data.error) {
-            let errorMessage = data.error.message || "Неизвестная ошибка API.";
-            if (response.status === 429) {
-                 errorMessage = "Превышен лимит запросов к нейросети. Подождите 30 секунд.";
-            } else if (errorMessage.includes("Model not found") || errorMessage.includes("not paid for")) {
-                 errorMessage = `Ошибка: Модель ${currentModel} не найдена или требует оплаты кредитами OpenRouter.`;
+            const errMessage = data.error.message || `Статус: ${response.status}`;
+            console.error("Google API Error:", data.error);
+            return res.json({ reply: `❌ Ошибка Google API (Gemini 2.5):\n${errMessage}` });
+        }
+
+        const candidate = data.candidates?.[0];
+        const content = candidate?.content?.parts?.[0]?.text;
+
+        if (!content) {
+            // Если сработал фильтр безопасности (Safety Filter)
+            const finishReason = candidate?.finishReason || "UNKNOWN";
+            const safetyRatings = JSON.stringify(candidate?.safetyRatings, null, 2);
+            
+            let detailedMessage = `⚠️ **Пустой ответ от Gemini 2.5.**\nПричина завершения: \`${finishReason}\`\n`;
+            
+            // Если причина — блокировка, показываем детали
+            if (finishReason === 'SAFETY') {
+                detailedMessage += `\n**Сработал фильтр безопасности Google.**\nРейтинги:\n\`\`\`json\n${safetyRatings}\n\`\`\``;
             }
-            return res.json({ reply: `❌ ОШИБКА OPENROUTER:\n${errorMessage}` });
-        }
-        
-        const replyText = data.choices?.[0]?.message?.content;
-
-        if (!replyText) {
-            // Если ответ пустой (крайне редко на OpenRouter)
-            const reason = data.choices?.[0]?.finish_reason || "UNKNOWN";
-            return res.json({ reply: `⚠️ **Пустой ответ.**\nНейросеть не смогла сгенерировать ответ. Причина: \`${reason}\`` });
+            
+            return res.json({ reply: detailedMessage });
         }
 
-        // [6] Успех + префикс
+        // 6. Успех + префикс
         const prefix = isPro ? "" : `_Flux Core (${userUsage[uid||'anon'].count}/${LIMIT_PER_HOUR})_\n\n`;
-        
-        res.json({ reply: prefix + replyText });
+        res.json({ reply: prefix + content });
 
     } catch (error) {
         console.error("Server Error:", error);
@@ -165,9 +175,10 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Stable Models) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Gemini 2.5 Stable) Ready"));
 
 module.exports = app;
+
 
 
 
