@@ -6,12 +6,13 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// 1. КЛЮЧ ОТ OPENROUTER
+// 1. КЛЮЧ
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
 const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// 2. МОДЕЛЬ (Gemini 2.0 Flash - Бесплатная, мощная, видит фото)
-const MODEL_ID = "google/gemini-2.0-flash-exp:free"; 
+// 2. САМЫЕ СТАБИЛЬНЫЕ МОДЕЛИ НА OPENROUTER
+const MODEL_FREE = "mistralai/mistral-7b-instruct:free"; // Быстрая и стабильная бесплатная модель
+const MODEL_PRO = "openai/gpt-4o"; // Премиум модель для PRO-версии (требует оплаты)
 
 // ЛИМИТЫ (3 сообщения в час для Free)
 const LIMIT_PER_HOUR = 3;
@@ -56,7 +57,10 @@ app.post('/api/chat', async (req, res) => {
         return res.status(503).json({ reply: "⛔ СЕРВЕР НА ОБСЛУЖИВАНИИ" });
     }
 
-    if (!OPENROUTER_KEY) return res.json({ reply: "❌ ОШИБКА: Нет ключа OPENROUTER_API_KEY." });
+    // Проверка ключа OpenRouter
+    if (!OPENROUTER_KEY) {
+        return res.json({ reply: "❌ ОШИБКА: Ключ OPENROUTER_API_KEY не установлен в Vercel." });
+    }
 
     try {
         const { message, file, isPro, uid } = req.body;
@@ -67,7 +71,7 @@ app.post('/api/chat', async (req, res) => {
             const now = Date.now();
             if (!userUsage[userId]) userUsage[userId] = { count: 0, start: now };
             
-            if (now - userUsage[userId].start > 3600000) { // Сброс через час
+            if (now - userUsage[userId].start > 3600000) { 
                 userUsage[userId].count = 0;
                 userUsage[userId].start = now;
             }
@@ -78,12 +82,13 @@ app.post('/api/chat', async (req, res) => {
             userUsage[userId].count++;
         }
 
-        // [3] Сборка сообщения
+        // [3] Сборка сообщения и выбор модели
         const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
+        const currentModel = isPro ? MODEL_PRO : MODEL_FREE;
         let messages = [];
 
         if (file) {
-            // OpenRouter формат для картинок
+            // OpenRouter поддерживает multi-modal
             messages = [
                 { role: "system", content: systemPrompt },
                 {
@@ -108,12 +113,11 @@ app.post('/api/chat', async (req, res) => {
             headers: {
                 "Authorization": `Bearer ${OPENROUTER_KEY}`,
                 "Content-Type": "application/json",
-                // Обязательные заголовки для OpenRouter (иначе заблокируют)
-                "HTTP-Referer": "https://flux-ai.vercel.app", 
-                "X-Title": "Flux AI"
+                "HTTP-Referer": "https://flux-ai.vercel.app", // Важно для OpenRouter
+                "X-Title": "Flux AI" // Важно для OpenRouter
             },
             body: JSON.stringify({
-                model: MODEL_ID,
+                model: currentModel,
                 messages: messages,
                 max_tokens: 4000, 
                 temperature: 0.7
@@ -121,34 +125,47 @@ app.post('/api/chat', async (req, res) => {
         });
 
         // [5] Обработка ответа
-        if (!response.ok) {
-            const errText = await response.text();
-            let errJson;
-            try { errJson = JSON.parse(errText); } catch(e) {}
-            
-            // Если лимит OpenRouter (429)
+        const responseText = await response.text();
+        let data;
+        
+        try {
+            data = JSON.parse(responseText);
+        } catch(e) {
+            // Если ответ не JSON (часто бывает при ошибках сети)
+            throw new Error(`OpenRouter Network Error: ${responseText.substring(0, 50)}...`);
+        }
+        
+        // Проверка ошибок от API
+        if (data.error) {
+            let errorMessage = data.error.message || "Неизвестная ошибка API.";
             if (response.status === 429) {
-                return res.json({ reply: "⚠️ Сервер нейросети перегружен. Попробуйте через 30 секунд." });
+                 errorMessage = "Превышен лимит запросов к нейросети. Подождите 30 секунд.";
+            } else if (errorMessage.includes("Model not found") || errorMessage.includes("not paid for")) {
+                 errorMessage = `Ошибка: Модель ${currentModel} не найдена или требует оплаты кредитами OpenRouter.`;
             }
-            
-            throw new Error(`OpenRouter Error: ${errJson?.error?.message || errText}`);
+            return res.json({ reply: `❌ ОШИБКА OPENROUTER:\n${errorMessage}` });
+        }
+        
+        const replyText = data.choices?.[0]?.message?.content;
+
+        if (!replyText) {
+            // Если ответ пустой (крайне редко на OpenRouter)
+            const reason = data.choices?.[0]?.finish_reason || "UNKNOWN";
+            return res.json({ reply: `⚠️ **Пустой ответ.**\nНейросеть не смогла сгенерировать ответ. Причина: \`${reason}\`` });
         }
 
-        const data = await response.json();
-        const replyText = data.choices?.[0]?.message?.content || "⚠️ Пустой ответ от нейросети.";
-        
-        // Префикс счетчика для Free
+        // [6] Успех + префикс
         const prefix = isPro ? "" : `_Flux Core (${userUsage[uid||'anon'].count}/${LIMIT_PER_HOUR})_\n\n`;
         
         res.json({ reply: prefix + replyText });
 
     } catch (error) {
         console.error("Server Error:", error);
-        res.status(500).json({ reply: `❌ Ошибка сервера: ${error.message}` });
+        res.status(500).json({ reply: `❌ Критическая ошибка сервера: ${error.message}` });
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (OpenRouter Gemini 2.0) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Stable Models) Ready"));
 
 module.exports = app;
 
