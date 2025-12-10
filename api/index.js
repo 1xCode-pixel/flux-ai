@@ -4,98 +4,132 @@ const cors = require('cors');
 
 const app = express();
 app.use(cors());
+// Лимит 50mb нужен для загрузки картинок
 app.use(express.json({ limit: '50mb' }));
 
-// --- НАСТРОЙКИ ЛИМИТОВ ---
-// Храним в памяти сервера
-const userUsage = {}; 
-const LIMIT_COUNT = 3;              // Максимум 3 сообщения
-const TIME_WINDOW = 60 * 60 * 1000; // 1 час (в миллисекундах)
+// --- КОНФИГУРАЦИЯ ---
+const ZENMUX_KEY = process.env.ZENMUX_KEY; // Твой ключ от Zenmux
+const BASE_URL = "https://zenmux.ai/api/v1/chat/completions";
 
-// --- ПРОВЕРКА СТАТУСА ---
+// Модели
+const MODEL_PRO = "google/gemini-1.5-pro";
+const MODEL_FREE = "google/gemini-1.5-flash";
+
+// Лимиты для Free
+const LIMIT_PER_HOUR = 3;
+const userUsage = {}; // Память для хранения счетчиков { uid: { count, start } }
+
+// 1. ПРОВЕРКА СТАТУСА СЕРВЕРА (Для Frontend)
 app.get('/api/status', (req, res) => {
-    if (process.env.MAINTENANCE_MODE === 'true') res.json({ status: 'maintenance' });
-    else res.json({ status: 'active' });
+    // Читаем настройку из Vercel Environment Variables
+    if (process.env.MAINTENANCE_MODE === 'true') {
+        res.json({ status: 'maintenance' });
+    } else {
+        res.json({ status: 'active' });
+    }
 });
 
-// --- РЕГИСТРАЦИЯ ---
+// Заглушка регистрации
 app.post('/api/register', (req, res) => res.json({ status: 'ok' }));
 
-// --- ЧАТ ---
+// 2. ГЛАВНЫЙ ЧАТ
 app.post('/api/chat', async (req, res) => {
-    // 1. Проверка тех. работ
+    // --- [1] ПРОВЕРКА ТЕХ. РАБОТ ---
+    // Если в Vercel стоит MAINTENANCE_MODE=true, сразу блокируем
     if (process.env.MAINTENANCE_MODE === 'true') {
-        return res.status(503).json({ reply: "⛔ СЕРВЕР НА ОБСЛУЖИВАНИИ" });
+        return res.status(503).json({ reply: "⛔ **СЕРВЕР НА ОБСЛУЖИВАНИИ**.\nМы обновляем систему Flux. Попробуйте позже." });
     }
 
     try {
         const { message, file, isPro, uid } = req.body;
 
-        // 2. ПРОВЕРКА ЛИМИТОВ (ТОЛЬКО ДЛЯ FREE)
+        // --- [2] ПРОВЕРКА ЛИМИТОВ (Только для Free) ---
         if (!isPro) {
-            const userId = uid || 'anon'; 
+            const userId = uid || 'anon';
             const now = Date.now();
 
-            // Если юзера нет в базе памяти - создаем
-            if (!userUsage[userId]) {
-                userUsage[userId] = { count: 0, startTime: now };
+            if (!userUsage[userId]) userUsage[userId] = { count: 0, start: now };
+            
+            // Если прошел час - сбрасываем
+            if (now - userUsage[userId].start > 3600000) {
+                userUsage[userId].count = 0;
+                userUsage[userId].start = now;
             }
 
-            const userData = userUsage[userId];
-
-            // Если прошел час с первого сообщения - сбрасываем счетчик
-            if (now - userData.startTime > TIME_WINDOW) {
-                userData.count = 0;
-                userData.startTime = now;
-            }
-
-            // Если лимит превышен
-            if (userData.count >= LIMIT_COUNT) {
+            // Если лимит исчерпан
+            if (userUsage[userId].count >= LIMIT_PER_HOUR) {
                 return res.json({ 
-                    reply: `⛔ **Лимит исчерпан** (3 запроса в час).\n\nДля безлимитного доступа активируйте **Flux PRO**.` 
+                    reply: `⛔ **Лимит исчерпан** (${LIMIT_PER_HOUR} запроса в час).\nОбновите подписку до **PRO**, чтобы снять ограничения.` 
                 });
             }
 
             // Увеличиваем счетчик
-            userData.count++;
-            console.log(`User ${userId}: ${userData.count}/${LIMIT_COUNT}`);
+            userUsage[userId].count++;
         }
 
-        // 3. Проверка файла
-        if (file) {
-            return res.json({ reply: "⚠️ Анализ изображений временно недоступен. Работает текстовый режим." });
-        }
-
-        // 4. Формируем промпт
+        // --- [3] ВЫБОР МОДЕЛИ И ПРОМПТА ---
+        const model = isPro ? MODEL_PRO : MODEL_FREE;
+        
         const systemPrompt = isPro 
-            ? "Ты Flux PRO (v1.0). Отвечай экспертно, используй Markdown, заголовки, списки. Ты профессионал. Разработчик: 1xCode."
-            : "Ты Flux Free. Отвечай кратко и по делу. Разработчик: 1xCode.";
-        
-        const fullPrompt = `${systemPrompt}\n\nUser Question: ${message}\n\nFlux Answer (in Russian):`;
+            ? "Ты — Flux Ultra (v5.0). Ты работаешь на модели Gemini 1.5 Pro. Отвечай экспертно, подробно, используй Markdown. Ты профессионал."
+            : "Ты — Flux Core. Ты работаешь на модели Gemini 1.5 Flash. Отвечай кратко, быстро и по делу.";
 
-        // 5. Отправка (Pollinations - Без ключей)
-        const url = `https://text.pollinations.ai/${encodeURIComponent(fullPrompt)}?model=openai`;
+        // --- [4] ПОДГОТОВКА СООБЩЕНИЯ (ТЕКСТ ИЛИ ФОТО) ---
+        let userContent;
 
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error(`Pollinations Error: ${response.status}`);
+        if (file) {
+            // Если есть файл (картинка)
+            userContent = [
+                { type: "text", text: message || "Проанализируй это изображение." },
+                { type: "image_url", image_url: { url: file } } // file уже в base64 от фронтенда
+            ];
+        } else {
+            // Только текст
+            userContent = message;
         }
 
-        const text = await response.text();
+        // --- [5] ЗАПРОС К ZENMUX ---
+        const payload = {
+            model: model,
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userContent }
+            ],
+            max_tokens: 2048,
+            temperature: 0.7
+        };
 
-        res.json({ reply: text });
+        const response = await fetch(BASE_URL, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${ZENMUX_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const err = await response.text();
+            throw new Error(`Zenmux Error: ${err}`);
+        }
+
+        const data = await response.json();
+        const replyText = data.choices?.[0]?.message?.content || "Ошибка: Пустой ответ.";
+
+        // Добавляем пометку для Free версии, чтобы пользователь знал, чем пользуется
+        const prefix = isPro ? "" : `_Flux Core (${userUsage[uid||'anon'].count}/${LIMIT_PER_HOUR})_\n\n`;
+
+        res.json({ reply: prefix + replyText });
 
     } catch (error) {
         console.error("Server Error:", error.message);
-        res.json({ 
-            reply: "**Flux Offline:** Сервер перегружен. Попробуйте через 10 секунд." 
-        });
+        res.status(500).json({ reply: "❌ Ошибка сервера Flux (Zenmux Gate)." });
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Limited Edition) Ready"));
+app.get('/', (req, res) => res.send("Flux AI Backend (Zenmux)"));
 
 module.exports = app;
+
 
 
