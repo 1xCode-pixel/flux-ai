@@ -10,9 +10,8 @@ app.use(express.json({ limit: '50mb' }));
 const GOOGLE_KEY = process.env.GOOGLE_API_KEY;
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
-// 2. МОДЕЛЬ
-// Самая стабильная, бесплатная и быстрая. Не выдает 429 и 404.
-const MODEL_ID = "gemini-1.5-flash"; 
+// 2. МОДЕЛЬ (Новейшая Preview, которую ты указал)
+const MODEL_ID = "gemini-3-pro-preview"; 
 
 // 3. ЛИМИТЫ (Сообщений в час)
 const LIMIT_FREE = 3; 
@@ -109,14 +108,14 @@ app.post('/api/chat', async (req, res) => {
             }
         }
 
-        // 4. Отправка в Google
+        // 4. Отправка в Google (Gemini 3 Preview)
         const response = await fetch(`${BASE_URL}/${MODEL_ID}:generateContent?key=${GOOGLE_KEY}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 systemInstruction: { parts: [{ text: systemPrompt }] },
                 contents: [ { role: "user", parts: userParts } ],
-                // Ослабляем фильтры безопасности, чтобы не блокировал обычные вопросы
+                // Ослабленные настройки безопасности
                 safetySettings: [
                     { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
                     { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
@@ -125,7 +124,7 @@ app.post('/api/chat', async (req, res) => {
                 ],
                 generationConfig: {
                     temperature: 0.7,
-                    maxOutputTokens: 4096
+                    maxOutputTokens: 8192 // Увеличил лимит токенов для 3.0
                 }
             })
         });
@@ -136,14 +135,13 @@ app.post('/api/chat', async (req, res) => {
 
         // 5. Обработка ошибок
         if (!response.ok || (data && data.error)) {
-            // Возвращаем попытку при ошибке сервера
-            userUsage[userId].count--;
+            userUsage[userId].count--; // Возвращаем попытку при ошибке
 
             const errCode = data?.error?.code || response.status;
             const errMsg = data?.error?.message || responseText;
 
-            if (errCode === 429) return res.json({ reply: "⏳ Система перегружена. Подождите пару секунд." });
-            if (errCode === 404) return res.json({ reply: "❌ Ошибка: Модель временно недоступна." });
+            if (errCode === 429) return res.json({ reply: "⏳ Gemini 3 Preview перегружена. Попробуйте через 10 секунд." });
+            if (errCode === 404) return res.json({ reply: `❌ Модель ${MODEL_ID} не найдена. Проверьте правильность названия.` });
 
             return res.json({ reply: `❌ Ошибка Google API (${errCode}): ${errMsg}` });
         }
@@ -153,7 +151,7 @@ app.post('/api/chat', async (req, res) => {
 
         if (!content) {
             const reason = candidate?.finishReason || "UNKNOWN";
-            return res.json({ reply: `⚠️ **Пустой ответ.**\nПричина: \`${reason}\` (Возможно, фильтр безопасности)` });
+            return res.json({ reply: `⚠️ **Пустой ответ.**\nПричина: \`${reason}\`` });
         }
 
         // 6. Ответ пользователю
@@ -166,9 +164,10 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Final Stable Release) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Gemini 3 Preview) Ready"));
 
 module.exports = app;
+
 
 
 
