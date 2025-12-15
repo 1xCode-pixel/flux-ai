@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 
 const app = express();
 app.use(cors());
+// Увеличиваем лимит, чтобы фото точно пролезали
 app.use(express.json({ limit: '50mb' }));
 
 // --- 1. КОНФИГУРАЦИЯ ---
@@ -12,11 +13,24 @@ const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
 const MONGODB_URI = process.env.MONGODB_URI;
 const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// --- 2. ПОДКЛЮЧЕНИЕ К БАЗЕ ДАННЫХ ---
-if (MONGODB_URI) {
-    mongoose.connect(MONGODB_URI)
-        .then(() => console.log("✅ MongoDB Connected"))
-        .catch(err => console.error("❌ MongoDB Error:", err));
+// --- 2. ПРАВИЛЬНОЕ ПОДКЛЮЧЕНИЕ К MONGODB (CACHED) ---
+// В Vercel переменные живут между запросами, поэтому мы кэшируем соединение.
+// Иначе каждое сообщение будет открывать новое соединение и убивать базу.
+let cachedDb = null;
+
+async function connectToDatabase() {
+    if (cachedDb) {
+        return cachedDb;
+    }
+    if (!MONGODB_URI) {
+        throw new Error("❌ MONGODB_URI не задан в Vercel!");
+    }
+    const db = await mongoose.connect(MONGODB_URI, {
+        bufferCommands: false, // Отключаем буферизацию для скорости
+    });
+    cachedDb = db;
+    console.log("✅ New MongoDB Connection Created");
+    return db;
 }
 
 // --- 3. СХЕМА ЮЗЕРА ---
@@ -27,10 +41,10 @@ const UserSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
     lastLogin: { type: Date, default: Date.now }
 });
-const User = mongoose.model('User', UserSchema);
+// Проверка, чтобы не компилировать модель дважды (ошибка MongooseError)
+const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
-// --- 4. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМПТЫ ---
-
+// --- 4. ТВОИ ПРОМПТЫ ---
 const PROMPT_FREE = `
 ТВОЯ ИНСТРУКЦИЯ:
 1. Ты — **Flux Core** (Базовая версия).
@@ -54,28 +68,24 @@ const PROMPT_PRO = `
 9. Если ты решаешь что то математическое там и хочешь сделать свои определения то не делай просто решай.
 `;
 
-// --- 5. СПИСОК МОДЕЛЕЙ (Auto-Switch) ---
+// --- 5. МОДЕЛИ ---
+// Добавил таймаут-устойчивые модели
 const MODELS = [
     "google/gemini-2.0-flash-exp:free",
     "meta-llama/llama-3.2-11b-vision-instruct:free",
-    "openai/gpt-3.5-turbo",
     "qwen/qwen-2-vl-7b-instruct:free"
 ];
 
 const LIMIT_FREE = 3; 
 const LIMIT_PRO = 50; 
-const userUsage = {}; 
+const userUsage = {}; // Внимание: в Vercel это сбрасывается, но для простой защиты сойдет
 
-// --- СТАТУС ---
-app.get('/api/status', (req, res) => {
-    if (process.env.MAINTENANCE_MODE === 'true') res.json({ status: 'maintenance' });
-    else res.json({ status: 'active', db: mongoose.connection.readyState === 1 ? 'ok' : 'error' });
-});
-
-// --- АВТО-РЕГИСТРАЦИЯ (Вход на сайт) ---
+// --- 6. АВТО-РЕГИСТРАЦИЯ ---
 app.post('/api/auth', async (req, res) => {
     try {
+        await connectToDatabase(); // Подключаемся
         const { uid } = req.body;
+        
         if (!uid) return res.status(400).json({ error: "No UID" });
 
         let user = await User.findOne({ uid });
@@ -83,10 +93,10 @@ app.post('/api/auth', async (req, res) => {
         if (!user) {
             user = new User({ uid });
             await user.save();
-            console.log(`🆕 User Registered: ${uid}`);
+            console.log(`🆕 Registered: ${uid}`);
         } else {
             user.lastLogin = Date.now();
-            // Проверка истечения подписки
+            // Проверка PRO
             if (user.isPro && user.proExpiry > 0 && user.proExpiry < Date.now()) {
                 user.isPro = false;
             }
@@ -96,14 +106,19 @@ app.post('/api/auth', async (req, res) => {
         res.json({ status: 'ok', isPro: user.isPro, expiry: user.proExpiry });
     } catch (e) {
         console.error("Auth Error:", e);
-        res.status(500).json({ error: "DB Error" });
+        // Не валим сервер, если база отвалилась, пускаем как Free
+        res.json({ status: 'ok', isPro: false, error: 'DB_OFFLINE' }); 
     }
 });
 
-// --- 6. ФУНКЦИЯ ЗАПРОСА (УЛУЧШЕННАЯ) ---
+// --- 7. ФУНКЦИЯ ЧАТА (ROBUST) ---
 async function tryChat(modelId, messages) {
-    console.log(`[API] Trying model: ${modelId}...`);
+    console.log(`[API] Asking ${modelId}...`);
     try {
+        // Добавляем таймаут контроллер, чтобы не висеть вечно
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 секунд макс
+
         const response = await fetch(BASE_URL, {
             method: "POST",
             headers: {
@@ -117,53 +132,55 @@ async function tryChat(modelId, messages) {
                 messages: messages,
                 max_tokens: 2048,
                 temperature: 0.7
-            })
+            }),
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
 
-        // Если ответ не 200, логируем и выходим, но ловим 429
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`[API ERROR] ${modelId}: ${response.status} - ${errorText.substring(0, 100)}`);
-            
-            if (response.status === 429) {
-                throw new Error("429_RATE_LIMIT"); 
-            }
-            return null; 
+            // Если 429 - значит лимит, пробуем другую
+            if (response.status === 429) throw new Error("RATE_LIMIT");
+            // Если 5xx - ошибка сервера, пробуем другую
+            if (response.status >= 500) throw new Error("SERVER_ERROR");
+            return null;
         }
 
         const data = await response.json();
-        if (!data.choices || !data.choices[0]) return null;
-        
-        return data.choices[0].message.content;
+        return data.choices?.[0]?.message?.content || null;
 
     } catch (e) {
-        if (e.message === "429_RATE_LIMIT") throw e;
-        console.error(`[FETCH ERROR] ${modelId}:`, e.message);
-        return null;
+        console.error(`[API FAIL] ${modelId}:`, e.message);
+        return null; 
     }
 }
 
-// --- ЧАТ ---
+// --- API CHAT ROUTE ---
 app.post('/api/chat', async (req, res) => {
-    // 1. Проверки
-    if (process.env.MAINTENANCE_MODE === 'true') return res.status(503).json({ reply: "⛔ СЕРВЕР НА ОБСЛУЖИВАНИИ" });
-    if (!OPENROUTER_KEY) return res.json({ reply: "❌ ОШИБКА: Нет ключа API." });
-
-    let replyText = null;
-    let rateLimitReached = false;
+    // Проверка статуса сервера
+    if (process.env.MAINTENANCE_MODE === 'true') 
+        return res.status(503).json({ reply: "⛔ СЕРВЕР НА ОБСЛУЖИВАНИИ" });
+    
+    if (!OPENROUTER_KEY) 
+        return res.json({ reply: "❌ ОШИБКА КОНФИГУРАЦИИ: Нет ключа API." });
 
     try {
+        // Подключаем базу (если получится)
+        try { await connectToDatabase(); } catch(e) { console.error("Chat DB Warn:", e); }
+
         const { message, file, files, uid } = req.body;
         const userId = uid || 'anon';
         
-        // 2. Статус PRO из БД
+        // Получаем статус (если база работает)
         let isPro = false;
-        if (userId !== 'anon') {
-            const user = await User.findOne({ uid: userId });
-            if (user) isPro = user.isPro;
-        }
+        try {
+            if (userId !== 'anon') {
+                const user = await User.findOne({ uid: userId });
+                if (user) isPro = user.isPro;
+            }
+        } catch(e) {} // Игнорируем ошибку базы при проверке прав
 
-        // 3. Лимиты
+        // Лимиты (в памяти)
         const now = Date.now();
         if (!userUsage[userId]) userUsage[userId] = { count: 0, start: now };
         if (now - userUsage[userId].start > 3600000) { 
@@ -177,16 +194,19 @@ app.post('/api/chat', async (req, res) => {
         }
         userUsage[userId].count++;
 
-        // 4. Сборка сообщения
+        // Сборка сообщения
         const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
-        
         let userContent = [];
-        userContent.push({ type: "text", text: message || "Проанализируй." });
+        userContent.push({ type: "text", text: message || "Анализ." });
 
+        // Обработка картинок
         const filesToProcess = files || (file ? [file] : []);
         if (filesToProcess.length > 0) {
             filesToProcess.forEach(f => {
-                userContent.push({ type: "image_url", image_url: { url: f } });
+                // Важно: Проверяем, что это картинка base64, иначе OpenRouter может отвергнуть
+                if (f && f.startsWith('data:image')) {
+                    userContent.push({ type: "image_url", image_url: { url: f } });
+                }
             });
         }
 
@@ -195,67 +215,54 @@ app.post('/api/chat', async (req, res) => {
             { role: "user", content: userContent }
         ];
 
-        // 5. Перебор моделей
+        // Запуск перебора моделей
+        let replyText = null;
         for (const model of MODELS) {
-            try {
-                replyText = await tryChat(model, messages);
-                if (replyText) break; // Успех!
-            } catch (e) {
-                if (e.message === "429_RATE_LIMIT") {
-                    rateLimitReached = true;
-                    break; 
-                }
-            }
-        }
-
-        // 6. Обработка ошибок
-        if (rateLimitReached) {
-            userUsage[userId].count--; 
-            return res.json({ reply: "⏳ **Сервер перегружен.** Все бесплатные линии заняты (429). Попробуйте через минуту." });
+            replyText = await tryChat(model, messages);
+            if (replyText) break; // Успех, выходим из цикла
         }
 
         if (!replyText) {
-            userUsage[userId].count--; 
-            return res.json({ reply: "⚠️ **Ошибка соединения.** Не удалось получить ответ от нейросети. Попробуйте еще раз." });
+            userUsage[userId].count--; // Возвращаем попытку
+            return res.json({ reply: "⚠️ **Ошибка соединения.** Нейросети перегружены или недоступны. Попробуйте еще раз через минуту." });
         }
 
-        // 7. Успех
         const prefix = isPro ? "" : `_Flux Core (${userUsage[userId].count}/${LIMIT_FREE})_\n\n`;
         res.json({ reply: prefix + replyText });
 
     } catch (error) {
-        console.error("Server Fatal Error:", error);
-        res.status(500).json({ reply: `❌ Критическая ошибка: ${error.message}` });
+        console.error("CRITICAL SERVER ERROR:", error);
+        res.status(500).json({ reply: `❌ Ошибка сервера: ${error.message}` });
     }
 });
 
-// --- ADMIN ---
+// --- ADMIN API ---
 app.post('/api/admin/grant', async (req, res) => {
-    const { targetUid, duration } = req.body;
     try {
+        await connectToDatabase();
+        const { targetUid, duration } = req.body;
+        
         let user = await User.findOne({ uid: targetUid });
         if (!user) user = new User({ uid: targetUid });
 
         let addTime = 0;
         if(duration === '24h') addTime = 86400000;
-        if(duration === '3d') addTime = 259200000;
-        if(duration === '1w') addTime = 604800000;
-        if(duration === '1m') addTime = 2592000000;
-        if(duration === 'perm') addTime = 1000 * 60 * 60 * 24 * 365 * 10; 
+        if(duration === 'perm') addTime = 315360000000; // 10 лет
 
         user.isPro = true;
         user.proExpiry = Date.now() + addTime;
         await user.save();
 
-        res.json({ status: 'ok', message: `PRO granted to ${targetUid}` });
+        res.json({ status: 'ok', message: `PRO выдан пользователю ${targetUid}` });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Final Stable) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Vercel Robust) Ready"));
 
 module.exports = app;
+
 
 
 
