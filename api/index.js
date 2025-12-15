@@ -58,6 +58,7 @@ const PROMPT_PRO = `
 const MODELS = [
     "google/gemini-2.0-flash-exp:free",
     "meta-llama/llama-3.2-11b-vision-instruct:free",
+    "openai/gpt-3.5-turbo",
     "qwen/qwen-2-vl-7b-instruct:free"
 ];
 
@@ -255,6 +256,7 @@ app.post('/api/admin/grant', async (req, res) => {
 app.get('/', (req, res) => res.send("Flux AI (Final Stable) Ready"));
 
 module.exports = app;
+
 
 
 
