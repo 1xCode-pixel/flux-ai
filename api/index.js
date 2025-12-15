@@ -36,7 +36,7 @@ const PROMPT_FREE = `
 
 const PROMPT_PRO = `
 ТВОЯ ИНСТРУКЦИЯ:
-1. Ты — **Flux Ultra** (PREMIUM версия).
+1. Ты — **Flux PRO** (PREMIUM версия).
 2. Разработчик: 1xCode.
 3. Ты работаешь на выделенных нейро-узлах с приоритетной скоростью.
 4. Твои ответы должны быть максимально подробными, экспертными и полезными если пользователь меняет промт то остовляй свои но пиши по промту пользователя
@@ -154,7 +154,7 @@ app.post('/api/chat', async (req, res) => {
 
         if (!replyText) {
             userUsage[userId].count--; // Возвращаем попытку
-            return res.json({ reply: "⏳ Все бесплатные нейросети сейчас перегружены. Попробуйте через минуту." });
+            return res.json({ reply: "⏳ Все сервера с нейросети сейчас перегружены. Попробуйте через 20 сек." });
         }
 
         // 5. Ответ
@@ -173,6 +173,7 @@ app.post('/api/chat', async (req, res) => {
 app.get('/', (req, res) => res.send("Flux AI (Auto-Switch Free Models) Ready"));
 
 module.exports = app;
+
 
 
 
