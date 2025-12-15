@@ -19,7 +19,7 @@ if (MONGODB_URI) {
         .catch(err => console.error("❌ MongoDB Error:", err));
 }
 
-// --- 3. СХЕМА ЮЗЕРА (Для сохранения) ---
+// --- 3. СХЕМА ЮЗЕРА ---
 const UserSchema = new mongoose.Schema({
     uid: { type: String, required: true, unique: true },
     isPro: { type: Boolean, default: false },
@@ -29,7 +29,7 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema);
 
-// --- 4. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМПТЫ (ТОЧНАЯ КОПИЯ) ---
+// --- 4. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМПТЫ ---
 
 const PROMPT_FREE = `
 ТВОЯ ИНСТРУКЦИЯ:
@@ -71,7 +71,7 @@ app.get('/api/status', (req, res) => {
     else res.json({ status: 'active', db: mongoose.connection.readyState === 1 ? 'ok' : 'error' });
 });
 
-// --- АВТО-РЕГИСТРАЦИЯ (Вызывается при загрузке сайта) ---
+// --- АВТО-РЕГИСТРАЦИЯ (Вход на сайт) ---
 app.post('/api/auth', async (req, res) => {
     try {
         const { uid } = req.body;
@@ -99,8 +99,9 @@ app.post('/api/auth', async (req, res) => {
     }
 });
 
-// --- ФУНКЦИЯ ЗАПРОСА К OPENROUTER ---
+// --- 6. ФУНКЦИЯ ЗАПРОСА (УЛУЧШЕННАЯ) ---
 async function tryChat(modelId, messages) {
+    console.log(`[API] Trying model: ${modelId}...`);
     try {
         const response = await fetch(BASE_URL, {
             method: "POST",
@@ -118,31 +119,50 @@ async function tryChat(modelId, messages) {
             })
         });
 
-        if (!response.ok) return null;
+        // Если ответ не 200, логируем и выходим, но ловим 429
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`[API ERROR] ${modelId}: ${response.status} - ${errorText.substring(0, 100)}`);
+            
+            if (response.status === 429) {
+                throw new Error("429_RATE_LIMIT"); 
+            }
+            return null; 
+        }
+
         const data = await response.json();
-        return data.choices?.[0]?.message?.content || null;
+        if (!data.choices || !data.choices[0]) return null;
+        
+        return data.choices[0].message.content;
+
     } catch (e) {
+        if (e.message === "429_RATE_LIMIT") throw e;
+        console.error(`[FETCH ERROR] ${modelId}:`, e.message);
         return null;
     }
 }
 
 // --- ЧАТ ---
 app.post('/api/chat', async (req, res) => {
+    // 1. Проверки
     if (process.env.MAINTENANCE_MODE === 'true') return res.status(503).json({ reply: "⛔ СЕРВЕР НА ОБСЛУЖИВАНИИ" });
     if (!OPENROUTER_KEY) return res.json({ reply: "❌ ОШИБКА: Нет ключа API." });
+
+    let replyText = null;
+    let rateLimitReached = false;
 
     try {
         const { message, file, files, uid } = req.body;
         const userId = uid || 'anon';
         
-        // 1. Проверяем статус в БД (приоритет базы данных)
+        // 2. Статус PRO из БД
         let isPro = false;
         if (userId !== 'anon') {
             const user = await User.findOne({ uid: userId });
             if (user) isPro = user.isPro;
         }
 
-        // 2. Лимиты
+        // 3. Лимиты
         const now = Date.now();
         if (!userUsage[userId]) userUsage[userId] = { count: 0, start: now };
         if (now - userUsage[userId].start > 3600000) { 
@@ -156,51 +176,59 @@ app.post('/api/chat', async (req, res) => {
         }
         userUsage[userId].count++;
 
-        // 3. Сборка сообщений
+        // 4. Сборка сообщения
         const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
         
-        // Содержимое пользователя (текст + картинки)
         let userContent = [];
         userContent.push({ type: "text", text: message || "Проанализируй." });
 
-        // Поддержка массива файлов (files) и одиночного файла (file) для совместимости
         const filesToProcess = files || (file ? [file] : []);
-        
         if (filesToProcess.length > 0) {
             filesToProcess.forEach(f => {
                 userContent.push({ type: "image_url", image_url: { url: f } });
             });
         }
 
-        // Формат сообщений для OpenRouter
         const messages = [
             { role: "system", content: systemPrompt },
             { role: "user", content: userContent }
         ];
 
-        // 4. Умный перебор моделей (Auto-Switch)
-        let replyText = null;
+        // 5. Перебор моделей
         for (const model of MODELS) {
-            replyText = await tryChat(model, messages);
-            if (replyText) break; // Успех!
+            try {
+                replyText = await tryChat(model, messages);
+                if (replyText) break; // Успех!
+            } catch (e) {
+                if (e.message === "429_RATE_LIMIT") {
+                    rateLimitReached = true;
+                    break; 
+                }
+            }
+        }
+
+        // 6. Обработка ошибок
+        if (rateLimitReached) {
+            userUsage[userId].count--; 
+            return res.json({ reply: "⏳ **Сервер перегружен.** Все бесплатные линии заняты (429). Попробуйте через минуту." });
         }
 
         if (!replyText) {
-            userUsage[userId].count--; // Возвращаем попытку
-            return res.json({ reply: "⏳ Все линии заняты. Попробуйте через 20 секунд." });
+            userUsage[userId].count--; 
+            return res.json({ reply: "⚠️ **Ошибка соединения.** Не удалось получить ответ от нейросети. Попробуйте еще раз." });
         }
 
-        // 5. Ответ
+        // 7. Успех
         const prefix = isPro ? "" : `_Flux Core (${userUsage[userId].count}/${LIMIT_FREE})_\n\n`;
         res.json({ reply: prefix + replyText });
 
     } catch (error) {
-        console.error("Server Error:", error);
-        res.status(500).json({ reply: `❌ Ошибка сервера: ${error.message}` });
+        console.error("Server Fatal Error:", error);
+        res.status(500).json({ reply: `❌ Критическая ошибка: ${error.message}` });
     }
 });
 
-// --- ADMIN: Выдача прав ---
+// --- ADMIN ---
 app.post('/api/admin/grant', async (req, res) => {
     const { targetUid, duration } = req.body;
     try {
@@ -218,15 +246,16 @@ app.post('/api/admin/grant', async (req, res) => {
         user.proExpiry = Date.now() + addTime;
         await user.save();
 
-        res.json({ status: 'ok', message: `PRO выдан ${targetUid}` });
+        res.json({ status: 'ok', message: `PRO granted to ${targetUid}` });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (DB + Original Prompts) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Final Stable) Ready"));
 
 module.exports = app;
+
 
 
 
