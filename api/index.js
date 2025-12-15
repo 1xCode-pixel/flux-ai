@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 
 const app = express();
+
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
@@ -10,12 +11,12 @@ app.use(express.json({ limit: '50mb' }));
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
 const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// 2. МОДЕЛЬ (Gemini 2.0 Flash - Самая надежная бесплатная сейчас)
-const MODEL_ID = "google/gemini-2.0-flash-exp:free"; 
+// 2. МОДЕЛЬ (Быстрая мультимодальная free)
+const MODEL_ID = "google/gemini-2.0-flash-exp:free";
 
 // ЛИМИТЫ (3 сообщения в час для Free)
 const LIMIT_PER_HOUR = 3;
-const userUsage = {}; 
+const userUsage = {};
 
 // --- 3. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМПТЫ ---
 
@@ -44,120 +45,127 @@ const PROMPT_PRO = `
 
 // --- СТАТУС ---
 app.get('/api/status', (req, res) => {
-    if (process.env.MAINTENANCE_MODE === 'true') res.json({ status: 'maintenance' });
-    else res.json({ status: 'active' });
+  if (process.env.MAINTENANCE_MODE === 'true') res.json({ status: 'maintenance' });
+  else res.json({ status: 'active' });
 });
 
 app.post('/api/register', (req, res) => res.json({ status: 'ok' }));
 
 // --- ЧАТ ---
 app.post('/api/chat', async (req, res) => {
-    // 1. Тех. работы
-    if (process.env.MAINTENANCE_MODE === 'true') {
-        return res.status(503).json({ reply: "⛔ СЕРВЕР НА ОБСЛУЖИВАНИИ" });
+  // 1. Тех. работы
+  if (process.env.MAINTENANCE_MODE === 'true') {
+    return res.status(503).json({ reply: "⛔ СЕРВЕР НА ОБСЛУЖИВАНИИ" });
+  }
+
+  if (!OPENROUTER_KEY) return res.json({ reply: "❌ ОШИБКА: Нет ключа OPENROUTER_API_KEY." });
+
+  try {
+    const { message, file, isPro, uid } = req.body;
+
+    // 2. Лимиты (Только Free)
+    if (!isPro) {
+      const userId = uid || 'anon';
+      const now = Date.now();
+      if (!userUsage[userId]) userUsage[userId] = { count: 0, start: now };
+
+      if (now - userUsage[userId].start > 3600000) {
+        userUsage[userId].count = 0;
+        userUsage[userId].start = now;
+      }
+
+      if (userUsage[userId].count >= LIMIT_PER_HOUR) {
+        return res.json({ reply: `⛔ **Лимит исчерпан** (${LIMIT_PER_HOUR} запроса в час).\n\n🚀 Активируйте **Flux PRO**.` });
+      }
+      userUsage[userId].count++;
     }
 
-    if (!OPENROUTER_KEY) return res.json({ reply: "❌ ОШИБКА: Нет ключа OPENROUTER_API_KEY." });
+    // 3. Подготовка сообщения
+    const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
+    let messages = [];
 
-    try {
-        const { message, file, isPro, uid } = req.body;
-
-        // 2. Лимиты (Только Free)
-        if (!isPro) {
-            const userId = uid || 'anon';
-            const now = Date.now();
-            if (!userUsage[userId]) userUsage[userId] = { count: 0, start: now };
-            
-            if (now - userUsage[userId].start > 3600000) { 
-                userUsage[userId].count = 0;
-                userUsage[userId].start = now;
-            }
-
-            if (userUsage[userId].count >= LIMIT_PER_HOUR) {
-                return res.json({ reply: `⛔ **Лимит исчерпан** (${LIMIT_PER_HOUR} запроса в час).\n\n🚀 Активируйте **Flux PRO**.` });
-            }
-            userUsage[userId].count++;
+    if (file) {
+      // Формат OpenRouter для картинок
+      messages = [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: message || "Проанализируй изображение." },
+            { type: "image_url", image_url: { url: file } }
+          ]
         }
-
-        // 3. Подготовка сообщения
-        const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
-        let messages = [];
-
-        if (file) {
-            // Формат OpenRouter для картинок
-            messages = [
-                { role: "system", content: systemPrompt },
-                {
-                    role: "user",
-                    content: [
-                        { type: "text", text: message || "Проанализируй изображение." },
-                        { type: "image_url", image_url: { url: file } }
-                    ]
-                }
-            ];
-        } else {
-            // Только текст
-            messages = [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: message }
-            ];
-        }
-
-        // 4. Запрос к OpenRouter
-        console.log(`Sending to OpenRouter (Model: ${MODEL_ID})...`);
-        
-        const response = await fetch(BASE_URL, {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${OPENROUTER_KEY}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://flux-ai.vercel.app", 
-                "X-Title": "Flux AI"
-            },
-            body: JSON.stringify({
-                model: MODEL_ID,
-                messages: messages,
-                max_tokens: 4096, // Увеличил лимит для длинных ответов
-                temperature: 0.7
-            })
-        });
-
-        // 5. Обработка ответа
-        if (!response.ok) {
-            const errText = await response.text();
-            let errJson;
-            try { errJson = JSON.parse(errText); } catch(e) {}
-            
-            // Если модель перегружена (429)
-            if (response.status === 429) {
-                return res.json({ reply: "⏳ Все бесплатные линии заняты. Попробуйте через 20 секунд." });
-            }
-            
-            // Если "No endpoints found" (модель умерла), предлагаем пользователю
-            if (errText.includes("No endpoints found")) {
-                 return res.json({ reply: "❌ Эта модель временно недоступна на OpenRouter. Попробуйте позже." });
-            }
-
-            return res.json({ reply: `❌ Ошибка OpenRouter: ${errJson?.error?.message || errText}` });
-        }
-
-        const data = await response.json();
-        const replyText = data.choices?.[0]?.message?.content || "Пустой ответ.";
-        
-        // Префикс для Free
-        const prefix = isPro ? "" : `_Flux Core (${userUsage[uid||'anon'].count}/${LIMIT_PER_HOUR})_\n\n`;
-        
-        res.json({ reply: prefix + replyText });
-
-    } catch (error) {
-        console.error("Server Error:", error);
-        res.status(500).json({ reply: `❌ Ошибка сервера: ${error.message}` });
+      ];
+    } else {
+      // Только текст
+      messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message }
+      ];
     }
+
+    // 4. Запрос к OpenRouter
+    console.log(`Sending to OpenRouter (Model: ${MODEL_ID})...`);
+
+    // ✅ Быстрые настройки (меньше тормозов)
+    const FAST_MODE = process.env.FAST_MODE === 'true';
+    const maxTokens = FAST_MODE ? 768 : 1024;
+    const temperature = FAST_MODE ? 0.3 : 0.4;
+
+    const response = await fetch(BASE_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://flux-ai.vercel.app",
+        "X-Title": "Flux AI"
+      },
+      body: JSON.stringify({
+        model: MODEL_ID,
+        messages: messages,
+        max_tokens: maxTokens,     // было 4096
+        temperature: temperature   // было 0.7
+      })
+    });
+
+    // 5. Обработка ответа
+    if (!response.ok) {
+      const errText = await response.text();
+      let errJson;
+      try { errJson = JSON.parse(errText); } catch (e) {}
+
+      // Если модель перегружена (429)
+      if (response.status === 429) {
+        return res.json({ reply: "⏳ Все бесплатные линии заняты. Попробуйте через 20 секунд." });
+      }
+
+      // Если "No endpoints found" (модель умерла)
+      if (errText.includes("No endpoints found")) {
+        return res.json({ reply: "❌ Эта модель временно недоступна на OpenRouter. Попробуйте позже." });
+      }
+
+      return res.json({ reply: `❌ Ошибка OpenRouter: ${errJson?.error?.message || errText}` });
+    }
+
+    const data = await response.json();
+    const replyText = data.choices?.[0]?.message?.content || "Пустой ответ.";
+
+    // Префикс для Free
+    const prefix = isPro ? "" : `_Flux Core (${userUsage[uid || 'anon'].count}/${LIMIT_PER_HOUR})_\n\n`;
+
+    res.json({ reply: prefix + replyText });
+
+  } catch (error) {
+    console.error("Server Error:", error);
+    res.status(500).json({ reply: `❌ Ошибка сервера: ${error.message}` });
+  }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (OpenRouter Gemini 2.0) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (OpenRouter Gemini 2.0 Flash) Ready"));
 
 module.exports = app;
+
+
 
 
 
