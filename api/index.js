@@ -1,29 +1,48 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose'); // 1. Подключаем библиотеку базы данных
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// 1. КЛЮЧ
+// --- КОНФИГУРАЦИЯ ---
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
+const MONGODB_URI = process.env.MONGODB_URI; // Ключ от базы
 const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// 2. СПИСОК БЕСПЛАТНЫХ МОДЕЛЕЙ (С поддержкой ФОТО)
-// Сервер будет пробовать их по очереди, пока не найдет рабочую.
+// --- 2. ПОДКЛЮЧЕНИЕ К MONGODB ---
+if (MONGODB_URI) {
+    mongoose.connect(MONGODB_URI)
+        .then(() => console.log("✅ MongoDB Connected"))
+        .catch(err => console.error("❌ MongoDB Error:", err));
+} else {
+    console.warn("⚠️ MONGODB_URI не найден в переменных окружения!");
+}
+
+// --- 3. СХЕМА ПОЛЬЗОВАТЕЛЯ (Таблица Users) ---
+const UserSchema = new mongoose.Schema({
+    uid: { type: String, required: true, unique: true }, // UID пользователя
+    isPro: { type: Boolean, default: false },            // Есть ли PRO
+    createdAt: { type: Date, default: Date.now },        // Дата регистрации
+    lastLogin: { type: Date, default: Date.now }         // Последний вход
+});
+const User = mongoose.model('User', UserSchema);
+
+// --- СПИСОК МОДЕЛЕЙ (OpenRouter) ---
 const MODELS = [
-    "google/gemini-2.0-flash-exp:free",         // 1. Приоритет (самая умная)
-    "meta-llama/llama-3.2-11b-vision-instruct:free", // 2. Запасная (хорошо видит)
-    "qwen/qwen-2-vl-7b-instruct:free"           // 3. Резерв (редко занята)
+    "google/gemini-2.0-flash-exp:free",
+    "meta-llama/llama-3.2-11b-vision-instruct:free",
+    "qwen/qwen-2-vl-7b-instruct:free"
 ];
 
-// ЛИМИТЫ (3 сообщения в час для Free)
+// ЛИМИТЫ (В оперативной памяти)
 const LIMIT_FREE = 3; 
 const LIMIT_PRO = 50; 
 const userUsage = {}; 
 
-// --- 3. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМПТЫ ---
+// --- ПРОМПТЫ ---
 const PROMPT_FREE = `
 ТВОЯ ИНСТРУКЦИЯ:
 1. Ты — **Flux Core** (Базовая версия).
@@ -50,10 +69,36 @@ const PROMPT_PRO = `
 // --- СТАТУС ---
 app.get('/api/status', (req, res) => {
     if (process.env.MAINTENANCE_MODE === 'true') res.json({ status: 'maintenance' });
-    else res.json({ status: 'active' });
+    else res.json({ status: 'active', db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' });
 });
 
-app.post('/api/register', (req, res) => res.json({ status: 'ok' }));
+// --- 4. РЕГИСТРАЦИЯ (При нажатии "Принимаю") ---
+app.post('/api/register', async (req, res) => {
+    try {
+        const { uid } = req.body;
+        if (!uid) return res.status(400).json({ error: "No UID provided" });
+
+        // Ищем пользователя в базе
+        let user = await User.findOne({ uid });
+
+        if (!user) {
+            // Если нет - создаем нового
+            user = new User({ uid });
+            await user.save();
+            console.log(`🆕 Новый пользователь сохранен в БД: ${uid}`);
+        } else {
+            // Если есть - обновляем дату входа
+            user.lastLogin = Date.now();
+            await user.save();
+            console.log(`👋 Пользователь вернулся: ${uid}`);
+        }
+
+        res.json({ status: 'ok', message: 'User saved to DB' });
+    } catch (error) {
+        console.error("Register Error:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
 
 // --- ФУНКЦИЯ ЗАПРОСА (С ПЕРЕБОРОМ МОДЕЛЕЙ) ---
 async function tryChat(modelId, messages) {
@@ -76,7 +121,6 @@ async function tryChat(modelId, messages) {
         });
 
         if (!response.ok) {
-            // Если ошибка 429 (занято) или 5xx (ошибка сервера) или 404 (не найдено)
             const text = await response.text();
             throw new Error(`Status ${response.status}: ${text}`);
         }
@@ -84,17 +128,16 @@ async function tryChat(modelId, messages) {
         const data = await response.json();
         if (!data.choices || !data.choices[0]) throw new Error("Empty response");
         
-        return data.choices[0].message.content; // Успех!
+        return data.choices[0].message.content;
 
     } catch (e) {
         console.error(`Failed ${modelId}:`, e.message);
-        return null; // Возвращаем null, чтобы попробовать следующую
+        return null;
     }
 }
 
 // --- ЧАТ ---
 app.post('/api/chat', async (req, res) => {
-    // 1. Тех. работы
     if (process.env.MAINTENANCE_MODE === 'true') {
         return res.status(503).json({ reply: "⛔ СЕРВЕР НА ОБСЛУЖИВАНИИ" });
     }
@@ -105,7 +148,7 @@ app.post('/api/chat', async (req, res) => {
         const userId = uid || 'anon';
         const now = Date.now();
 
-        // 2. Лимиты
+        // Лимиты
         if (!userUsage[userId]) userUsage[userId] = { count: 0, start: now };
         if (now - userUsage[userId].start > 3600000) { 
             userUsage[userId].count = 0;
@@ -118,7 +161,7 @@ app.post('/api/chat', async (req, res) => {
         }
         userUsage[userId].count++;
 
-        // 3. Сборка сообщения
+        // Сборка сообщения
         const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
         let messages = [];
 
@@ -140,29 +183,20 @@ app.post('/api/chat', async (req, res) => {
             ];
         }
 
-        // 4. ПЕРЕБОР МОДЕЛЕЙ (ГЛАВНАЯ ФИШКА)
+        // Перебор моделей
         let replyText = null;
-        let usedModel = "";
-
         for (const model of MODELS) {
             replyText = await tryChat(model, messages);
-            if (replyText) {
-                usedModel = model;
-                break; // Ответ получен, выходим из цикла
-            }
+            if (replyText) break;
         }
 
         if (!replyText) {
-            userUsage[userId].count--; // Возвращаем попытку
+            userUsage[userId].count--;
             return res.json({ reply: "⏳ Все сервера с нейросети сейчас перегружены. Попробуйте через 20 сек." });
         }
 
-        // 5. Ответ
-        // Добавляем инфо, какая модель сработала (для отладки, можно убрать потом)
-        const debugInfo = ""; // `\n\n_Generated by: ${usedModel.split('/')[1].split(':')[0]}_`;
         const prefix = isPro ? "" : `_Flux Core (${userUsage[userId].count}/${LIMIT_FREE})_\n\n`;
-        
-        res.json({ reply: prefix + replyText + debugInfo });
+        res.json({ reply: prefix + replyText });
 
     } catch (error) {
         console.error("Server Error:", error);
@@ -170,9 +204,10 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Auto-Switch Free Models) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Auto-Switch + MongoDB) Ready"));
 
 module.exports = app;
+
 
 
 
