@@ -7,32 +7,21 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// --- 1. ПОДКЛЮЧЕНИЕ К БАЗЕ ---
+// --- 1. ПОДКЛЮЧЕНИЕ К БАЗЕ (VERCEL KV) ---
 let kv = null;
-try {
-    const url = process.env.REDIS_URL || process.env.KV_REST_API_URL;
-    const token = process.env.KV_REST_API_TOKEN || process.env.REDIS_TOKEN; 
-
-    if (url) {
-        kv = createClient({ url, token: token || undefined });
-        console.log("✅ Vercel KV (Redis) Connected");
-    } else {
-        console.warn("⚠️ No REDIS_URL found. History disabled.");
-    }
-} catch (e) { console.warn("DB Error:", e.message); }
+if (process.env.REDIS_URL || process.env.KV_REST_API_URL) {
+    try {
+        kv = createClient({
+            url: process.env.REDIS_URL || process.env.KV_REST_API_URL,
+            token: process.env.KV_REST_API_TOKEN || process.env.REDIS_TOKEN
+        });
+        console.log("✅ DB Connected");
+    } catch(e) { console.log("❌ DB Error", e); }
+}
 
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
-const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// --- МОДЕЛИ ---
-const MODELS = [
-    "google/gemini-2.0-flash-exp:free",
-    "google/gemini-2.0-pro-exp-02-05:free",
-    "meta-llama/llama-3.2-11b-vision-instruct:free",
-    "qwen/qwen-2-vl-7b-instruct:free"
-];
-
-// --- ТВОИ ОРИГИНАЛЬНЫЕ ПРОМТЫ (ВЕРНУЛ КАК БЫЛО) ---
+// --- 2. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМТЫ ---
 const PROMPT_FREE = `
 ТВОЯ ИНСТРУКЦИЯ:
 1. Ты — **Flux Core** (Базовая версия).
@@ -56,159 +45,130 @@ const PROMPT_PRO = `
 9. Если ты решаешь что то математическое там и хочешь сделать свои определения то не делай просто решай.
 `;
 
-// --- ROUTES ---
-app.get('/api/status', (req, res) => res.json({ status: 'online', db: kv ? 'on' : 'off' }));
+app.get('/', (req, res) => res.send("Flux AI v66 Backend Active"));
 
-// AUTH
+// --- 3. АВТОРИЗАЦИЯ (PRO/FREE) ---
 app.post('/api/auth', async (req, res) => {
-    if (!kv) return res.json({ status: 'ok', isPro: false });
+    if(!kv) return res.json({isPro: false});
+    const { uid } = req.body;
+    const u = await kv.hgetall(`user:${uid}`);
+    res.json({ isPro: u ? u.isPro === true : false });
+});
+
+// --- 4. ЗАГРУЗКА ИСТОРИИ ---
+app.post('/api/history', async (req, res) => {
+    if(!kv) return res.json({chats: []});
     try {
         const { uid } = req.body;
-        const user = (await kv.hgetall(`user:${uid}`)) || { uid, isPro: false, proExpiry: 0 };
-        if (user.isPro && user.proExpiry > 0 && user.proExpiry < Date.now()) {
-            user.isPro = false;
-            await kv.hset(`user:${uid}`, { ...user, isPro: false });
-        }
-        res.json({ status: 'ok', isPro: user.isPro, expiry: user.proExpiry });
-    } catch (e) { res.json({ status: 'ok', isPro: false }); }
-});
-
-// HISTORY
-app.post('/api/history', async (req, res) => {
-    if (!kv) return res.json({ chats: [] });
-    try {
-        const ids = await kv.lrange(`chats:${req.body.uid}`, 0, 19);
+        // Берем последние 20 чатов
+        const ids = await kv.lrange(`chats:${uid}`, 0, 20);
         let chats = [];
-        if(ids) for(let id of ids) { const c = await kv.get(`chat:${req.body.uid}:${id}`); if(c) chats.push(c); }
+        if(ids && ids.length > 0) {
+            for(let id of ids) {
+                const c = await kv.get(`chat:${uid}:${id}`);
+                if(c) chats.push(c);
+            }
+        }
         res.json({ chats });
-    } catch (e) { res.json({ chats: [] }); }
+    } catch(e) { res.json({chats:[]}); }
 });
 
-// DELETE
-app.post('/api/chat/delete', async (req, res) => {
-    if (!kv) return res.json({ status: 'ok' });
-    try {
-        const { uid, chatId } = req.body;
-        await kv.del(`chat:${uid}:${chatId}`);
-        await kv.lrem(`chats:${uid}`, 0, chatId);
-        res.json({ status: 'ok' });
-    } catch (e) { res.json({ status: 'ok' }); }
-});
-
-// ADMIN GRANT
-app.post('/api/admin/grant', async (req, res) => {
-    if (!kv) return res.json({ error: 'no_db' });
-    const { targetUid, duration } = req.body;
-    const add = duration === '24h' ? 86400000 : 315360000000;
-    await kv.hset(`user:${targetUid}`, { uid: targetUid, isPro: true, proExpiry: Date.now() + add });
-    res.json({ status: 'ok' });
-});
-
-// --- CHAT STREAMING (ПЕЧАТАНИЕ) ---
+// --- 5. ЧАТ СО СТРИМИНГОМ (ПЕЧАТАНИЕМ) ---
 app.post('/api/chat', async (req, res) => {
-    if (!OPENROUTER_KEY) return res.status(500).send("No API Key");
+    const { message, uid, chatId } = req.body;
 
-    const { message, file, uid, chatId, chatTitle } = req.body;
-
-    // 1. Check PRO
+    // Проверяем статус PRO
     let isPro = false;
-    if(kv && uid) { try { isPro = await kv.hget(`user:${uid}`, 'isPro'); } catch(e){} }
-    
-    // Выбираем твой промт
-    const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
+    if(kv) {
+        const u = await kv.hgetall(`user:${uid}`);
+        if(u && u.isPro) isPro = true;
+    }
 
-    // 2. Контент
-    let userContent = [{ type: "text", text: message || "..." }];
-    if (file) userContent.push({ type: "image_url", image_url: { url: file } });
+    // Выбираем нужный промт
+    const sysPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
 
-    const messages = [{ role: "system", content: systemPrompt }, { role: "user", content: userContent }];
-
-    // 3. Устанавливаем заголовки для Стриминга
+    // ВАЖНО: Заголовки для работы стриминга в Vercel
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('X-Accel-Buffering', 'no'); 
 
-    let fullReply = ""; // Сюда соберем весь ответ для сохранения в БД
+    let fullText = "";
 
-    // Перебор моделей
-    for (const model of MODELS) {
-        try {
-            const response = await fetch(BASE_URL, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${OPENROUTER_KEY}`,
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://flux-ai.vercel.app", 
-                    "X-Title": "Flux AI"
-                },
-                body: JSON.stringify({
-                    model: model,
-                    messages: messages,
-                    max_tokens: 3000,
-                    stream: true // <--- ВКЛЮЧАЕМ ПОТОК
-                })
-            });
+    try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${OPENROUTER_KEY}`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://flux.1xcode.dev",
+                "X-Title": "Flux v66"
+            },
+            body: JSON.stringify({
+                model: "google/gemini-2.0-flash-exp:free", // Модель (бесплатная)
+                messages: [
+                    {role: "system", content: sysPrompt},
+                    {role: "user", content: message}
+                ],
+                stream: true // ВКЛЮЧАЕМ ПОТОК
+            })
+        });
 
-            if (!response.ok) {
-                console.log(`Model ${model} skip: ${response.status}`);
-                continue; 
-            }
+        // Читаем ответ по кусочкам
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
 
-            // Читаем поток
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            
-            try {
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
+        while(true) {
+            const { done, value } = await reader.read();
+            if(done) break;
 
-                    const chunk = decoder.decode(value);
-                    const lines = chunk.split("\n");
-                    
-                    for (const line of lines) {
-                        if (line.startsWith("data: ") && line !== "data: [DONE]") {
-                            try {
-                                const json = JSON.parse(line.substring(6));
-                                const content = json.choices[0]?.delta?.content || "";
-                                if (content) {
-                                    res.write(content); // Шлем букву клиенту
-                                    fullReply += content; // Копим полный ответ
-                                }
-                            } catch (e) { }
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            for(const line of lines) {
+                if(line.startsWith('data: ') && line !== 'data: [DONE]') {
+                    try {
+                        const json = JSON.parse(line.replace('data: ', ''));
+                        const txt = json.choices[0]?.delta?.content;
+                        if(txt) {
+                            res.write(txt); // Отправляем букву клиенту
+                            fullText += txt; // Собираем полный текст для базы
                         }
-                    }
+                    } catch(e){}
                 }
-            } catch (err) {
-                console.error("Stream parsing error", err);
             }
-
-            if (fullReply.length > 0) break; 
-
-        } catch (e) {
-            console.warn(`Error with ${model}:`, e.message);
         }
+
+    } catch(e) {
+        res.write(" Ошибка соединения с нейросетью.");
     }
+    
+    res.end(); // Завершаем передачу
 
-    res.end(); // Закрываем соединение
-
-    // 4. СОХРАНЕНИЕ В БД
-    if (kv && uid && chatId && fullReply) {
-        try {
-            const key = `chat:${uid}:${chatId}`;
-            let chat = await kv.get(key);
-            if (!chat) {
-                chat = { id: chatId, title: chatTitle || "Chat", ts: Date.now(), msgs: [] };
-                await kv.lpush(`chats:${uid}`, chatId);
-            }
-            chat.msgs.push({ role: 'user', text: message, file: file ? 'img' : null });
-            chat.msgs.push({ role: 'ai', text: fullReply });
-            await kv.set(key, chat);
-        } catch(e) { console.error("Save Error:", e); }
+    // --- 6. СОХРАНЕНИЕ В БАЗУ ---
+    if(kv && uid && chatId && fullText) {
+        const key = `chat:${uid}:${chatId}`;
+        let chat = await kv.get(key);
+        // Если чата нет - создаем
+        if(!chat) {
+            chat = { id: chatId, title: message.slice(0, 20), ts: Date.now(), msgs: [] };
+            await kv.lpush(`chats:${uid}`, chatId);
+        }
+        // Добавляем сообщения в историю
+        chat.msgs.push({ role: 'user', text: message });
+        chat.msgs.push({ role: 'ai', text: fullText });
+        await kv.set(key, chat);
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI v67 Stream Backend"));
+// --- 7. АДМИНКА (ВЫДАЧА PRO) ---
+app.post('/api/admin/grant', async (req, res) => {
+    if(!kv) return res.json({status:'error'});
+    const { targetUid } = req.body;
+    await kv.hset(`user:${targetUid}`, { isPro: true });
+    res.json({status: 'ok'});
+});
+
 module.exports = app;
+
 
 
 
