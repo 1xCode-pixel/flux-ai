@@ -5,9 +5,9 @@ const { createClient } = require('@vercel/kv');
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Увеличил лимит для фото
+app.use(express.json({ limit: '10mb' }));
 
-// --- 1. ПОДКЛЮЧЕНИЕ К БАЗЕ (REDIS_URL) ---
+// --- 1. ПОДКЛЮЧЕНИЕ К БАЗЕ ---
 let kv = null;
 try {
     const url = process.env.REDIS_URL || process.env.KV_REST_API_URL;
@@ -24,15 +24,15 @@ try {
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
 const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// --- 2. СПИСОК БЕСПЛАТНЫХ МОДЕЛЕЙ С ЗРЕНИЕМ (VISION) ---
+// --- МОДЕЛИ ---
 const MODELS = [
-    "google/gemini-2.0-flash-exp:free",          // Самая быстрая + Видит фото
-    "google/gemini-2.0-pro-exp-02-05:free",      // Очень умная + Видит фото
-    "meta-llama/llama-3.2-11b-vision-instruct:free", // Открытая Llama + Видит фото
-    "qwen/qwen-2-vl-7b-instruct:free"            // Китайская мощь + Видит фото
+    "google/gemini-2.0-flash-exp:free",
+    "google/gemini-2.0-pro-exp-02-05:free",
+    "meta-llama/llama-3.2-11b-vision-instruct:free",
+    "qwen/qwen-2-vl-7b-instruct:free"
 ];
 
-// --- 3. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМПТЫ ---
+// --- ТВОИ ОРИГИНАЛЬНЫЕ ПРОМТЫ (ВЕРНУЛ КАК БЫЛО) ---
 const PROMPT_FREE = `
 ТВОЯ ИНСТРУКЦИЯ:
 1. Ты — **Flux Core** (Базовая версия).
@@ -65,7 +65,6 @@ app.post('/api/auth', async (req, res) => {
     try {
         const { uid } = req.body;
         const user = (await kv.hgetall(`user:${uid}`)) || { uid, isPro: false, proExpiry: 0 };
-        // Проверка истечения PRO
         if (user.isPro && user.proExpiry > 0 && user.proExpiry < Date.now()) {
             user.isPro = false;
             await kv.hset(`user:${uid}`, { ...user, isPro: false });
@@ -105,98 +104,112 @@ app.post('/api/admin/grant', async (req, res) => {
     res.json({ status: 'ok' });
 });
 
-// --- CHAT (С ПОДДЕРЖКОЙ ФОТО И ПЕРЕБОРОМ МОДЕЛЕЙ) ---
+// --- CHAT STREAMING (ПЕЧАТАНИЕ) ---
 app.post('/api/chat', async (req, res) => {
-    if (!OPENROUTER_KEY) return res.json({ reply: "❌ Set OPENROUTER_API_KEY" });
+    if (!OPENROUTER_KEY) return res.status(500).send("No API Key");
 
-    try {
-        const { message, file, uid, chatId, chatTitle } = req.body;
+    const { message, file, uid, chatId, chatTitle } = req.body;
 
-        // 1. Check PRO
-        let isPro = false;
-        if(kv) { try { isPro = await kv.hget(`user:${uid}`, 'isPro'); } catch(e){} }
+    // 1. Check PRO
+    let isPro = false;
+    if(kv && uid) { try { isPro = await kv.hget(`user:${uid}`, 'isPro'); } catch(e){} }
+    
+    // Выбираем твой промт
+    const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
 
-        const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
-        
-        // 2. Формируем контент (Текст + Картинка)
-        let userContent = [{ type: "text", text: message || "Analyze this." }];
-        if (file) {
-            userContent.push({ type: "image_url", image_url: { url: file } });
-        }
+    // 2. Контент
+    let userContent = [{ type: "text", text: message || "..." }];
+    if (file) userContent.push({ type: "image_url", image_url: { url: file } });
 
-        const messages = [{ role: "system", content: systemPrompt }, { role: "user", content: userContent }];
+    const messages = [{ role: "system", content: systemPrompt }, { role: "user", content: userContent }];
 
-        // 3. Перебор моделей (Если 429/500 -> Следующая)
-        let replyText = null;
-        let lastError = "";
+    // 3. Устанавливаем заголовки для Стриминга
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
 
-        for (const model of MODELS) {
+    let fullReply = ""; // Сюда соберем весь ответ для сохранения в БД
+
+    // Перебор моделей
+    for (const model of MODELS) {
+        try {
+            const response = await fetch(BASE_URL, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${OPENROUTER_KEY}`,
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://flux-ai.vercel.app", 
+                    "X-Title": "Flux AI"
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: messages,
+                    max_tokens: 3000,
+                    stream: true // <--- ВКЛЮЧАЕМ ПОТОК
+                })
+            });
+
+            if (!response.ok) {
+                console.log(`Model ${model} skip: ${response.status}`);
+                continue; 
+            }
+
+            // Читаем поток
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            
             try {
-                console.log(`Trying ${model}...`);
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 20000); // 20 сек на модель
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                const response = await fetch(BASE_URL, {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${OPENROUTER_KEY}`,
-                        "Content-Type": "application/json",
-                        "HTTP-Referer": "https://flux-ai.vercel.app", 
-                        "X-Title": "Flux AI"
-                    },
-                    body: JSON.stringify({
-                        model: model,
-                        messages: messages,
-                        max_tokens: 2000,
-                        temperature: 0.7
-                    }),
-                    signal: controller.signal
-                });
-                clearTimeout(timeout);
-
-                if (response.ok) {
-                    const data = await response.json();
-                    replyText = data.choices?.[0]?.message?.content;
-                    if (replyText) break; // УСПЕХ!
-                } else {
-                    console.warn(`Model ${model} fail: ${response.status}`);
-                    if (response.status !== 429 && response.status !== 503) {
-                        lastError = `Error ${response.status}`;
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split("\n");
+                    
+                    for (const line of lines) {
+                        if (line.startsWith("data: ") && line !== "data: [DONE]") {
+                            try {
+                                const json = JSON.parse(line.substring(6));
+                                const content = json.choices[0]?.delta?.content || "";
+                                if (content) {
+                                    res.write(content); // Шлем букву клиенту
+                                    fullReply += content; // Копим полный ответ
+                                }
+                            } catch (e) { }
+                        }
                     }
                 }
-            } catch (e) { console.warn("Fetch Error:", e.name); }
+            } catch (err) {
+                console.error("Stream parsing error", err);
+            }
+
+            if (fullReply.length > 0) break; 
+
+        } catch (e) {
+            console.warn(`Error with ${model}:`, e.message);
         }
+    }
 
-        if (!replyText) return res.json({ reply: `⚠️ Все нейросети сейчас перегружены (429). Попробуйте через минуту.` });
+    res.end(); // Закрываем соединение
 
-        // 4. Save (Background)
-        if (kv && uid && chatId) {
-            (async () => {
-                try {
-                    const key = `chat:${uid}:${chatId}`;
-                    let chat = await kv.get(key);
-                    if (!chat) {
-                        chat = { id: chatId, title: chatTitle || "Chat", ts: Date.now(), msgs: [] };
-                        await kv.lpush(`chats:${uid}`, chatId);
-                    }
-                    // Сохраняем маркер картинки, но не саму Base64 строку (экономия)
-                    chat.msgs.push({ role: 'user', text: message, file: file ? 'img' : null });
-                    chat.msgs.push({ role: 'ai', text: replyText });
-                    await kv.set(key, chat);
-                } catch(e) { console.error("Save Error:", e); }
-            })();
-        }
-
-        res.json({ reply: replyText });
-
-    } catch (e) {
-        console.error("CRITICAL:", e);
-        res.json({ reply: `Server Error: ${e.message}` });
+    // 4. СОХРАНЕНИЕ В БД
+    if (kv && uid && chatId && fullReply) {
+        try {
+            const key = `chat:${uid}:${chatId}`;
+            let chat = await kv.get(key);
+            if (!chat) {
+                chat = { id: chatId, title: chatTitle || "Chat", ts: Date.now(), msgs: [] };
+                await kv.lpush(`chats:${uid}`, chatId);
+            }
+            chat.msgs.push({ role: 'user', text: message, file: file ? 'img' : null });
+            chat.msgs.push({ role: 'ai', text: fullReply });
+            await kv.set(key, chat);
+        } catch(e) { console.error("Save Error:", e); }
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI v66 Backend (Vision Ready)"));
+app.get('/', (req, res) => res.send("Flux AI v67 Stream Backend"));
 module.exports = app;
+
 
 
 
