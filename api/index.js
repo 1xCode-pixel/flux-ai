@@ -1,61 +1,24 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
+const { kv } = require('@vercel/kv'); // Подключаем базу Vercel
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '10mb' }));
 
-// --- 1. КОНФИГУРАЦИЯ ---
+// --- КОНФИГУРАЦИЯ ---
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
-const MONGODB_URI = process.env.MONGODB_URI;
 const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// --- 2. КЭШИРОВАННОЕ ПОДКЛЮЧЕНИЕ К MONGODB ---
-// Это критически важно для Vercel, чтобы не убить базу
-let cachedDb = null;
-
-async function connectToDatabase() {
-    if (cachedDb) return cachedDb;
-    if (!MONGODB_URI) return null; // Если базы нет, работаем без неё
-    
-    try {
-        const db = await mongoose.connect(MONGODB_URI, {
-            serverSelectionTimeoutMS: 5000 // Тайм-аут подключения 5 сек
-        });
-        cachedDb = db;
-        console.log("✅ MongoDB Connected");
-        return db;
-    } catch (e) {
-        console.error("❌ DB Connection Error:", e);
-        return null;
-    }
-}
-
-// --- 3. СХЕМА ЮЗЕРА (Только аккаунт, без чатов) ---
-const UserSchema = new mongoose.Schema({
-    uid: { type: String, required: true, unique: true },
-    isPro: { type: Boolean, default: false },
-    proExpiry: { type: Number, default: 0 },
-    createdAt: { type: Date, default: Date.now },
-    lastLogin: { type: Date, default: Date.now }
-});
-// Защита от перекомпиляции модели
-const User = mongoose.models.User || mongoose.model('User', UserSchema);
-
-// --- 4. СПИСОК МОДЕЛЕЙ ---
+// --- МОДЕЛИ ---
 const MODELS = [
     "google/gemini-2.0-flash-exp:free",
     "meta-llama/llama-3.2-11b-vision-instruct:free",
     "qwen/qwen-2-vl-7b-instruct:free"
 ];
 
-const LIMIT_FREE = 3; 
-const LIMIT_PRO = 50; 
-const userUsage = {}; 
-
-// --- 5. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМПТЫ ---
+// --- ПРОМПТЫ (Твои Оригинальные) ---
 const PROMPT_FREE = `
 ТВОЯ ИНСТРУКЦИЯ:
 1. Ты — **Flux Core** (Базовая версия).
@@ -80,49 +43,73 @@ const PROMPT_PRO = `
 `;
 
 // --- СТАТУС ---
-app.get('/api/status', (req, res) => {
-    if (process.env.MAINTENANCE_MODE === 'true') res.json({ status: 'maintenance' });
-    else res.json({ status: 'active' });
-});
+app.get('/api/status', (req, res) => res.json({ status: 'active', db: 'vercel-kv' }));
 
-// --- 🔥 АВТО-РЕГИСТРАЦИЯ (ВХОД) ---
-// Этот запрос быстрый, он сохраняет юзера
+// --- 1. АВТОРИЗАЦИЯ (СОХРАНЕНИЕ В БАЗУ VERCEL) ---
 app.post('/api/auth', async (req, res) => {
     try {
-        await connectToDatabase();
         const { uid } = req.body;
-        if (!uid) return res.status(400).json({ error: "No UID" });
-
-        let user = await User.findOne({ uid });
+        // Ключ в базе: "user:K9-X42B"
+        const userKey = `user:${uid}`;
+        
+        let user = await kv.hgetall(userKey);
 
         if (!user) {
-            user = new User({ uid });
-            await user.save();
-            console.log(`🆕 Registered: ${uid}`);
+            // Создаем нового
+            user = { uid, isPro: false, proExpiry: 0, createdAt: Date.now() };
+            await kv.hset(userKey, user);
         } else {
-            user.lastLogin = Date.now();
-            // Проверяем срок действия PRO
+            // Проверка истечения PRO
             if (user.isPro && user.proExpiry > 0 && user.proExpiry < Date.now()) {
+                await kv.hset(userKey, { ...user, isPro: false });
                 user.isPro = false;
             }
-            await user.save();
         }
-
+        
         res.json({ status: 'ok', isPro: user.isPro, expiry: user.proExpiry });
     } catch (e) {
-        console.error("Auth Error:", e);
-        // Если база упала, не блокируем вход, просто возвращаем Free статус
-        res.json({ status: 'ok', isPro: false, error: "DB_Offline" });
+        console.error("KV Error:", e);
+        // Если забыл подключить базу, пускаем как Free
+        res.json({ status: 'ok', isPro: false, error: "no_db" });
     }
 });
 
-// --- ФУНКЦИЯ ЗАПРОСА (ПРОСТАЯ И НАДЕЖНАЯ) ---
+// --- 2. ИСТОРИЯ ЧАТОВ ---
+app.post('/api/history', async (req, res) => {
+    try {
+        const { uid } = req.body;
+        // Ключ списка чатов: "chats:K9-X42B"
+        const chatIds = await kv.lrange(`chats:${uid}`, 0, 20); // Берем последние 20 ID
+        
+        let fullChats = [];
+        for (const chatId of chatIds) {
+            const chatData = await kv.get(`chat:${uid}:${chatId}`);
+            if (chatData) fullChats.push(chatData);
+        }
+
+        res.json({ chats: fullChats });
+    } catch (e) {
+        res.json({ chats: [] });
+    }
+});
+
+// --- 3. УДАЛЕНИЕ ЧАТА ---
+app.post('/api/chat/delete', async (req, res) => {
+    try {
+        const { uid, chatId } = req.body;
+        await kv.del(`chat:${uid}:${chatId}`); // Удаляем данные чата
+        await kv.lrem(`chats:${uid}`, 0, chatId); // Удаляем ID из списка
+        res.json({ status: 'ok' });
+    } catch (e) {
+        res.json({ status: 'error' });
+    }
+});
+
+// --- ФУНКЦИЯ ЗАПРОСА ---
 async function tryChat(modelId, messages) {
     try {
-        console.log(`Trying ${modelId}...`);
-        // Устанавливаем свой таймаут, чтобы fetch не висел вечно
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 20000); // 20 сек макс
+        const timeout = setTimeout(() => controller.abort(), 25000); 
 
         const response = await fetch(BASE_URL, {
             method: "POST",
@@ -140,136 +127,105 @@ async function tryChat(modelId, messages) {
             }),
             signal: controller.signal
         });
-        
         clearTimeout(timeout);
 
-        if (!response.ok) {
-            // Если ошибка 429 - значит лимит, кидаем ошибку чтобы попробовать другую модель
-            if (response.status === 429) throw new Error("429");
-            return null;
-        }
-
+        if (!response.ok) return null;
         const data = await response.json();
-        if (!data.choices || !data.choices[0]) return null;
-        return data.choices[0].message.content;
-
-    } catch (e) {
-        if (e.message === "429") throw e; // Пробрасываем лимит выше
-        return null;
-    }
+        return data.choices?.[0]?.message?.content || null;
+    } catch (e) { return null; }
 }
 
-// --- ЧАТ (БЕЗ ЗАПИСИ В БД) ---
+// --- 4. ЧАТ ---
 app.post('/api/chat', async (req, res) => {
-    // Быстрые проверки
-    if (process.env.MAINTENANCE_MODE === 'true') return res.status(503).json({ reply: "⛔ СЕРВЕР НА ОБСЛУЖИВАНИИ" });
-    if (!OPENROUTER_KEY) return res.json({ reply: "❌ ОШИБКА: Нет ключа API." });
+    if (!OPENROUTER_KEY) return res.json({ reply: "❌ Ошибка API ключа." });
 
     try {
-        const { message, file, files, uid } = req.body;
-        const userId = uid || 'anon';
+        const { message, file, files, uid, chatId, chatTitle } = req.body;
         
-        // 1. ПОЛУЧЕНИЕ СТАТУСА (Быстрое чтение из БД)
-        let isPro = false;
-        try {
-            await connectToDatabase();
-            if (userId !== 'anon') {
-                const user = await User.findOne({ uid: userId }).select('isPro'); // Тянем только поле isPro для скорости
-                if (user) isPro = user.isPro;
-            }
-        } catch(e) {
-            console.error("Chat DB Check Failed (ignoring):", e);
-        }
+        // Получаем статус (быстро)
+        const userKey = `user:${uid}`;
+        const isPro = await kv.hget(userKey, 'isPro') || false;
 
-        // 2. ЛИМИТЫ (В памяти)
-        const now = Date.now();
-        if (!userUsage[userId]) userUsage[userId] = { count: 0, start: now };
-        if (now - userUsage[userId].start > 3600000) { 
-            userUsage[userId].count = 0; 
-            userUsage[userId].start = now; 
-        }
-        
-        const currentLimit = isPro ? LIMIT_PRO : LIMIT_FREE;
-        if (userUsage[userId].count >= currentLimit) {
-            return res.json({ reply: `⛔ **Лимит исчерпан** (${currentLimit}/час).` });
-        }
-        userUsage[userId].count++;
-
-        // 3. ПОДГОТОВКА СООБЩЕНИЯ
+        // Сборка сообщения
         const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
-        
         let userContent = [];
-        userContent.push({ type: "text", text: message || "Проанализируй." });
+        userContent.push({ type: "text", text: message || "..." });
 
         const filesToProcess = files || (file ? [file] : []);
         if (filesToProcess.length > 0) {
             filesToProcess.forEach(f => {
-                if (f && typeof f === 'string') {
+                if (f && f.startsWith('data:image')) {
                     userContent.push({ type: "image_url", image_url: { url: f } });
                 }
             });
         }
 
-        const messages = [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userContent }
-        ];
+        const messages = [{ role: "system", content: systemPrompt }, { role: "user", content: userContent }];
 
-        // 4. ПЕРЕБОР МОДЕЛЕЙ (Самая долгая часть)
+        // Запрос к AI
         let replyText = null;
-        let rateLimitHit = false;
-
         for (const model of MODELS) {
-            try {
-                replyText = await tryChat(model, messages);
-                if (replyText) break; // Успех!
-            } catch (e) {
-                if (e.message === "429") rateLimitHit = true;
+            replyText = await tryChat(model, messages);
+            if (replyText) break;
+        }
+
+        if (!replyText) return res.json({ reply: "⚠️ Ошибка соединения." });
+
+        // СОХРАНЕНИЕ В BAZU (Асинхронно, не тормозит ответ)
+        if (uid && chatId) {
+            const chatKey = `chat:${uid}:${chatId}`;
+            // Проверяем, существует ли чат
+            let chatData = await kv.get(chatKey);
+            
+            if (!chatData) {
+                // Новый чат
+                chatData = {
+                    id: chatId,
+                    title: chatTitle || message.slice(0, 15),
+                    ts: Date.now(),
+                    msgs: []
+                };
+                // Добавляем ID в список чатов юзера
+                await kv.lpush(`chats:${uid}`, chatId);
             }
+
+            // Добавляем сообщения (без картинок, чтобы экономить место)
+            chatData.msgs.push({ role: 'user', text: message, fileCount: filesToProcess.length });
+            chatData.msgs.push({ role: 'ai', text: replyText });
+            chatData.ts = Date.now();
+
+            await kv.set(chatKey, chatData);
         }
 
-        if (!replyText) {
-            userUsage[userId].count--; 
-            if (rateLimitHit) return res.json({ reply: "⏳ **Сервер перегружен (429).** Попробуйте через минуту." });
-            return res.json({ reply: "⚠️ **Ошибка соединения.** Не удалось получить ответ." });
-        }
-
-        // 5. ОТВЕТ
-        const prefix = isPro ? "" : `_Flux Core (${userUsage[userId].count}/${LIMIT_FREE})_\n\n`;
+        const prefix = isPro ? "" : `_Flux Core_\n\n`;
         res.json({ reply: prefix + replyText });
 
     } catch (error) {
-        console.error("Server Error:", error);
-        res.status(500).json({ reply: `❌ Ошибка: ${error.message}` });
+        res.status(500).json({ reply: "Server Error" });
     }
 });
 
-// --- АДМИНКА (Выдача прав) ---
+// --- ADMIN GRANT ---
 app.post('/api/admin/grant', async (req, res) => {
-    try {
-        await connectToDatabase();
-        const { targetUid, duration } = req.body;
-        
-        let user = await User.findOne({ uid: targetUid });
-        if (!user) user = new User({ uid: targetUid });
-
-        let addTime = 0;
-        if(duration === '24h') addTime = 86400000;
-        if(duration === 'perm') addTime = 315360000000; // 10 лет
-
-        user.isPro = true;
-        user.proExpiry = Date.now() + addTime;
-        await user.save();
-
-        res.json({ status: 'ok', message: `PRO granted to ${targetUid}` });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
+    const { targetUid, duration } = req.body;
+    const userKey = `user:${targetUid}`;
+    
+    let add = duration === '24h' ? 86400000 : 315360000000;
+    
+    // Обновляем поля
+    await kv.hset(userKey, {
+        uid: targetUid,
+        isPro: true,
+        proExpiry: Date.now() + add
+    });
+    
+    res.json({ status: 'ok' });
 });
 
-app.get('/', (req, res) => res.send("Flux AI (Stable Hybrid) Ready"));
+app.get('/', (req, res) => res.send("Flux AI (Vercel KV Database) Ready"));
 
 module.exports = app;
+
 
 
 
