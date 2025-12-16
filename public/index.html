@@ -73,7 +73,11 @@
         .admin-section { border-bottom: 1px solid #222; padding-bottom: 20px; margin-bottom: 20px; }
         .admin-input { background: #111; border: 1px solid #333; padding: 12px; border-radius: 8px; color: #fff; width: 100%; margin-bottom: 10px; text-align: center; font-family: 'JetBrains Mono'; }
         .admin-select { width: 100%; background: #111; color: #fff; border: 1px solid #333; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-family: inherit; cursor: pointer; text-align: center; }
-        
+        .toggle-switch { width: 50px; height: 26px; background: #333; border-radius: 13px; position: relative; cursor: pointer; margin: 0 auto; transition: 0.3s; }
+        .toggle-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: 0.3s; }
+        .toggle-switch.active { background: var(--pro-color); }
+        .toggle-switch.active::after { transform: translateX(24px); }
+
         .legal-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 8500; display: none; flex-direction: column; padding: 30px; }
         .legal-modal.active { display: flex; animation: slideUp 0.4s ease; }
         .legal-content { flex: 1; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.8rem; color: #888; line-height: 1.6; padding-right: 15px; white-space: pre-wrap; text-align: left; }
@@ -302,7 +306,7 @@
 
     <script type="module">
         const PASS_HASH = "Zmx1eDIwMjU="; 
-        const CURRENT_VERSION = "v67 (Stream)";
+        const CURRENT_VERSION = "v66 (DB Connected)";
 
         let chats = []; 
         let activeId = null;
@@ -386,7 +390,6 @@
             } catch(e) { console.log("Offline"); }
         };
 
-        // --- НОВАЯ ФУНКЦИЯ ОТПРАВКИ СООБЩЕНИЯ С ПОДДЕРЖКОЙ ПЕЧАТАНИЯ ---
         window.sendMsg = async function() {
             const inp = document.getElementById('userInput');
             const txt = inp.value.trim();
@@ -424,8 +427,8 @@
                 const response = await fetch('/api/chat', { 
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                 });
-                
-                // Читаем Stream (поток)
+
+                // ЧИТАЛКА ПОТОКА (STREAM)
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder("utf-8");
                 let fullAns = "";
@@ -443,8 +446,10 @@
                 }
 
                 textEl.classList.remove('typing'); 
+                textEl.innerHTML = marked.parse(fullAns);
                 renderMathInElement(textEl, { delimiters: [{left: "$$", right: "$$", display: true}] });
-                c.msgs.push({role:'ai', text: fullAns});
+
+                c.msgs.push({role:'ai', text:fullAns});
 
             } catch (error) {
                 textEl.innerText = "Connection Error";
@@ -549,7 +554,8 @@
         document.getElementById('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
     </script>
 </body>
-    </html>
+</html>
+
 
 
 
