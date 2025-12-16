@@ -5,36 +5,31 @@ const { createClient } = require('@vercel/kv');
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '4.5mb' }));
+app.use(express.json({ limit: '10mb' })); // Увеличил лимит для фото
 
-// --- 1. ПОДКЛЮЧЕНИЕ К БАЗЕ (ПРИНИМАЕТ REDIS_URL) ---
+// --- 1. ПОДКЛЮЧЕНИЕ К БАЗЕ (REDIS_URL) ---
 let kv = null;
 try {
-    // Vercel иногда дает ключи под разными именами. Пробуем все.
-    const url = process.env.KV_REST_API_URL || process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL;
-    const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.REDIS_TOKEN;
+    const url = process.env.REDIS_URL || process.env.KV_REST_API_URL;
+    const token = process.env.KV_REST_API_TOKEN || process.env.REDIS_TOKEN; 
 
-    // Если есть REDIS_URL, но нет токена, пробуем подключиться по URL (для некоторых версий либы)
     if (url) {
-        kv = createClient({ url, token: token || 'default' });
+        kv = createClient({ url, token: token || undefined });
         console.log("✅ Vercel KV (Redis) Connected");
     } else {
-        console.warn("⚠️ NO DATABASE KEYS FOUND. Chat will work in Incognito mode.");
+        console.warn("⚠️ No REDIS_URL found. History disabled.");
     }
-} catch (e) {
-    console.warn("⚠️ Database Connection Error (Non-fatal):", e.message);
-}
+} catch (e) { console.warn("DB Error:", e.message); }
 
-// --- 2. КОНФИГУРАЦИЯ ---
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
 const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// Очередь моделей (Если Gemini 429 -> берем Llama -> потом Qwen)
+// --- 2. СПИСОК БЕСПЛАТНЫХ МОДЕЛЕЙ С ЗРЕНИЕМ (VISION) ---
 const MODELS = [
-    "google/gemini-2.0-flash-exp:free",
-    "meta-llama/llama-3.2-11b-vision-instruct:free",
-    "qwen/qwen-2-vl-7b-instruct:free",
-    "mistralai/mistral-7b-instruct:free"
+    "google/gemini-2.0-flash-exp:free",          // Самая быстрая + Видит фото
+    "google/gemini-2.0-pro-exp-02-05:free",      // Очень умная + Видит фото
+    "meta-llama/llama-3.2-11b-vision-instruct:free", // Открытая Llama + Видит фото
+    "qwen/qwen-2-vl-7b-instruct:free"            // Китайская мощь + Видит фото
 ];
 
 // --- 3. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМПТЫ ---
@@ -62,7 +57,7 @@ const PROMPT_PRO = `
 `;
 
 // --- ROUTES ---
-app.get('/api/status', (req, res) => res.json({ status: 'online', db: kv ? 'connected' : 'disabled' }));
+app.get('/api/status', (req, res) => res.json({ status: 'online', db: kv ? 'on' : 'off' }));
 
 // AUTH
 app.post('/api/auth', async (req, res) => {
@@ -85,7 +80,7 @@ app.post('/api/history', async (req, res) => {
     try {
         const ids = await kv.lrange(`chats:${req.body.uid}`, 0, 19);
         let chats = [];
-        if (ids) for (let id of ids) { const c = await kv.get(`chat:${req.body.uid}:${id}`); if (c) chats.push(c); }
+        if(ids) for(let id of ids) { const c = await kv.get(`chat:${req.body.uid}:${id}`); if(c) chats.push(c); }
         res.json({ chats });
     } catch (e) { res.json({ chats: [] }); }
 });
@@ -101,7 +96,7 @@ app.post('/api/chat/delete', async (req, res) => {
     } catch (e) { res.json({ status: 'ok' }); }
 });
 
-// ADMIN
+// ADMIN GRANT
 app.post('/api/admin/grant', async (req, res) => {
     if (!kv) return res.json({ error: 'no_db' });
     const { targetUid, duration } = req.body;
@@ -110,24 +105,28 @@ app.post('/api/admin/grant', async (req, res) => {
     res.json({ status: 'ok' });
 });
 
-// --- CHAT (С ЗАЩИТОЙ ОТ ОШИБОК) ---
+// --- CHAT (С ПОДДЕРЖКОЙ ФОТО И ПЕРЕБОРОМ МОДЕЛЕЙ) ---
 app.post('/api/chat', async (req, res) => {
     if (!OPENROUTER_KEY) return res.json({ reply: "❌ Set OPENROUTER_API_KEY" });
 
     try {
         const { message, file, uid, chatId, chatTitle } = req.body;
 
-        // 1. Статус
+        // 1. Check PRO
         let isPro = false;
-        if (kv) { try { isPro = await kv.hget(`user:${uid}`, 'isPro'); } catch(e){} }
+        if(kv) { try { isPro = await kv.hget(`user:${uid}`, 'isPro'); } catch(e){} }
 
         const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
-        let userContent = [{ type: "text", text: message || "." }];
-        if (file) userContent.push({ type: "image_url", image_url: { url: file } });
+        
+        // 2. Формируем контент (Текст + Картинка)
+        let userContent = [{ type: "text", text: message || "Analyze this." }];
+        if (file) {
+            userContent.push({ type: "image_url", image_url: { url: file } });
+        }
 
         const messages = [{ role: "system", content: systemPrompt }, { role: "user", content: userContent }];
 
-        // 2. ПЕРЕБОР МОДЕЛЕЙ (Чтобы не было 429)
+        // 3. Перебор моделей (Если 429/500 -> Следующая)
         let replyText = null;
         let lastError = "";
 
@@ -135,7 +134,7 @@ app.post('/api/chat', async (req, res) => {
             try {
                 console.log(`Trying ${model}...`);
                 const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 15000); // 15 сек
+                const timeout = setTimeout(() => controller.abort(), 20000); // 20 сек на модель
 
                 const response = await fetch(BASE_URL, {
                     method: "POST",
@@ -148,7 +147,7 @@ app.post('/api/chat', async (req, res) => {
                     body: JSON.stringify({
                         model: model,
                         messages: messages,
-                        max_tokens: 1500,
+                        max_tokens: 2000,
                         temperature: 0.7
                     }),
                     signal: controller.signal
@@ -158,10 +157,9 @@ app.post('/api/chat', async (req, res) => {
                 if (response.ok) {
                     const data = await response.json();
                     replyText = data.choices?.[0]?.message?.content;
-                    if (replyText) break; // Успех!
+                    if (replyText) break; // УСПЕХ!
                 } else {
-                    console.warn(`Model ${model} failed: ${response.status}`);
-                    // Если ошибка 429 или 503 -> пробуем следующую модель
+                    console.warn(`Model ${model} fail: ${response.status}`);
                     if (response.status !== 429 && response.status !== 503) {
                         lastError = `Error ${response.status}`;
                     }
@@ -169,9 +167,9 @@ app.post('/api/chat', async (req, res) => {
             } catch (e) { console.warn("Fetch Error:", e.name); }
         }
 
-        if (!replyText) return res.json({ reply: `⚠️ Все нейросети сейчас перегружены. Попробуйте через минуту.` });
+        if (!replyText) return res.json({ reply: `⚠️ Все нейросети сейчас перегружены (429). Попробуйте через минуту.` });
 
-        // 3. СОХРАНЕНИЕ В ФОНЕ
+        // 4. Save (Background)
         if (kv && uid && chatId) {
             (async () => {
                 try {
@@ -181,6 +179,7 @@ app.post('/api/chat', async (req, res) => {
                         chat = { id: chatId, title: chatTitle || "Chat", ts: Date.now(), msgs: [] };
                         await kv.lpush(`chats:${uid}`, chatId);
                     }
+                    // Сохраняем маркер картинки, но не саму Base64 строку (экономия)
                     chat.msgs.push({ role: 'user', text: message, file: file ? 'img' : null });
                     chat.msgs.push({ role: 'ai', text: replyText });
                     await kv.set(key, chat);
@@ -188,8 +187,7 @@ app.post('/api/chat', async (req, res) => {
             })();
         }
 
-        const prefix = isPro ? "" : "_Flux Core_\n\n";
-        res.json({ reply: prefix + replyText });
+        res.json({ reply: replyText });
 
     } catch (e) {
         console.error("CRITICAL:", e);
@@ -197,8 +195,9 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-app.get('/', (req, res) => res.send("Flux AI v66 Backend Ready"));
+app.get('/', (req, res) => res.send("Flux AI v66 Backend (Vision Ready)"));
 module.exports = app;
+
 
 
 
