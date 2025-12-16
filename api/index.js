@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { kv } = require('@vercel/kv'); // Подключаем базу Vercel
+const { kv } = require('@vercel/kv'); // ИСПОЛЬЗУЕМ БАЗУ VERCEL
 
 const app = express();
 app.use(cors());
@@ -18,7 +18,7 @@ const MODELS = [
     "qwen/qwen-2-vl-7b-instruct:free"
 ];
 
-// --- ПРОМПТЫ (Твои Оригинальные) ---
+// --- ТВОИ ПРОМПТЫ ---
 const PROMPT_FREE = `
 ТВОЯ ИНСТРУКЦИЯ:
 1. Ты — **Flux Core** (Базовая версия).
@@ -45,13 +45,14 @@ const PROMPT_PRO = `
 // --- СТАТУС ---
 app.get('/api/status', (req, res) => res.json({ status: 'active', db: 'vercel-kv' }));
 
-// --- 1. АВТОРИЗАЦИЯ (СОХРАНЕНИЕ В БАЗУ VERCEL) ---
+// --- 1. АВТОРИЗАЦИЯ (VERCEL KV) ---
 app.post('/api/auth', async (req, res) => {
     try {
         const { uid } = req.body;
-        // Ключ в базе: "user:K9-X42B"
+        // Ключ: "user:UID"
         const userKey = `user:${uid}`;
         
+        // Читаем из Vercel KV
         let user = await kv.hgetall(userKey);
 
         if (!user) {
@@ -59,17 +60,16 @@ app.post('/api/auth', async (req, res) => {
             user = { uid, isPro: false, proExpiry: 0, createdAt: Date.now() };
             await kv.hset(userKey, user);
         } else {
-            // Проверка истечения PRO
+            // Проверяем PRO
             if (user.isPro && user.proExpiry > 0 && user.proExpiry < Date.now()) {
-                await kv.hset(userKey, { ...user, isPro: false });
                 user.isPro = false;
+                await kv.hset(userKey, { ...user, isPro: false });
             }
         }
         
         res.json({ status: 'ok', isPro: user.isPro, expiry: user.proExpiry });
     } catch (e) {
         console.error("KV Error:", e);
-        // Если забыл подключить базу, пускаем как Free
         res.json({ status: 'ok', isPro: false, error: "no_db" });
     }
 });
@@ -78,16 +78,17 @@ app.post('/api/auth', async (req, res) => {
 app.post('/api/history', async (req, res) => {
     try {
         const { uid } = req.body;
-        // Ключ списка чатов: "chats:K9-X42B"
-        const chatIds = await kv.lrange(`chats:${uid}`, 0, 20); // Берем последние 20 ID
+        // Получаем список ID чатов: "chats:UID"
+        const chatIds = await kv.lrange(`chats:${uid}`, 0, 30);
         
-        let fullChats = [];
+        let chats = [];
         for (const chatId of chatIds) {
-            const chatData = await kv.get(`chat:${uid}:${chatId}`);
-            if (chatData) fullChats.push(chatData);
+            // Читаем каждый чат: "chat:UID:CHATID"
+            const chat = await kv.get(`chat:${uid}:${chatId}`);
+            if (chat) chats.push(chat);
         }
 
-        res.json({ chats: fullChats });
+        res.json({ chats });
     } catch (e) {
         res.json({ chats: [] });
     }
@@ -97,8 +98,8 @@ app.post('/api/history', async (req, res) => {
 app.post('/api/chat/delete', async (req, res) => {
     try {
         const { uid, chatId } = req.body;
-        await kv.del(`chat:${uid}:${chatId}`); // Удаляем данные чата
-        await kv.lrem(`chats:${uid}`, 0, chatId); // Удаляем ID из списка
+        await kv.del(`chat:${uid}:${chatId}`); // Удаляем данные
+        await kv.lrem(`chats:${uid}`, 0, chatId); // Удаляем из списка
         res.json({ status: 'ok' });
     } catch (e) {
         res.json({ status: 'error' });
@@ -142,9 +143,8 @@ app.post('/api/chat', async (req, res) => {
     try {
         const { message, file, files, uid, chatId, chatTitle } = req.body;
         
-        // Получаем статус (быстро)
-        const userKey = `user:${uid}`;
-        const isPro = await kv.hget(userKey, 'isPro') || false;
+        // Быстро проверяем статус через KV
+        const isPro = await kv.hget(`user:${uid}`, 'isPro') || false;
 
         // Сборка сообщения
         const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
@@ -171,10 +171,9 @@ app.post('/api/chat', async (req, res) => {
 
         if (!replyText) return res.json({ reply: "⚠️ Ошибка соединения." });
 
-        // СОХРАНЕНИЕ В BAZU (Асинхронно, не тормозит ответ)
+        // СОХРАНЕНИЕ В БАЗУ VERCEL (Асинхронно)
         if (uid && chatId) {
             const chatKey = `chat:${uid}:${chatId}`;
-            // Проверяем, существует ли чат
             let chatData = await kv.get(chatKey);
             
             if (!chatData) {
@@ -185,15 +184,16 @@ app.post('/api/chat', async (req, res) => {
                     ts: Date.now(),
                     msgs: []
                 };
-                // Добавляем ID в список чатов юзера
+                // Добавляем в список
                 await kv.lpush(`chats:${uid}`, chatId);
             }
 
-            // Добавляем сообщения (без картинок, чтобы экономить место)
+            // Добавляем сообщения
             chatData.msgs.push({ role: 'user', text: message, fileCount: filesToProcess.length });
             chatData.msgs.push({ role: 'ai', text: replyText });
             chatData.ts = Date.now();
 
+            // Сохраняем обновленный чат
             await kv.set(chatKey, chatData);
         }
 
@@ -212,7 +212,6 @@ app.post('/api/admin/grant', async (req, res) => {
     
     let add = duration === '24h' ? 86400000 : 315360000000;
     
-    // Обновляем поля
     await kv.hset(userKey, {
         uid: targetUid,
         isPro: true,
@@ -225,6 +224,7 @@ app.post('/api/admin/grant', async (req, res) => {
 app.get('/', (req, res) => res.send("Flux AI (Vercel KV Database) Ready"));
 
 module.exports = app;
+
 
 
 
