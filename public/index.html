@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-    <title>FLUX /// 2025</title>
+    <title>FLUX /// BY 1XCODE</title>
     
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -11,7 +11,6 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 
     <style>
-        /* --- CORE VISUALS v66 (FULL) --- */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap');
 
         :root {
@@ -25,19 +24,36 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--bg-body); color: var(--text-main); font-family: 'Inter', sans-serif; margin: 0; height: 100dvh; display: flex; overflow: hidden; transition: --accent 0.5s; }
 
-        /* ANIMATIONS */
-        .snowflake { position: absolute; top: -10px; background: #fff; border-radius: 50%; opacity: 0.8; animation: fall linear infinite; pointer-events: none; z-index: 9999; }
+        /* --- ANIMATIONS --- */
+        .snowflake { position: absolute; top: -10px; background: #fff; border-radius: 50%; opacity: 0.8; animation: fall linear infinite; pointer-events: none; z-index: 100000; }
         @keyframes fall { to { transform: translateY(105vh); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes pulse-red { 0% { text-shadow: 0 0 0 rgba(255,68,68,0); } 50% { text-shadow: 0 0 20px rgba(255,68,68,0.6); } 100% { text-shadow: 0 0 0 rgba(255,68,68,0); } }
 
-        /* UI ELEMENTS */
+        /* --- MAINTENANCE SCREEN --- */
+        #maint-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #050505; z-index: 999999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+        #maint-screen.active { display: flex; }
+        .maint-panel { background: #0a0a0a; border: 1px solid var(--danger); padding: 40px; border-radius: 20px; width: 90%; max-width: 400px; box-shadow: 0 0 50px rgba(255, 68, 68, 0.15); }
+        .maint-icon { font-size: 4rem; margin-bottom: 20px; animation: pulse-red 2s infinite; cursor: pointer; }
+        .maint-title { font-family: 'JetBrains Mono'; font-size: 1.4rem; font-weight: bold; color: var(--danger); margin-bottom: 15px; letter-spacing: 2px; }
+        .maint-text { color: #aaa; font-size: 0.9rem; line-height: 1.6; margin-bottom: 25px; }
+        .maint-timer { font-family: 'JetBrains Mono'; font-size: 2rem; color: #fff; background: #111; border: 1px solid #333; padding: 15px; border-radius: 12px; margin-bottom: 20px; letter-spacing: 2px; }
+
+        /* --- UI CSS --- */
+        .message-text { line-height: 1.6; font-size: 1rem; margin-top: 4px; overflow-x: auto; white-space: pre-wrap; }
+        .message-text p { margin: 5px 0; }
+        .message-text pre { background: #151515 !important; padding: 10px; border-radius: 8px; border: 1px solid #333; overflow-x: auto; margin: 10px 0; }
+        .message-text code { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #ff79c6; background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; }
+        .message-text table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 0.8rem; }
+        .message-text th, .message-text td { border: 1px solid #444; padding: 6px; text-align: left; }
+        .message-text th { background: #222; }
         .katex { font-size: 1.1em; }
         .typing::after { content: '▋'; animation: blink 1s infinite; margin-left: 2px; color: var(--accent); }
         @keyframes blink { 50% { opacity: 0; } }
 
-        /* SPLASH SCREEN */
+        /* INTRO */
         #splash-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 15000; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.8s ease, visibility 0.8s; }
         #splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
         .splash-logo { font-family: 'JetBrains Mono'; font-size: 3rem; font-weight: 800; letter-spacing: -2px; color: #fff; }
@@ -46,55 +62,51 @@
         .splash-credit { font-family: 'Inter'; font-size: 0.8rem; letter-spacing: 4px; color: var(--pro-color); opacity: 0; animation: fadeIn 1s ease 1.2s forwards; }
         @keyframes loadProgress { 0% { width: 0%; } 40% { width: 30%; } 70% { width: 85%; } 100% { width: 100%; } }
 
-        /* CUSTOM MODAL SYSTEM */
-        #custom-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 10000; display: none; align-items: center; justify-content: center; }
-        #custom-modal-overlay.active { display: flex; animation: fadeIn 0.2s ease; }
-        .custom-modal-box { width: 90%; max-width: 380px; background: #0a0a0a; border: 1px solid #333; border-radius: 20px; padding: 30px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.9); transform: scale(0.95); animation: zoomIn 0.3s ease forwards; }
-        .cm-icon { font-size: 3rem; margin-bottom: 15px; }
-        .cm-title { font-family: 'JetBrains Mono'; font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; color: #fff; }
-        .cm-text { font-size: 0.9rem; color: #aaa; margin-bottom: 25px; line-height: 1.5; }
-        .cm-buttons { display: flex; gap: 10px; justify-content: center; }
-        .cm-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
-        .cm-btn-cancel { background: #1a1a1a; color: #fff; border: 1px solid #333; }
-        .cm-btn-cancel:hover { background: #222; }
-        .cm-btn-confirm { background: #fff; color: #000; }
-        .cm-btn-danger { background: var(--danger); color: #fff; box-shadow: 0 0 15px rgba(255, 68, 68, 0.3); }
-
-        /* ADMIN & LEGAL POPUPS */
+        /* POPUPS */
         .admin-pass-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 1px solid var(--pro-color); padding: 40px; border-radius: 16px; z-index: 9500; display: none; text-align: center; box-shadow: 0 0 50px rgba(212, 175, 55, 0.2); width: 320px; }
         .security-title { color: var(--pro-color); margin-bottom: 25px; font-weight: bold; letter-spacing: 3px; font-family: 'JetBrains Mono'; font-size: 1.1rem; }
         .admin-key-input { background: #111; border: 1px solid #333; color: #fff; padding: 15px; border-radius: 8px; width: 100%; margin-bottom: 20px; text-align: center; font-family: inherit; outline: none; font-size: 1.1rem; }
-        .unlock-btn { background: #fff; color: #000; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 1rem; margin-bottom: 10px; }
+        .unlock-btn { background: #fff; color: #000; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 1rem; }
         
         .admin-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 9000; display: none; align-items: center; justify-content: center; }
         .admin-modal.active { display: flex; animation: zoomIn 0.3s ease; }
         .admin-panel { background: #0a0a0a; border: 1px solid #333; padding: 20px; border-radius: 20px; width: 95%; max-width: 400px; text-align: center; position: relative; max-height: 90vh; overflow-y: auto; }
-        
-        /* LEGAL MODAL */
+        .admin-section { border-bottom: 1px solid #222; padding-bottom: 20px; margin-bottom: 20px; }
+        .admin-input { background: #111; border: 1px solid #333; padding: 12px; border-radius: 8px; color: #fff; width: 100%; margin-bottom: 10px; text-align: center; font-family: 'JetBrains Mono'; }
+        .admin-select { width: 100%; background: #111; color: #fff; border: 1px solid #333; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-family: inherit; cursor: pointer; text-align: center; }
+        .toggle-switch { width: 50px; height: 26px; background: #333; border-radius: 13px; position: relative; cursor: pointer; margin: 0 auto; transition: 0.3s; }
+        .toggle-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: 0.3s; }
+        .toggle-switch.active { background: var(--pro-color); }
+        .toggle-switch.active::after { transform: translateX(24px); }
+
         .legal-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 8500; display: none; flex-direction: column; padding: 30px; }
         .legal-modal.active { display: flex; animation: slideUp 0.4s ease; }
         .legal-content { flex: 1; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.8rem; color: #888; line-height: 1.6; padding-right: 15px; white-space: pre-wrap; text-align: left; }
-        
-        /* POPUP OVERLAY */
+        .small-modal { width: 90%; max-width: 340px; background: #080808; border: 1px solid var(--accent); border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); animation: zoomIn 0.3s ease; }
+        .auth-btn { background: #fff; color: #000; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; text-transform: uppercase; font-size: 1rem; }
+
         .popup-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 8000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         .popup-overlay.active { display: flex; }
-        .small-modal { width: 90%; max-width: 340px; background: #080808; border: 1px solid var(--accent); border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); animation: zoomIn 0.3s ease; }
 
-        /* LAYOUT & SIDEBAR */
+        /* LAYOUT */
         #app { display: flex; width: 100%; height: 100%; flex-direction: row; }
-        .sidebar { width: 280px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; position: relative; }
+        
+        .sidebar { 
+            width: 280px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border); 
+            display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; 
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 2000; 
+            position: relative;
+        }
+        
         .logo { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 1.4rem; display: flex; align-items: center; gap: 8px; margin-bottom: 25px; }
         .pro-badge-logo { font-size: 0.6rem; background: var(--pro-color); color: #000; padding: 2px 5px; border-radius: 4px; display: none; }
         body.pro-enabled .pro-badge-logo { display: inline-block; }
+
         .btn-new-chat { width: 100%; padding: 12px; background: var(--frost); border: 1px solid #333; color: #fff; border-radius: 8px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px; -webkit-overflow-scrolling: touch; }
-        .history-item { padding: 12px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; color: #aaa; display: flex; justify-content: space-between; position: relative; }
+        .history-item { padding: 12px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; color: #aaa; display: flex; justify-content: space-between; }
         .history-item:hover { background: #1a1a1a; color: #fff; }
-        
-        .history-item:not(.pro-user):hover .delete-btn { opacity: 1; color: var(--danger); z-index: 10; }
-        .history-item:not(.pro-user):hover .delete-btn::before { content: "Двойной клик"; position: absolute; top: 50%; right: 40px; transform: translateY(-50%); background: var(--danger); color: #000; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; white-space: nowrap; opacity: 1; animation: fadeIn 0.3s ease; }
-        .history-item.pro-user .delete-btn { opacity: 0; color: #444; transition: 0.2s; }
-        .history-item.pro-user:hover .delete-btn { opacity: 1; }
         .delete-btn { background: transparent; border: none; color: #444; cursor: pointer; padding: 0 10px; display: flex; opacity: 0; font-size: 1.2rem; }
         .history-item:hover .delete-btn { opacity: 1; }
 
@@ -104,30 +116,51 @@
         body.pro-enabled .user-avatar { border-color: var(--pro-color); color: var(--pro-color); }
         #userId { font-size: 0.7rem; color: #666; font-family: 'JetBrains Mono'; cursor: pointer; margin-top: 2px; }
         #userId:hover { color: var(--accent); }
+        .pro-timer, .pro-date { font-size: 0.65rem; color: var(--pro-color); font-family: 'JetBrains Mono'; margin-top: 4px; display: none; }
+        body.pro-enabled .pro-timer, body.pro-enabled .pro-date { display: block; }
         .footer-credit { font-size: 0.65rem; color: #444; text-align: center; font-family: 'JetBrains Mono'; margin-top: 5px; cursor: default; }
 
         /* MAIN CONTENT */
-        .main-content { flex: 1; display: flex; flex-direction: column; position: relative; width: 100%; height: 100%; overflow: hidden; }
-        .chat-background-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; overflow: hidden; background: linear-gradient(to bottom, #020510 0%, #0a1525 100%); }
-        .bg-sky-objects { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.9; }
-        .bg-mountains { position: absolute; bottom: 0; left: 0; width: 100%; height: 50%; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 300" preserveAspectRatio="none"><path d="M0,300 L0,150 L200,50 L400,200 L600,20 L800,180 L1000,100 L1000,300 Z" fill="%230d1b2a" opacity="0.8"/><path d="M0,300 L0,200 L150,100 L350,250 L550,80 L750,220 L1000,150 L1000,300 Z" fill="%23162438"/><path d="M150,100 L140,130 L160,130 Z M550,80 L540,110 L560,110 Z" fill="%230a1525"/></svg>') no-repeat bottom center; background-size: 150% 100%; }
+        .main-content { flex: 1; display: flex; flex-direction: column; background-color: var(--chat-bg); position: relative; width: 100%; height: 100%; }
         
-        #chat-stream { flex: 1; overflow-y: auto; padding: 80px 20px 20px 20px; scroll-behavior: auto; -webkit-overflow-scrolling: touch; z-index: 2; }
+        .mobile-header { 
+            display: none; height: 60px; padding: 0 15px; 
+            border-bottom: 1px solid var(--border); 
+            align-items: center; justify-content: space-between; 
+            background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); 
+            position: absolute; top: 0; left: 0; width: 100%; z-index: 50; 
+        }
+        .top-bar-desktop { padding: 15px; display: flex; justify-content: center; position: absolute; top: 0; left: 0; right: 0; z-index: 10; pointer-events: none; }
+
+        .model-selector { background: #111; border: 1px solid #333; padding: 4px; border-radius: 8px; display: flex; gap: 4px; pointer-events: auto; }
+        .model-option { padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; color: #666; transition: 0.2s; font-weight: 500; }
+        .model-option.active { background: #333; color: #fff; }
+        .model-option.pro-active { background: rgba(212, 175, 55, 0.15); color: var(--pro-color); }
+        .model-option.locked { opacity: 0.5; cursor: not-allowed; position: relative; }
+        .model-option.locked::after { content: '🔒'; font-size: 0.7rem; position: absolute; top: -4px; right: -4px; }
+
+        #chat-stream { 
+            flex: 1; overflow-y: auto; padding: 80px 20px 20px 20px; 
+            /* ВАЖНО: scroll-behavior auto убирает инерцию и дёрганье */
+            scroll-behavior: auto; 
+            -webkit-overflow-scrolling: touch; 
+        }
+        .message-container { max-width: 800px; margin: 0 auto 25px auto; display: flex; gap: 15px; animation: slideUp 0.3s ease forwards; }
         .avatar { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
         .avatar.ai { background: #fff; color: #000; }
         .avatar.user { background: #222; color: #fff; }
         .avatar.ai.pro-mode { background: var(--pro-color); box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
-        .message-container { max-width: 800px; margin: 0 auto 25px auto; display: flex; gap: 15px; animation: slideUp 0.3s ease forwards; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); padding: 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
+
         .message-text { line-height: 1.6; font-size: 1rem; margin-top: 4px; word-wrap: break-word; overflow-x: auto; }
-        
-        .input-wrapper { max-width: 800px; margin: 0 auto; width: 100%; padding: 15px; background: linear-gradient(to top, #000 80%, transparent); display: flex; flex-direction: column; z-index: 60; position: relative; }
+        .typing::after { content: '▋'; animation: blink 1s infinite; margin-left: 2px; color: var(--accent); }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .input-wrapper { max-width: 800px; margin: 0 auto; width: 100%; padding: 15px; background: linear-gradient(to top, #000 80%, transparent); display: flex; flex-direction: column; z-index: 60; }
         .input-box { background: #111; border: 1px solid var(--border); border-radius: 14px; padding: 10px 14px; display: flex; align-items: flex-end; gap: 10px; transition: 0.2s; }
         .input-box:focus-within { border-color: var(--accent); box-shadow: 0 0 20px rgba(255,255,255,0.05); }
         textarea { width: 100%; background: transparent; border: none; color: white; font-family: inherit; font-size: 1rem; resize: none; outline: none; max-height: 120px; padding: 10px 0; line-height: 1.3; }
         
-        /* PREVIEW */
-        .file-preview { display: none; padding: 10px; background: #1a1a1a; border-radius: 10px; margin-bottom: 10px; align-items: center; justify-content: space-between; border: 1px dashed #333; color: #aaa; font-size: 0.9rem; }
-        
+        .file-preview { display: none; padding: 8px 12px; margin-bottom: 8px; background: #1a1a1a; border-radius: 8px; font-size: 0.8rem; color: #ccc; align-items: center; justify-content: space-between; max-width: 800px; margin: 0 auto 10px auto; border: 1px dashed #444; }
         .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 900; display: none; }
         .overlay.active { display: block; }
         .btn-clip { background: none; border: none; color: #666; font-size: 1.3rem; cursor: pointer; padding-bottom: 3px; }
@@ -140,22 +173,11 @@
             .mobile-header { display: flex; }
             .top-bar-desktop { display: none; }
             #chat-stream { padding-top: 70px; padding-bottom: 80px; }
+            .admin-modal .admin-panel { width: 95%; max-height: 85vh; overflow-y: auto; }
         }
     </style>
 </head>
 <body>
-
-    <div id="custom-modal-overlay">
-        <div class="custom-modal-box">
-            <div class="cm-icon" id="cmIcon">⚠️</div>
-            <div class="cm-title" id="cmTitle">Заголовок</div>
-            <div class="cm-text" id="cmText">Текст сообщения</div>
-            <div class="cm-buttons">
-                <button class="cm-btn cm-btn-cancel" id="cmCancel">ОТМЕНА</button>
-                <button class="cm-btn cm-btn-confirm" id="cmConfirm">ОК</button>
-            </div>
-        </div>
-    </div>
 
     <div id="snow-container"></div>
 
@@ -163,6 +185,30 @@
         <div class="splash-logo">FLUX 🎄 AI</div>
         <div class="loading-container"><div class="loading-bar"></div></div>
         <div class="splash-credit">BY 1XCODE TEAM</div>
+    </div>
+
+    <div id="maint-screen">
+        <div class="maint-panel">
+            <div class="maint-icon" onclick="secretUnblock()" title="Нажмите 5 раз для разблокировки">⚠️</div>
+            <div class="maint-title">СЕРВЕР НА ОБСЛУЖИВАНИИ</div>
+            <div class="maint-text">
+                Flux AI обновляется. Доступ временно ограничен.<br>
+                Ориентировочное время завершения:
+            </div>
+            <div class="maint-timer" id="maintTimer">00:00:00</div>
+            <button class="unlock-btn" onclick="location.reload()" style="margin-top:20px;">ОБНОВИТЬ СТАТУС</button>
+        </div>
+    </div>
+
+    <div class="popup-overlay" id="disclaimerPopup">
+        <div class="small-modal">
+            <h2 style="font-size: 3rem; margin: 0 0 10px 0;">🎄</h2>
+            <h3 style="color: var(--accent); margin-bottom: 15px;">Новогоднее Обновление</h3>
+            <p style="color: #aaa; font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px;">
+                Flux (Node: 1xCode). Cookie используются.
+            </p>
+            <button class="auth-btn" style="width: 100%; padding: 10px;" onclick="acceptDisclaimer()">✅ ПРИНИМАЮ</button>
+        </div>
     </div>
 
     <div class="admin-pass-popup" id="adminPassPopup">
@@ -173,16 +219,39 @@
 
     <div class="admin-modal" id="adminModal">
         <div class="admin-panel">
-            <button style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: #555; cursor: pointer; font-size: 1.2rem;" onclick="document.getElementById('adminModal').classList.remove('active')">✕</button>
+            <button style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: #555; cursor: pointer; font-size: 1.2rem;" onclick="closeAdmin()">✕</button>
             <div style="font-family: 'JetBrains Mono'; color: var(--success); font-weight: bold; margin-bottom: 20px;">АДМИН ПАНЕЛЬ</div>
-            <div style="color:#888; margin-bottom:10px; font-size:0.8rem;">УПРАВЛЕНИЕ АККАУНТОМ</div>
             
-            <button class="unlock-btn" style="background:#222; border:1px solid #444; color:#fff;" onclick="enablePro()">Активировать PRO (Локально)</button>
-            
-            <hr style="border:0; border-top:1px solid #333; margin: 15px 0;">
-            <div style="color:#888; margin-bottom:10px; font-size:0.8rem;">АВТОРИЗАЦИЯ СОЗДАТЕЛЯ</div>
-            <input type="text" id="creatorUidInput" class="admin-key-input" placeholder="Введите C8N-HPY">
-            <button class="unlock-btn" style="background:var(--pro-color); color:#000;" onclick="setCreatorUid()">ВОЙТИ КАК СОЗДАТЕЛЬ</button>
+            <div class="admin-section">
+                <span style="color: #888; font-size: 0.7rem; letter-spacing: 1px; display: block; margin-bottom: 10px;">МОЙ АККАУНТ</span>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 15px;">
+                    <span style="color: #ccc;">PRO Режим</span>
+                    <div class="toggle-switch" id="proToggle" onclick="togglePro()"></div>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <span style="color: #888; font-size: 0.7rem; letter-spacing: 1px; display: block; margin-bottom: 10px;">ВЫДАТЬ ПОДПИСКУ (ПО UID)</span>
+                <input type="text" id="targetUID" class="admin-input" placeholder="UID (напр. K9-X42B)">
+                <select id="proDuration" class="admin-select">
+                    <option value="24h">1 День</option>
+                    <option value="3d">3 Дня</option>
+                    <option value="1w">Неделя</option>
+                    <option value="1m">Месяц</option>
+                    <option value="perm">Навсегда</option>
+                </select>
+                <button class="unlock-btn" style="background:#222; border:1px solid #444; color:#fff;" onclick="grantSubscription()">🎁 ВЫДАТЬ PRO</button>
+            </div>
+
+            <div class="admin-section" style="border:none; padding-bottom:0;">
+                <span style="color: var(--danger); font-size: 0.7rem; letter-spacing: 1px; display: block; margin-bottom: 10px;">УПРАВЛЕНИЕ СЕРВЕРОМ</span>
+                <select id="maintTime" class="admin-select">
+                    <option value="1">1 Час</option>
+                    <option value="2">2 Часа</option>
+                    <option value="24">24 Часа</option>
+                </select>
+                <button class="unlock-btn" style="background:var(--danger); border:none; color:#fff;" onclick="activateMaintenance()">⛔ ВКЛЮЧИТЬ ТЕХ. РАБОТЫ</button>
+            </div>
         </div>
     </div>
 
@@ -194,31 +263,22 @@
         <div class="legal-content" id="kilometerText"></div>
     </div>
 
-    <div class="popup-overlay" id="disclaimerPopup">
-        <div class="small-modal">
-            <h2 style="font-size: 3rem; margin: 0 0 10px 0;">🎄</h2>
-            <h3 style="color: var(--accent); margin-bottom: 15px;">С Новым Годом!</h3>
-            <p style="color: #aaa; font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px;">
-                Flux (Node: 1xCode). Cookie используются. Принимая, вы разрешаете синхронизацию с облаком.
-            </p>
-            <button class="auth-btn" style="width: 100%; padding: 10px;" onclick="acceptDisclaimer()">✅ ПРИНИМАЮ</button>
-        </div>
-    </div>
-
     <div class="overlay" id="overlay" onclick="toggleSidebar(false)"></div>
 
-    <div id="app">
+    <div id="app" style="display:flex; height: 100%; width: 100%; flex-direction: row;">
         <aside class="sidebar" id="sidebar">
             <div class="logo">FLUX <span>AI</span> <div class="pro-badge-logo">PRO</div></div>
             <button class="btn-new-chat" onclick="startNewChat()">+ Новый чат</button>
             <div class="history-list" id="historyList"></div>
             <div class="sidebar-footer">
-                <button onclick="clearAllData()" style="background:none; border:none; color:#666; cursor:pointer; font-size: 0.8rem; text-align: left; margin-bottom: 10px;">🗑 Сброс данных</button>
+                <button onclick="if(confirm('Сбросить данные?')){localStorage.clear();location.reload();}" style="background:none; border:none; color:#666; cursor:pointer; font-size: 0.8rem; text-align: left; margin-bottom: 10px;">🗑 Сброс</button>
                 <div class="user-profile">
                     <div class="user-avatar">U</div>
                     <div class="user-info">
                         <div style="font-size:0.9rem;" id="userName">Гость</div>
-                        <div style="font-size:0.65rem; color:#666; font-family: 'JetBrains Mono';" id="userId" onclick="copyID()">UID: ...</div>
+                        <div style="font-size:0.65rem; color:#666; font-family: 'JetBrains Mono';" id="userId" onclick="copyID()" title="Скопировать">UID: ...</div>
+                        <div class="pro-date" id="proDate"></div>
+                        <div class="pro-timer" id="subTimer"></div>
                     </div>
                 </div>
                 <div class="footer-credit" id="secretTrigger">CREATED BY <span>1XCODE</span></div>
@@ -226,21 +286,18 @@
         </aside>
 
         <main class="main-content">
-            <div class="chat-background-container">
-                <div class="bg-sky-objects"></div>
-                <div class="bg-mountains"></div>
-            </div>
-
             <header class="mobile-header">
                 <button class="burger-btn" onclick="toggleSidebar(true)">☰</button>
                 <div class="model-selector">
-                    <div class="model-option active">Free</div>
+                    <div class="model-option active" id="mobStd" onclick="switchMode('std')">Free</div>
+                    <div class="model-option locked" id="mobPro" onclick="switchMode('pro')">Pro</div>
                 </div>
             </header>
 
             <div class="top-bar-desktop">
                 <div class="model-selector">
-                    <div class="model-option active">Flux v66</div>
+                    <div class="model-option active" id="deskStd" onclick="switchMode('std')">Flux Free</div>
+                    <div class="model-option locked" id="deskPro" onclick="switchMode('pro')">Flux Pro</div>
                 </div>
             </div>
 
@@ -251,15 +308,15 @@
                 </div>
             </div>
 
-            <div class="input-wrapper">
-                <div class="file-preview" id="filePreview">
-                    <span style="display:flex; align-items:center; gap:10px;">
-                        <span style="font-size:1.2rem;">🖼️</span> 
-                        <span id="fileName">image.jpg</span>
-                    </span>
-                    <span style="cursor:pointer; font-weight:bold;" onclick="clearFile()">✕</span>
-                </div>
+            <div class="file-preview" id="filePreview">
+                <span style="display:flex; gap:10px; align-items:center;">
+                    <span style="font-size:1.2rem;">📄</span>
+                    <span id="fileName">file.name</span>
+                </span>
+                <span style="cursor:pointer;" onclick="clearFile()">✕</span>
+            </div>
 
+            <div class="input-wrapper">
                 <div class="input-box">
                     <button class="btn-clip" onclick="document.getElementById('fileIn').click()">📎</button>
                     <input type="file" id="fileIn" style="display:none" onchange="handleFile(this)">
@@ -267,7 +324,7 @@
                     <button class="auth-btn" style="margin:0; padding:0; width:35px; height:35px;" onclick="sendMsg()">→</button>
                 </div>
                 <div style="text-align: center; margin-top: 10px;">
-                    <span style="font-size: 0.7rem; color: #ccc; cursor: pointer; text-decoration: underline;" onclick="openLegal()">Политика обработки данных (1xCode Agreement)</span>
+                    <span style="font-size: 0.7rem; color: #444; cursor: pointer; text-decoration: underline;" onclick="openLegal()">Политика обработки данных (1xCode Agreement)</span>
                 </div>
             </div>
         </main>
@@ -275,34 +332,97 @@
 
     <script type="module">
         const PASS_HASH = "Zmx1eDIwMjU="; 
-
-        let chats = JSON.parse(localStorage.getItem('flux_chats')) || [];
-        let isPro = localStorage.getItem('flux_pro') === 'true';
-        let myUID = localStorage.getItem('flux_uid');
+        
+        let chats = JSON.parse(localStorage.getItem('chats_v57') || '[]');
         let activeId = null;
+        let isPro = localStorage.getItem('isPro_v57') === 'true';
+        let proExpiry = parseInt(localStorage.getItem('proExpiry_v57') || '0');
+        let myUID = localStorage.getItem('myUID');
         let clicks = 0;
+        let maintClicks = 0;
         let currFile = null;
 
-        // Генерация UID, если нет
-        if(!myUID) {
-            myUID = 'u_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('flux_uid', myUID);
+        // INIT SNOW
+        function createSnow() {
+            const c = document.getElementById('snow-container') || document.body;
+            for(let i=0; i<30; i++) {
+                const s = document.createElement('div');
+                s.className = 'snowflake';
+                s.style.left = Math.random() * 100 + 'vw';
+                s.style.width = Math.random() * 3 + 2 + 'px';
+                s.style.height = s.style.width;
+                s.style.animationDuration = Math.random() * 3 + 5 + 's';
+                c.appendChild(s);
+            }
         }
 
-        window.onload = function() {
-            setTimeout(() => { document.getElementById('splash-screen').classList.add('hidden'); }, 2000);
-            createSnow();
-            generateLegalText();
-            document.getElementById('userId').innerText = "UID: " + myUID;
-            renderHistory();
-            updateProUI();
-            
-            if(!localStorage.getItem('disc_v66f')) document.getElementById('disclaimerPopup').classList.add('active');
+        if (!myUID) { 
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            let p1="", p2="";
+            for(let i=0;i<3;i++) p1+=chars.charAt(Math.floor(Math.random()*chars.length));
+            for(let i=0;i<3;i++) p2+=chars.charAt(Math.floor(Math.random()*chars.length));
+            myUID = `${p1}-${p2}`;
+            localStorage.setItem('myUID', myUID);
+        }
 
-            if(chats.length > 0) {
-                loadChat(chats[0].id);
+        window.onload = async () => {
+            document.getElementById('userId').innerText = "UID: " + myUID;
+            generateLegalText();
+            createSnow();
+            
+            setTimeout(() => { document.getElementById('splash-screen').classList.add('hidden'); }, 3000);
+
+            // MAINTENANCE CHECK
+            try {
+                const res = await fetch('/api/status');
+                const d = await res.json();
+                if(d.status==='maintenance'){
+                    document.getElementById('maint-screen').classList.add('active');
+                    document.getElementById('splash-screen').style.display='none';
+                    return;
+                }
+            } catch(e){}
+
+            // LOCAL MAINT CHECK
+            const mEnd = parseInt(localStorage.getItem('maintEnd_v57')||'0');
+            if(mEnd > Date.now()) {
+                document.getElementById('maint-screen').classList.add('active');
+                setInterval(()=>{
+                    const left=mEnd-Date.now();
+                    if(left<=0) location.reload();
+                    const h=Math.floor(left/3600000).toString().padStart(2,'0');
+                    const m=Math.floor((left%3600000)/60000).toString().padStart(2,'0');
+                    const s=Math.floor((left%60000)/1000).toString().padStart(2,'0');
+                    document.getElementById('maintTimer').innerText = `${h}:${m}:${s}`;
+                },1000);
             }
+
+            if(!localStorage.getItem('disc_v57')) document.getElementById('disclaimerPopup').classList.add('active');
+            
+            checkProStatus();
+            setInterval(checkProStatus, 1000);
+            updateProUI();
+            renderHistory();
         };
+
+        window.activateMaintenance = function() {
+            const hours = parseInt(document.getElementById('maintTime').value);
+            const endTime = Date.now() + (hours * 60 * 60 * 1000);
+            localStorage.setItem('maintEnd_v57', endTime.toString());
+            alert(`⛔ ТЕХНИЧЕСКИЕ РАБОТЫ ВКЛЮЧЕНЫ НА ${hours} ЧАС(А).`);
+            location.reload();
+        }
+
+        window.secretUnblock = function() {
+            maintClicks++;
+            if(maintClicks === 5) {
+                if(confirm("АДМИН: Снять блокировку?")) {
+                    localStorage.setItem('maintEnd_v57', '0');
+                    location.reload();
+                }
+                maintClicks = 0;
+            }
+        }
 
         window.sendMsg = async function() {
             const inp = document.getElementById('userInput');
@@ -311,194 +431,193 @@
 
             if(!activeId) {
                 const nid = Date.now();
-                chats.unshift({id: nid, title: txt.slice(0,15)||'Чат', ts:nid, msgs:[]});
+                chats.push({id:nid, title: txt.slice(0,15)||'Файл', ts:nid, msgs:[]});
                 activeId = nid;
-                saveLocally();
             }
             const c = chats.find(x=>x.id===activeId);
-
-            c.msgs.push({role:'user', text:txt, file: currFile});
-            appendMsg('user', txt, currFile);
+            c.ts = Date.now();
+            c.msgs.push({role:'user', text:txt, file:currFile});
+            appendMsg('user', txt, currFile, false);
             
-            const payload = {
-                message: txt,
-                file: currFile ? currFile.data : null,
-                isPro: isPro,
-                uid: myUID
-            };
+            const payload = { message: txt, file: currFile ? currFile.data : null, isPro: isPro, uid: myUID };
             
-            inp.value=''; 
-            currFile = null; 
+            inp.value=''; currFile=null;
             document.getElementById('filePreview').style.display='none';
             document.getElementById('fileIn').value='';
-            
-            saveLocally();
+            localStorage.setItem('chats_v57', JSON.stringify(chats));
+            renderHistory();
 
             const aiDiv = appendMsg('ai', '', null, true);
             const textEl = aiDiv.querySelector('.message-text');
+
+            // 1. Анимация курсора
+            textEl.innerHTML = "";
             textEl.classList.add('typing');
+
+            // СКРОЛЛ ВНИЗ ПЕРЕД НАЧАЛОМ ПЕЧАТИ (ОДИН РАЗ)
+            const stream = document.getElementById('chat-stream');
+            stream.scrollTop = stream.scrollHeight;
 
             try {
                 const response = await fetch('/api/chat', { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify(payload)
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                 });
+                const data = await response.json();
+                let ans = data.reply || "Ошибка сервера";
+                if (response.status === 429) textEl.style.color = '#ff4444';
 
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder("utf-8");
-                let fullAns = "";
-
-                while(true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    
-                    const chunk = decoder.decode(value, {stream: true});
-                    fullAns += chunk;
-                    
-                    textEl.innerHTML = marked.parse(fullAns);
-                    const s = document.getElementById('chat-stream');
-                    s.scrollTop = s.scrollHeight;
+                // 2. ПЕЧАТЬ БЕЗ АВТО-СКРОЛЛА В ЦИКЛЕ (ЧТОБЫ НЕ ДЕРГАЛОСЬ)
+                let buffer = "";
+                for(let char of ans) {
+                    buffer += char;
+                    textEl.innerText = buffer; 
+                    await new Promise(r=>setTimeout(r, 10)); 
                 }
 
+                // 3. Финал: Превращаем в Markdown и формулы
                 textEl.classList.remove('typing'); 
-                renderMathInElement(textEl);
-                
-                c.msgs.push({role:'ai', text: fullAns});
-                saveLocally();
+                textEl.innerHTML = marked.parse(ans);
+                renderMathInElement(textEl, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}] });
+
+                c.msgs.push({role:'ai', text:ans});
+                localStorage.setItem('chats_v57', JSON.stringify(chats));
 
             } catch (error) {
-                textEl.innerText = "Error: " + error.message;
+                textEl.innerText = "Ошибка соединения.";
+                textEl.classList.remove('typing');
             }
         }
 
-        function saveLocally() {
-            localStorage.setItem('flux_chats', JSON.stringify(chats));
-            renderHistory();
-        }
-
-        function appendMsg(role, text, file, anim) {
+        window.appendMsg = function(role, text, file, anim) {
             const s = document.getElementById('chat-stream');
             const d = document.createElement('div'); d.className='message-container';
-            let fh = file ? `<div><img src="${file.data}" style="max-width:200px; border-radius:10px; margin-bottom:10px;"></div>` : '';
+            let fh = '';
+            if(file) fh = `<div>📄 ${file.name}</div>`;
             let ac = role==='user'?'avatar user':(isPro?'avatar ai pro-mode':'avatar ai');
             let content = anim ? `<div class="message-text typing"></div>` : `<div class="message-text">${marked.parse(text)}</div>`;
             d.innerHTML = `<div class="${ac}">${role==='user'?'U':'◈'}</div><div>${fh}${content}</div>`;
             s.appendChild(d); 
-            if(!anim && role === 'ai') renderMathInElement(d);
+            if(!anim && role === 'ai') renderMathInElement(d, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}] });
             s.scrollTop = s.scrollHeight;
             return d;
         }
 
+        function checkProStatus() {
+            if (!isPro) {
+                document.getElementById('subTimer').innerText = "";
+                document.getElementById('proDate').innerText = "";
+                return;
+            }
+            const now = Date.now();
+            const left = proExpiry - now;
+            if(proExpiry > 4000000000000) { document.getElementById('subTimer').innerText = "БЕССРОЧНО"; return; }
+            if (left <= 0) {
+                isPro = false;
+                localStorage.setItem('isPro_v57', 'false');
+                updateProUI();
+                alert("⏳ PRO истек.");
+            } else {
+                const date = new Date(proExpiry);
+                const d = date.getDate().toString().padStart(2,'0');
+                const m = (date.getMonth()+1).toString().padStart(2,'0');
+                const h = date.getHours().toString().padStart(2,'0');
+                const min = date.getMinutes().toString().padStart(2,'0');
+                document.getElementById('proDate').innerText = `до: ${d}.${m} ${h}:${min}`;
+                
+                const days = Math.floor(left / 86400000);
+                const hours = Math.floor((left % 86400000) / 3600000);
+                document.getElementById('subTimer').innerText = `Ост: ${days}д ${hours}ч`;
+            }
+        }
+
+        window.copyID = function() {
+            navigator.clipboard.writeText(myUID);
+            const el = document.getElementById('userId');
+            const old = el.innerText;
+            el.innerText = "COPIED!";
+            el.style.color = "var(--success)";
+            setTimeout(() => { el.innerText = old; el.style.color = "#666"; }, 1000);
+        }
+
+        window.acceptDisclaimer = function() {
+            localStorage.setItem('disc_v57', 'true');
+            document.getElementById('disclaimerPopup').classList.remove('active');
+            fetch('/api/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({uid:myUID}) }).catch(e=>{});
+        }
+
+        document.getElementById('secretTrigger').onclick = () => {
+            clicks++;
+            if(clicks===7) { 
+                document.getElementById('adminPassPopup').style.display='block'; 
+                clicks=0; 
+            }
+        };
+
+        window.verifyAdmin = function() {
+            if(btoa(document.getElementById('adminKey').value)===PASS_HASH) {
+                document.getElementById('adminPassPopup').style.display='none';
+                document.getElementById('adminModal').classList.add('active');
+            } else alert('⛔️ Доступ запрещен');
+        }
+
+        window.grantSubscription = function() {
+            let uid = document.getElementById('targetUID').value.trim();
+            const dur = document.getElementById('proDuration').value;
+            if(uid === "" || uid === "me") uid = myUID;
+            
+            let add = 0;
+            if(dur==='24h') add=86400000; if(dur==='3d') add=259200000;
+            if(dur==='1w') add=604800000; if(dur==='1m') add=2592000000;
+            if(dur==='perm') add=5000000000000;
+
+            if(uid === myUID) {
+                isPro = true;
+                proExpiry = Date.now() + add;
+                localStorage.setItem('isPro_v57', 'true');
+                localStorage.setItem('proExpiry_v57', proExpiry.toString());
+                updateProUI();
+                alert(`✅ PRO выдан себе!`);
+            } else alert(`✅ PRO выдан юзеру ${uid} (Симуляция)`);
+            checkProStatus();
+            document.getElementById('targetUID').value = '';
+        }
+
+        window.togglePro = function() {
+            isPro = !isPro;
+            if(isPro) { proExpiry = 5000000000000; localStorage.setItem('proExpiry_v57', proExpiry); }
+            localStorage.setItem('isPro_v57', isPro);
+            updateProUI();
+            checkProStatus();
+        }
+
+        window.closeAdmin = function() { document.getElementById('adminModal').classList.remove('active'); }
+
+        window.generateLegalText = function() {
+             document.getElementById('kilometerText').innerText = "СОГЛАШЕНИЕ 1XCODE & FLUX AI (2025)\n\n1. ОБЩИЕ ПОЛОЖЕНИЯ\n...";
+        }
+        window.openLegal = function() { document.getElementById('legalModal').classList.add('active'); }
+
         window.renderHistory = function() {
             const l = document.getElementById('historyList'); l.innerHTML='';
-            chats.forEach(c => {
+            [...chats].sort((a,b)=>b.ts-a.ts).forEach(c => {
                 const i = document.createElement('div');
-                i.className = `history-item ${activeId===c.id?'active':''} ${isPro ? 'pro-user' : ''}`;
+                i.className = `history-item ${activeId===c.id?'active':''}`;
                 i.innerHTML = `<span class="chat-title">${c.title}</span> <button class="delete-btn" onclick="delChat(event,${c.id})">✕</button>`;
                 i.onclick = (e) => { if(e.target.tagName!=='BUTTON') loadChat(c.id); };
                 l.appendChild(i);
             });
         }
-
-        window.loadChat = function(id) {
-            const c=chats.find(x=>x.id===id);
-            if(c){ 
-                activeId=id; 
-                const s=document.getElementById('chat-stream'); s.innerHTML=''; 
-                c.msgs.forEach(m=>appendMsg(m.role,m.text,m.file)); 
-                renderHistory();
-                if(window.innerWidth<768) toggleSidebar(false);
-            } 
-        }
-
-        window.startNewChat = function() { 
-            activeId=null; 
-            document.getElementById('chat-stream').innerHTML=`<div class="message-container"><div class="avatar ai">◈</div><div class="message-text">Новый чат (Локальный).</div></div>`; 
-            renderHistory(); 
-            if(window.innerWidth<768) toggleSidebar(false);
-        }
-
-        window.delChat = function(e, id) {
-            e.stopPropagation();
-            if(confirm("Удалить?")) {
-                chats = chats.filter(x => x.id !== id);
-                saveLocally();
-                if(activeId === id) startNewChat();
-            }
-        }
-        
-        window.handleFile = function(i) {
-            const f = i.files[0];
-            if(f){
-                const r = new FileReader();
-                r.onload = e => {
-                    currFile = {name:f.name, type:f.type, data:e.target.result};
-                    document.getElementById('filePreview').style.display='flex';
-                    document.getElementById('fileName').innerText=f.name;
-                };
-                r.readAsDataURL(f);
-            }
-        }
-        window.clearFile = function() {
-            currFile = null;
-            document.getElementById('filePreview').style.display='none';
-            document.getElementById('fileIn').value='';
-        }
-
-        window.clearAllData = function() {
-            if(confirm("Стереть ВСЮ историю переписки?")) {
-                localStorage.removeItem('flux_chats');
-                location.reload();
-            }
-        }
-
-        // АДМИНКА
-        document.getElementById('secretTrigger').onclick = () => { clicks++; if(clicks===7) { document.getElementById('adminPassPopup').style.display='block'; clicks=0; } };
-        window.verifyAdmin = function() { if(btoa(document.getElementById('adminKey').value)===PASS_HASH) { document.getElementById('adminPassPopup').style.display='none'; document.getElementById('adminModal').classList.add('active'); } else alert("Wrong Pass"); };
-        
-        window.enablePro = function() { 
-            isPro = true; 
-            localStorage.setItem('flux_pro', 'true'); 
-            updateProUI(); 
-            document.getElementById('adminModal').classList.remove('active');
-            alert("PRO Activated Locally!");
-        }
-        
-        window.setCreatorUid = function() {
-            const val = document.getElementById('creatorUidInput').value.trim();
-            if(val) {
-                myUID = val;
-                localStorage.setItem('flux_uid', myUID);
-                document.getElementById('userId').innerText = "UID: " + myUID;
-                alert("UID изменен на: " + myUID);
-                location.reload();
-            }
-        }
-
+        window.startNewChat = function() { activeId=null; document.getElementById('chat-stream').innerHTML=`<div class="message-container"><div class="avatar ai">◈</div><div class="message-text">Система готова. С Новым Годом! 🎄</div></div>`; renderHistory(); if(window.innerWidth<768) toggleSidebar(false); }
+        window.loadChat = function(id) { const c=chats.find(x=>x.id===id); if(c){ activeId=id; renderMsgs(c.msgs); renderHistory(); if(window.innerWidth<768) toggleSidebar(false); } }
+        window.delChat = function(e,id) { e.stopPropagation(); if(confirm('Del?')){ chats=chats.filter(x=>x.id!==id); localStorage.setItem('chats_v57', JSON.stringify(chats)); if(activeId===id) startNewChat(); else renderHistory(); } }
         window.updateProUI = function() {
-            if(isPro) document.body.classList.add('pro-enabled');
+            const b = document.body; const btns = ['deskPro','mobPro'];
+            if(isPro) { b.classList.add('pro-enabled'); btns.forEach(x=>document.getElementById(x).classList.remove('locked')); }
+            else { b.classList.remove('pro-enabled'); btns.forEach(x=>document.getElementById(x).classList.add('locked')); }
         }
+        window.switchMode = function(m) { if(m==='pro' && !isPro) return alert('🔒 Только для PRO'); }
+        window.toggleSidebar = function(o) { const s=document.getElementById('sidebar'); const ov=document.getElementById('overlay'); if(o){s.classList.add('op
 
-        window.copyID = function() { navigator.clipboard.writeText(myUID); alert("UID скопирован"); }
-        window.acceptDisclaimer = function() { localStorage.setItem('disc_v66f', 'true'); document.getElementById('disclaimerPopup').classList.remove('active'); }
-        window.toggleSidebar = function(o) { const s=document.getElementById('sidebar'); if(o)s.classList.add('open'); else s.classList.remove('open'); }
-        window.openLegal = function() { document.getElementById('legalModal').classList.add('active'); }
-        window.generateLegalText = function() { document.getElementById('kilometerText').innerText = `ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (РЕДАКЦИЯ 2025)\n\n1. ОБЩИЕ ПОЛОЖЕНИЯ...`; }
-
-        function createSnow() {
-            const c = document.getElementById('snow-container');
-            for(let i=0; i<30; i++) {
-                const s = document.createElement('div'); s.className='snowflake';
-                s.style.left=Math.random()*100+'vw'; s.style.width=Math.random()*3+'px'; s.style.height=s.style.width; s.style.animationDuration=Math.random()*3+5+'s';
-                c.appendChild(s);
-            }
-        }
-        
-        document.getElementById('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
-    </script>
-</body>
-</html>
 
 
 
