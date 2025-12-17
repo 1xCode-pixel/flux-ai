@@ -1,27 +1,34 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { createClient } = require('@vercel/kv');
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// --- 1. ПОДКЛЮЧЕНИЕ К БАЗЕ (VERCEL KV) ---
-let kv = null;
-if (process.env.REDIS_URL || process.env.KV_REST_API_URL) {
-    try {
-        kv = createClient({
-            url: process.env.REDIS_URL || process.env.KV_REST_API_URL,
-            token: process.env.KV_REST_API_TOKEN || process.env.REDIS_TOKEN
-        });
-        console.log("✅ DB Connected");
-    } catch(e) { console.log("❌ DB Error", e); }
-}
-
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
+const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// --- 2. ТВОИ ОРИГИНАЛЬНЫЕ ПРОМТЫ ---
+// === 1. НАСТРОЙКИ ЛИМИТОВ ===
+const CREATOR_ID = "C8N-HPY"; // ID Создателя (Безлимит)
+
+const LIMITS = {
+    FREE: { msg: 3, img: 1 },    // 3 сообщения и 1 фото в час
+    PRO:  { msg: 100, img: 50 }  // 100 сообщений и 50 фото в час
+};
+
+// Хранилище лимитов в оперативной памяти (сбрасывается при перезагрузке сервера)
+const trafficMap = new Map();
+
+// === 2. МОДЕЛИ С VISION (ИИ С ГЛАЗАМИ) ===
+const VISION_MODELS = [
+    "google/gemini-2.0-flash-exp:free",           
+    "google/gemini-2.0-pro-exp-02-05:free",       
+    "meta-llama/llama-3.2-11b-vision-instruct:free", 
+    "qwen/qwen-2-vl-7b-instruct:free"             
+];
+
+// === 3. ТВОИ ПОЛНЫЕ ПРОМТЫ ===
 const PROMPT_FREE = `
 ТВОЯ ИНСТРУКЦИЯ:
 1. Ты — **Flux Core** (Базовая версия).
@@ -45,129 +52,139 @@ const PROMPT_PRO = `
 9. Если ты решаешь что то математическое там и хочешь сделать свои определения то не делай просто решай.
 `;
 
-app.get('/', (req, res) => res.send("Flux AI v66 Backend Active"));
+app.get('/', (req, res) => res.send("Flux AI v66 Backend (Limits + Vision)"));
 
-// --- 3. АВТОРИЗАЦИЯ (PRO/FREE) ---
-app.post('/api/auth', async (req, res) => {
-    if(!kv) return res.json({isPro: false});
-    const { uid } = req.body;
-    const u = await kv.hgetall(`user:${uid}`);
-    res.json({ isPro: u ? u.isPro === true : false });
-});
+// Заглушки для фронтенда (так как нет базы данных)
+app.post('/api/auth', (req, res) => res.json({ status: 'ok' }));
+app.post('/api/history', (req, res) => res.json({ chats: [] }));
+app.post('/api/chat/delete', (req, res) => res.json({ status: 'ok' }));
+app.post('/api/admin/grant', (req, res) => res.json({ status: 'ok' }));
 
-// --- 4. ЗАГРУЗКА ИСТОРИИ ---
-app.post('/api/history', async (req, res) => {
-    if(!kv) return res.json({chats: []});
-    try {
-        const { uid } = req.body;
-        // Берем последние 20 чатов
-        const ids = await kv.lrange(`chats:${uid}`, 0, 20);
-        let chats = [];
-        if(ids && ids.length > 0) {
-            for(let id of ids) {
-                const c = await kv.get(`chat:${uid}:${id}`);
-                if(c) chats.push(c);
-            }
-        }
-        res.json({ chats });
-    } catch(e) { res.json({chats:[]}); }
-});
-
-// --- 5. ЧАТ СО СТРИМИНГОМ (ПЕЧАТАНИЕМ) ---
+// === 4. ГЛАВНЫЙ РОУТ ЧАТА ===
 app.post('/api/chat', async (req, res) => {
-    const { message, uid, chatId } = req.body;
+    const { message, file, isPro, uid } = req.body;
 
-    // Проверяем статус PRO
-    let isPro = false;
-    if(kv) {
-        const u = await kv.hgetall(`user:${uid}`);
-        if(u && u.isPro) isPro = true;
-    }
-
-    // Выбираем нужный промт
-    const sysPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
-
-    // ВАЖНО: Заголовки для работы стриминга в Vercel
+    // Настраиваем ответ как поток (Streaming)
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');
-    res.setHeader('X-Accel-Buffering', 'no'); 
+    res.setHeader('X-Accel-Buffering', 'no');
 
-    let fullText = "";
+    // --- ПРОВЕРКА ЛИМИТОВ ---
+    if (uid !== CREATOR_ID) { // Создателя не проверяем
+        const now = Date.now();
+        let userData = trafficMap.get(uid);
 
-    try {
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${OPENROUTER_KEY}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://flux.1xcode.dev",
-                "X-Title": "Flux v66"
-            },
-            body: JSON.stringify({
-                model: "google/gemini-2.0-flash-exp:free", // Модель (бесплатная)
-                messages: [
-                    {role: "system", content: sysPrompt},
-                    {role: "user", content: message}
-                ],
-                stream: true // ВКЛЮЧАЕМ ПОТОК
-            })
-        });
+        // Если юзера нет или час прошел — сбрасываем
+        if (!userData || now > userData.resetTime) {
+            userData = { 
+                msgCount: 0, 
+                imgCount: 0, 
+                resetTime: now + 3600000 // +1 час
+            };
+            trafficMap.set(uid, userData);
+        }
 
-        // Читаем ответ по кусочкам
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+        const currentLimit = isPro ? LIMITS.PRO : LIMITS.FREE;
 
-        while(true) {
-            const { done, value } = await reader.read();
-            if(done) break;
+        // Лимит картинок
+        if (file) {
+            if (userData.imgCount >= currentLimit.img) {
+                res.write(`⛔ **ЛИМИТ ФОТО ИСЧЕРПАН.**\n\nТариф: **${isPro ? 'PRO' : 'FREE'}**.\nЛимит: ${currentLimit.img} фото/час.\nПодождите сброса таймера.`);
+                res.end();
+                return;
+            }
+            userData.imgCount++;
+        }
+        
+        // Лимит сообщений
+        if (userData.msgCount >= currentLimit.msg) {
+            res.write(`⛔ **ЛИМИТ СООБЩЕНИЙ ИСЧЕРПАН.**\n\nТариф: **${isPro ? 'PRO' : 'FREE'}**.\nЛимит: ${currentLimit.msg} сообщений/час.\nКупите PRO или ждите.`);
+            res.end();
+            return;
+        }
 
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-            for(const line of lines) {
-                if(line.startsWith('data: ') && line !== 'data: [DONE]') {
-                    try {
-                        const json = JSON.parse(line.replace('data: ', ''));
-                        const txt = json.choices[0]?.delta?.content;
-                        if(txt) {
-                            res.write(txt); // Отправляем букву клиенту
-                            fullText += txt; // Собираем полный текст для базы
-                        }
-                    } catch(e){}
+        userData.msgCount++;
+        trafficMap.set(uid, userData);
+    }
+
+    // --- ВЫБОР ПРОМТА И КОНТЕНТА ---
+    const systemPrompt = isPro ? PROMPT_PRO : PROMPT_FREE;
+    
+    let userContent;
+    if (file) {
+        // Формат для Vision моделей
+        userContent = [
+            { type: "text", text: message || "Опиши изображение." },
+            { type: "image_url", image_url: { url: file } }
+        ];
+    } else {
+        userContent = message;
+    }
+
+    const messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent }
+    ];
+
+    // --- ЗАПРОС К НЕЙРОСЕТЯМ (ПЕРЕБОР) ---
+    let success = false;
+
+    for (const model of VISION_MODELS) {
+        if (success) break;
+        
+        try {
+            const response = await fetch(BASE_URL, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${OPENROUTER_KEY}`,
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://flux.1xcode.dev",
+                    "X-Title": "Flux v66"
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: messages,
+                    stream: true // Печатание
+                })
+            });
+
+            if (!response.ok) continue; // Если ошибка - пробуем следующую модель
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+                
+                for (const line of lines) {
+                    if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                        try {
+                            const json = JSON.parse(line.replace('data: ', ''));
+                            const txt = json.choices[0]?.delta?.content;
+                            if (txt) {
+                                res.write(txt);
+                                success = true;
+                            }
+                        } catch (e) {}
+                    }
                 }
             }
-        }
-
-    } catch(e) {
-        res.write(" Ошибка соединения с нейросетью.");
+        } catch (e) { console.log(`Model failed: ${model}`); }
     }
-    
-    res.end(); // Завершаем передачу
 
-    // --- 6. СОХРАНЕНИЕ В БАЗУ ---
-    if(kv && uid && chatId && fullText) {
-        const key = `chat:${uid}:${chatId}`;
-        let chat = await kv.get(key);
-        // Если чата нет - создаем
-        if(!chat) {
-            chat = { id: chatId, title: message.slice(0, 20), ts: Date.now(), msgs: [] };
-            await kv.lpush(`chats:${uid}`, chatId);
-        }
-        // Добавляем сообщения в историю
-        chat.msgs.push({ role: 'user', text: message });
-        chat.msgs.push({ role: 'ai', text: fullText });
-        await kv.set(key, chat);
+    if (!success) {
+        res.write("**Все сервера перегружены. Попробуйте через минуту.**");
     }
-});
 
-// --- 7. АДМИНКА (ВЫДАЧА PRO) ---
-app.post('/api/admin/grant', async (req, res) => {
-    if(!kv) return res.json({status:'error'});
-    const { targetUid } = req.body;
-    await kv.hset(`user:${targetUid}`, { isPro: true });
-    res.json({status: 'ok'});
+    res.end();
 });
 
 module.exports = app;
+
 
 
 
