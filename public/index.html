@@ -35,11 +35,43 @@
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         @keyframes pulse-red { 0% { text-shadow: 0 0 0 rgba(255,68,68,0); } 50% { text-shadow: 0 0 20px rgba(255,68,68,0.6); } 100% { text-shadow: 0 0 0 rgba(255,68,68,0); } }
 
-        /* БЕЛЫЙ ОГОНЬ (ADMIN) */
-        @keyframes whiteFire {
-            0% { box-shadow: 0 0 4px #fff, 0 0 10px #fff, 0 0 20px rgba(255,255,255,0.5); border-color: #fff; }
-            50% { box-shadow: 0 0 8px #fff, 0 0 20px #fff, 0 0 40px rgba(255,255,255,0.8); border-color: #eee; }
-            100% { box-shadow: 0 0 4px #fff, 0 0 10px #fff, 0 0 20px rgba(255,255,255,0.5); border-color: #fff; }
+        /* --- НОВЫЙ РЕАЛИСТИЧНЫЙ БЕЛЫЙ ОГОНЬ (ADMIN) --- */
+        @keyframes realWhiteFire {
+          0% {
+            box-shadow: 
+              0 0 6px 2px rgba(255, 255, 255, 0.8),   /* Ядро */
+              0 -4px 12px 4px rgba(240, 240, 255, 0.6), /* Среднее пламя */
+              0 -8px 20px 8px rgba(220, 220, 255, 0.3); /* Внешний шлейф */
+            transform: translateY(0) scale(1);
+          }
+          25% {
+            box-shadow: 
+              0 1px 7px 2px rgba(255, 255, 255, 0.85),
+              -2px -6px 14px 5px rgba(240, 240, 255, 0.65),
+              -3px -12px 24px 9px rgba(220, 220, 255, 0.35);
+            transform: translateY(-1px) scale(1.01);
+          }
+          50% {
+            box-shadow: 
+              0 -1px 6px 3px rgba(255, 255, 255, 0.9),
+              1px -8px 16px 4px rgba(240, 240, 255, 0.7),
+              2px -14px 28px 7px rgba(220, 220, 255, 0.4);
+            transform: translateY(-2px) scale(1.02);
+          }
+          75% {
+            box-shadow: 
+              0 0 7px 2px rgba(255, 255, 255, 0.85),
+              2px -5px 13px 5px rgba(240, 240, 255, 0.65),
+              3px -10px 22px 8px rgba(220, 220, 255, 0.35);
+             transform: translateY(-1px) scale(1.01);
+          }
+          100% {
+            box-shadow: 
+              0 0 6px 2px rgba(255, 255, 255, 0.8),
+              0 -4px 12px 4px rgba(240, 240, 255, 0.6),
+              0 -8px 20px 8px rgba(220, 220, 255, 0.3);
+            transform: translateY(0) scale(1);
+          }
         }
 
         /* --- UI CSS --- */
@@ -56,6 +88,15 @@
         .loading-bar { height: 100%; width: 0%; background: var(--pro-color); border-radius: 3px; animation: loadProgress 2.5s cubic-bezier(0.4, 0.0, 0.2, 1) forwards; }
         .splash-credit { font-family: 'Inter'; font-size: 0.8rem; letter-spacing: 4px; color: var(--pro-color); opacity: 0; animation: fadeIn 1s ease 1.2s forwards; }
         @keyframes loadProgress { 0% { width: 0%; } 40% { width: 30%; } 70% { width: 85%; } 100% { width: 100%; } }
+
+        /* MAINTENANCE */
+        #maint-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #050505; z-index: 999999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+        #maint-screen.active { display: flex; }
+        .maint-panel { background: #0a0a0a; border: 1px solid var(--danger); padding: 40px; border-radius: 20px; width: 90%; max-width: 400px; box-shadow: 0 0 50px rgba(255, 68, 68, 0.15); }
+        .maint-icon { font-size: 4rem; margin-bottom: 20px; animation: pulse-red 2s infinite; cursor: pointer; }
+        .maint-title { font-family: 'JetBrains Mono'; font-size: 1.4rem; font-weight: bold; color: var(--danger); margin-bottom: 15px; letter-spacing: 2px; }
+        .maint-text { color: #aaa; font-size: 0.9rem; line-height: 1.6; margin-bottom: 25px; }
+        .maint-timer { font-family: 'JetBrains Mono'; font-size: 2rem; color: #fff; background: #111; border: 1px solid #333; padding: 15px; border-radius: 12px; margin-bottom: 20px; letter-spacing: 2px; }
 
         /* POPUPS */
         .admin-pass-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 1px solid var(--pro-color); padding: 40px; border-radius: 16px; z-index: 9500; display: none; text-align: center; box-shadow: 0 0 50px rgba(212, 175, 55, 0.2); width: 320px; }
@@ -111,14 +152,16 @@
         .sidebar-footer { margin-top: auto; padding-top: 15px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; }
         .user-profile { display: flex; align-items: center; gap: 10px; padding: 5px; user-select: none; }
         /* СТИЛЬ АВАТАРА */
-        .user-avatar { width: 36px; height: 36px; background: #222; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 1px solid #333; transition: 0.3s; }
+        .user-avatar { width: 36px; height: 36px; background: #222; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 1px solid #333; transition: border-color 0.3s, color 0.3s, box-shadow 0.3s; }
         body.pro-enabled .user-avatar { border-color: var(--pro-color); color: var(--pro-color); }
-        /* АВАТАР АДМИНА В САЙДБАРЕ */
+        
+        /* --- АВАТАР АДМИНА В САЙДБАРЕ (ГЛАВНОЕ ИЗМЕНЕНИЕ) --- */
         .user-avatar.admin-mode { 
-            border-color: #fff; 
-            color: #fff;
-            animation: whiteFire 1.5s infinite alternate; 
-            box-shadow: 0 0 15px rgba(255,255,255,0.5);
+            border-color: #fff !important; 
+            color: #fff !important;
+            background: #111;
+            /* Очень быстрое, хаотичное мерцание */
+            animation: realWhiteFire 0.1s infinite alternate linear; 
         }
 
         #userId { font-size: 0.7rem; color: #666; font-family: 'JetBrains Mono'; cursor: pointer; margin-top: 2px; }
@@ -155,7 +198,8 @@
         /* СТИЛЬ АДМИНА (ИИ В ЧАТЕ) */
         .avatar.ai.admin-mode { 
             background: #fff; color: #000; border: 1px solid #fff;
-            animation: whiteFire 1.5s infinite alternate; 
+            /* Тоже быстрый огонь */
+            animation: realWhiteFire 0.1s infinite alternate linear; 
         }
 
         .input-wrapper { max-width: 800px; margin: 0 auto; width: 100%; padding: 15px; background: linear-gradient(to top, #000 80%, transparent); display: flex; flex-direction: column; z-index: 60; }
@@ -169,15 +213,6 @@
         .btn-clip { background: none; border: none; color: #666; font-size: 1.3rem; cursor: pointer; padding-bottom: 3px; }
         .btn-clip:hover { color: #fff; }
         .burger-btn { background: none; border: none; color: #fff; cursor: pointer; padding: 5px; font-size: 1.5rem; }
-
-        /* MAINTENANCE */
-        #maint-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #050505; z-index: 999999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
-        #maint-screen.active { display: flex; }
-        .maint-panel { background: #0a0a0a; border: 1px solid var(--danger); padding: 40px; border-radius: 20px; width: 90%; max-width: 400px; box-shadow: 0 0 50px rgba(255, 68, 68, 0.15); }
-        .maint-icon { font-size: 4rem; margin-bottom: 20px; animation: pulse-red 2s infinite; cursor: pointer; }
-        .maint-title { font-family: 'JetBrains Mono'; font-size: 1.4rem; font-weight: bold; color: var(--danger); margin-bottom: 15px; letter-spacing: 2px; }
-        .maint-text { color: #aaa; font-size: 0.9rem; line-height: 1.6; margin-bottom: 25px; }
-        .maint-timer { font-family: 'JetBrains Mono'; font-size: 2rem; color: #fff; background: #111; border: 1px solid #333; padding: 15px; border-radius: 12px; margin-bottom: 20px; letter-spacing: 2px; }
 
         @media (max-width: 768px) {
             .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 85%; transform: translateX(-100%); box-shadow: 5px 0 30px rgba(0,0,0,0.5); }
@@ -773,6 +808,7 @@
     </script>
 </body>
     </html>
+
 
 
 
