@@ -35,28 +35,13 @@
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         @keyframes pulse-red { 0% { text-shadow: 0 0 0 rgba(255,68,68,0); } 50% { text-shadow: 0 0 20px rgba(255,68,68,0.6); } 100% { text-shadow: 0 0 0 rgba(255,68,68,0); } }
 
-        /* --- РЕАЛИСТИЧНЫЙ БЕЛЫЙ ОГОНЬ (ADMIN) --- */
-        @keyframes whiteFlameEngine {
-           0% { 
-               transform: translateY(0) scale(1) skewX(0deg); 
-               box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.7), 0 -10px 20px 5px rgba(255, 255, 255, 0.4); 
-           }
-           25% { 
-               transform: translateY(-2px) scale(1.05) skewX(2deg); 
-               box-shadow: -2px -5px 18px 8px rgba(255, 255, 255, 0.8), 0 -15px 30px 10px rgba(255, 255, 255, 0.5); 
-           }
-           50% { 
-               transform: translateY(-4px) scale(1.1) skewX(-2deg); 
-               box-shadow: 0 0 20px 6px rgba(255, 255, 255, 0.9), 0 -20px 40px 15px rgba(255, 255, 255, 0.6); 
-           }
-           75% { 
-               transform: translateY(-2px) scale(1.05) skewX(1deg); 
-               box-shadow: 2px -5px 18px 8px rgba(255, 255, 255, 0.8), 0 -15px 30px 10px rgba(255, 255, 255, 0.5); 
-           }
-           100% { 
-               transform: translateY(0) scale(1) skewX(0deg); 
-               box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.7), 0 -10px 20px 5px rgba(255, 255, 255, 0.4); 
-           }
+        /* --- НОВЫЙ РЕАЛИСТИЧНЫЙ ОГОНЬ (ТУРБУЛЕНТНАЯ АУРА) --- */
+        @keyframes adminTurbulence {
+            0% { transform: rotate(0deg) scale(1); border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%; }
+            25% { scale(1.05); }
+            50% { transform: rotate(180deg) scale(1); border-radius: 50% 45% 55% 50% / 45% 55% 50% 50%; }
+            75% { scale(1.05); }
+            100% { transform: rotate(360deg) scale(1); border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%; }
         }
 
         /* --- UI CSS --- */
@@ -145,27 +130,31 @@
             display: flex; align-items: center; justify-content: center; 
             font-weight: bold; border: 1px solid #333; 
             transition: 0.3s;
-            position: relative;
+            position: relative; /* Важно для псевдоэлементов */
             z-index: 2;
         }
         body.pro-enabled .user-avatar { border-color: var(--pro-color); color: var(--pro-color); }
         
-        /* --- ОГОНЬ АДМИНА В САЙДБАРЕ --- */
+        /* --- ОГОНЬ АДМИНА В САЙДБАРЕ (КРАСИВЫЙ) --- */
         .user-avatar.admin-mode {
-            background: #fff; 
-            color: #000;
-            border: none;
+            background: #111; color: #fff; border: none;
+            box-shadow: 0 0 10px rgba(255,255,255,0.3);
         }
-        /* Псевдо-элемент для огня, чтобы он был ЗА аватаркой */
+        /* Слой 1: Основное пламя */
         .user-avatar.admin-mode::before {
-            content: '';
-            position: absolute;
-            top: -5px; left: -5px; right: -5px; bottom: -5px;
-            border-radius: 50%;
-            z-index: -1;
-            background: transparent;
-            /* Анимация огня */
-            animation: whiteFlameEngine 0.8s infinite alternate linear;
+            content: ''; position: absolute; z-index: -1;
+            top: -6px; left: -6px; right: -6px; bottom: -6px;
+            background: linear-gradient(45deg, #ffffff, #e0e0e0);
+            filter: blur(5px); opacity: 0.8;
+            animation: adminTurbulence 3s linear infinite;
+        }
+        /* Слой 2: Внешнее свечение */
+        .user-avatar.admin-mode::after {
+            content: ''; position: absolute; z-index: -2;
+            top: -10px; left: -10px; right: -10px; bottom: -10px;
+            background: linear-gradient(-45deg, #ffffff, #f0f0f0);
+            filter: blur(8px); opacity: 0.5;
+            animation: adminTurbulence 4s linear infinite reverse;
         }
 
         #userId { font-size: 0.7rem; color: #666; font-family: 'JetBrains Mono'; cursor: pointer; margin-top: 2px; }
@@ -202,13 +191,13 @@
         
         /* АВАТАР АДМИНА В ЧАТЕ */
         .avatar.ai.admin-mode { 
-            background: #fff; color: #000; 
-            border: none;
+            background: #fff; color: #000; border: none;
         }
         .avatar.ai.admin-mode::before {
-            content: ''; position: absolute; top: -3px; left: -3px; right: -3px; bottom: -3px;
-            border-radius: 8px; z-index: -1;
-            animation: whiteFlameEngine 0.8s infinite alternate linear;
+            content: ''; position: absolute; top: -4px; left: -4px; right: -4px; bottom: -4px;
+            background: linear-gradient(45deg, #ffffff, #e0e0e0);
+            border-radius: 8px; z-index: -1; filter: blur(4px);
+            animation: adminTurbulence 3s linear infinite;
         }
 
         .input-wrapper { max-width: 800px; margin: 0 auto; width: 100%; padding: 15px; background: linear-gradient(to top, #000 80%, transparent); display: flex; flex-direction: column; z-index: 60; }
@@ -816,7 +805,8 @@
         document.getElementById('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
     </script>
 </body>
-</html>
+    </html>
+
 
 
 
