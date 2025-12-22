@@ -27,6 +27,14 @@ const LIMITS = {
     ULTRA: { msg: 500, img: 500 }
 };
 
+// --- МОДЕЛИ (ДЛЯ ПЕРЕБОРА) ---
+const VISION_MODELS = [
+    "google/gemini-2.0-flash-exp:free",
+    "google/gemini-2.0-pro-exp-02-05:free",
+    "meta-llama/llama-3.2-11b-vision-instruct:free",
+    "qwen/qwen-2-vl-7b-instruct:free"
+];
+
 // --- ТВОИ ПРОМТЫ (1xCode) С ПРАВИЛОМ ПРО КОД ---
 const NO_CODE_MSG = "Генерация кода временно недоступна. Функция появится в следующем обновлении с агентом Flux Coder.";
 
@@ -205,23 +213,56 @@ app.post('/api/chat', async (req, res) => {
     let sys = PROMPTS[tier] || PROMPTS.FREE;
     if (tier === 'ADMIN' || uid === CREATOR_ID) sys = PROMPTS.ADMIN;
 
-    try {
-        const response = await fetch(BASE_URL, {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${OPENROUTER_KEY}`, "Content-Type": "application/json", "HTTP-Referer": "https://flux.1xcode.dev", "X-Title": "Flux AI" },
-            body: JSON.stringify({
-                model: "google/gemini-2.0-flash-exp:free",
-                messages: [{role: "system", content: sys}, {role: "user", content: file?[{type:"text",text:message},{type:"image_url",image_url:{url:file}}]:message}]
-            })
-        });
-        const json = await response.json();
-        res.json({ reply: json.choices[0]?.message?.content || "Error" });
-    } catch(e) { res.json({ reply: "Server Error" }); }
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    let success = false;
+    for (const model of VISION_MODELS) {
+        if (success) break;
+        try {
+            const response = await fetch(BASE_URL, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${OPENROUTER_KEY}`, "Content-Type": "application/json", "HTTP-Referer": "https://flux.1xcode.dev", "X-Title": "Flux AI" },
+                body: JSON.stringify({
+                    model: model,
+                    messages: [{role: "system", content: sys}, {role: "user", content: file?[{type:"text",text:message},{type:"image_url",image_url:{url:file}}]:message}],
+                    stream: true
+                })
+            });
+
+            if (!response.ok) continue; // Если модель упала, пробуем следующую
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            while(true) {
+                const {done, value} = await reader.read();
+                if(done) break;
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+                for(const line of lines) {
+                    if(line.startsWith('data: ') && line !== 'data: [DONE]') {
+                        try {
+                            const json = JSON.parse(line.replace('data: ', ''));
+                            const txt = json.choices[0]?.delta?.content;
+                            if(txt) {
+                                res.write(JSON.stringify({ reply: txt }));
+                                success = true;
+                            }
+                        } catch(e){}
+                    }
+                }
+            }
+        } catch(e) {}
+    }
+
+    if (!success) res.write(JSON.stringify({ reply: "Ошибка: Серверы перегружены." }));
+    res.end();
 });
 
 app.get('/', (req, res) => res.send("Flux AI Vercel Running"));
 
 module.exports = app;
+
 
 
 
