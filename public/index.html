@@ -16,13 +16,14 @@
         :root {
             --bg-body: #050505; --sidebar-bg: #0a0a0a; --chat-bg: #000000;
             --border: #222; --text-main: #ECECEC; --text-muted: #888;
-            --accent: #ffffff; --pro-color: #d4af37; --admin-color: #ffffff; 
+            --accent: #ffffff; --pro-color: #d4af37; --ultra-color: #b026ff; --admin-color: #ffffff;
             --danger: #ff4444; --success: #00ff88;
             --frost: rgba(255, 255, 255, 0.03);
         }
 
-        body.pro-enabled { --accent: var(--pro-color); }
-        body.admin-enabled { --accent: var(--admin-color); }
+        body.tier-pro { --accent: var(--pro-color); }
+        body.tier-ultra { --accent: var(--ultra-color); }
+        body.tier-admin { --accent: var(--admin-color); }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--bg-body); color: var(--text-main); font-family: 'Inter', sans-serif; margin: 0; height: 100dvh; display: flex; overflow: hidden; transition: --accent 0.5s; }
@@ -35,13 +36,19 @@
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         @keyframes pulse-red { 0% { text-shadow: 0 0 0 rgba(255,68,68,0); } 50% { text-shadow: 0 0 20px rgba(255,68,68,0.6); } 100% { text-shadow: 0 0 0 rgba(255,68,68,0); } }
 
-        /* --- НОВЫЙ РЕАЛИСТИЧНЫЙ ОГОНЬ (ТУРБУЛЕНТНАЯ АУРА) --- */
+        /* --- РЕАЛИСТИЧНЫЙ ОГОНЬ (ADMIN) --- */
         @keyframes adminTurbulence {
             0% { transform: rotate(0deg) scale(1); border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%; }
             25% { scale(1.05); }
             50% { transform: rotate(180deg) scale(1); border-radius: 50% 45% 55% 50% / 45% 55% 50% 50%; }
             75% { scale(1.05); }
             100% { transform: rotate(360deg) scale(1); border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%; }
+        }
+        /* ОГОНЬ ULTRA */
+        @keyframes ultraFire {
+            0% { box-shadow: 0 0 10px 2px #b026ff; border-color: #b026ff; }
+            50% { box-shadow: 0 0 20px 5px #d966ff; border-color: #d966ff; }
+            100% { box-shadow: 0 0 10px 2px #b026ff; border-color: #b026ff; }
         }
 
         /* --- UI CSS --- */
@@ -68,19 +75,39 @@
         .maint-text { color: #aaa; font-size: 0.9rem; line-height: 1.6; margin-bottom: 25px; }
         .maint-timer { font-family: 'JetBrains Mono'; font-size: 2rem; color: #fff; background: #111; border: 1px solid #333; padding: 15px; border-radius: 12px; margin-bottom: 20px; letter-spacing: 2px; }
 
-        /* POPUPS */
+        /* POPUPS & MODALS */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 9000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .modal-overlay.active { display: flex; animation: zoomIn 0.3s ease; }
+        .modal-box { background: #0a0a0a; border: 1px solid #333; padding: 25px; border-radius: 20px; width: 95%; max-width: 500px; text-align: center; position: relative; }
+        .close-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; color: #555; cursor: pointer; font-size: 1.2rem; }
+        
         .admin-pass-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 1px solid var(--pro-color); padding: 40px; border-radius: 16px; z-index: 9500; display: none; text-align: center; box-shadow: 0 0 50px rgba(212, 175, 55, 0.2); width: 320px; }
         .security-title { color: var(--pro-color); margin-bottom: 25px; font-weight: bold; letter-spacing: 3px; font-family: 'JetBrains Mono'; font-size: 1.1rem; }
         .admin-key-input { background: #111; border: 1px solid #333; color: #fff; padding: 15px; border-radius: 8px; width: 100%; margin-bottom: 20px; text-align: center; font-family: inherit; outline: none; font-size: 1.1rem; }
         .unlock-btn { background: #fff; color: #000; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 1rem; }
         
-        .admin-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 9000; display: none; align-items: center; justify-content: center; }
-        .admin-modal.active { display: flex; animation: zoomIn 0.3s ease; }
         .admin-panel { background: #0a0a0a; border: 1px solid #333; padding: 20px; border-radius: 20px; width: 95%; max-width: 400px; text-align: center; position: relative; max-height: 90vh; overflow-y: auto; }
         .admin-section { border-bottom: 1px solid #222; padding-bottom: 20px; margin-bottom: 20px; }
         .admin-input { background: #111; border: 1px solid #333; padding: 12px; border-radius: 8px; color: #fff; width: 100%; margin-bottom: 10px; text-align: center; font-family: 'JetBrains Mono'; }
         .admin-select { width: 100%; background: #111; color: #fff; border: 1px solid #333; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-family: inherit; cursor: pointer; text-align: center; }
         
+        /* PRICING STYLES */
+        .pricing-container { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding: 5px; }
+        .price-card { flex: 1; background: #111; border: 1px solid #333; border-radius: 12px; padding: 15px; min-width: 100px; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .price-title { font-family: 'JetBrains Mono'; font-weight: bold; margin-bottom: 10px; font-size: 0.9rem; }
+        .price-limits { font-size: 0.7rem; color: #888; line-height: 1.6; margin-bottom: 10px; }
+        .price-badge { font-size: 0.6rem; padding: 3px 8px; border-radius: 4px; background: #222; color: #fff; margin-top: auto; }
+        
+        .pc-free .price-title { color: #aaa; }
+        .pc-pro { border-color: #443300; }
+        .pc-pro .price-title { color: var(--pro-color); }
+        .pc-ultra { border-color: #330044; box-shadow: 0 0 20px rgba(176, 38, 255, 0.1); }
+        .pc-ultra .price-title { color: var(--ultra-color); text-shadow: 0 0 10px rgba(176,38,255,0.5); }
+
+        .key-input-area { border-top: 1px solid #222; padding-top: 20px; margin-top: 10px; }
+        .key-input { width: 100%; background: #151515; border: 1px solid #333; padding: 12px; color: #fff; border-radius: 8px; text-align: center; font-family: 'JetBrains Mono'; margin-bottom: 10px; outline: none; }
+        .key-input:focus { border-color: var(--accent); }
+
         .toggle-switch { width: 50px; height: 26px; background: #333; border-radius: 13px; position: relative; cursor: pointer; margin: 0 auto; transition: 0.3s; }
         .toggle-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: 0.3s; }
         .toggle-switch.active { background: var(--pro-color); }
@@ -108,9 +135,20 @@
         }
         
         .logo { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 1.4rem; display: flex; align-items: center; gap: 8px; margin-bottom: 25px; }
-        .pro-badge-logo { font-size: 0.6rem; background: var(--pro-color); color: #000; padding: 2px 5px; border-radius: 4px; display: none; }
-        .pro-badge-logo.admin { background: #fff; color: #000; box-shadow: 0 0 10px rgba(255,255,255,0.8); display: inline-block !important; }
-        body.pro-enabled .pro-badge-logo { display: inline-block; }
+        
+        .badge { font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; display: none; }
+        .badge.pro { background: var(--pro-color); color: #000; display: inline-block; }
+        .badge.ultra { background: var(--ultra-color); color: #fff; display: inline-block; box-shadow: 0 0 10px var(--ultra-color); }
+        .badge.admin { background: #fff; color: #000; display: inline-block; box-shadow: 0 0 10px #fff; }
+
+        /* BUTTON UPGRADE */
+        .btn-upgrade { 
+            width: 100%; padding: 10px; background: linear-gradient(90deg, #1a1a1a, #222); 
+            border: 1px solid #333; color: #ccc; border-radius: 8px; cursor: pointer; 
+            font-size: 0.8rem; font-weight: bold; text-align: center; transition: 0.3s;
+            margin-bottom: 10px;
+        }
+        .btn-upgrade:hover { border-color: var(--accent); color: #fff; box-shadow: 0 0 15px rgba(255,255,255,0.1); }
 
         .btn-new-chat { width: 100%; padding: 12px; background: var(--frost); border: 1px solid #333; color: #fff; border-radius: 8px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px; -webkit-overflow-scrolling: touch; }
@@ -133,7 +171,8 @@
             position: relative;
             z-index: 2;
         }
-        body.pro-enabled .user-avatar { border-color: var(--pro-color); color: var(--pro-color); }
+        body.tier-pro .user-avatar { border-color: var(--pro-color); color: var(--pro-color); }
+        .user-avatar.ultra-mode { background: #1a0520; color: #fff; border: 1px solid #b026ff; animation: ultraFire 2s infinite alternate; }
         
         /* --- ОГОНЬ АДМИНА В САЙДБАРЕ --- */
         .user-avatar.admin-mode {
@@ -185,13 +224,14 @@
         .avatar { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; transition: 0.5s; position: relative; z-index: 1; }
         .avatar.ai { background: #fff; color: #000; }
         .avatar.user { background: #222; color: #fff; }
-        .avatar.ai.pro-mode { background: var(--pro-color); box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+        .avatar.ai.pro { background: var(--pro-color); box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+        .avatar.ai.ultra { background: var(--ultra-color); color: #fff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.5); }
         
         /* АВАТАР АДМИНА В ЧАТЕ */
-        .avatar.ai.admin-mode { 
+        .avatar.ai.admin { 
             background: #fff; color: #000; border: none;
         }
-        .avatar.ai.admin-mode::before {
+        .avatar.ai.admin::before {
             content: ''; position: absolute; top: -4px; left: -4px; right: -4px; bottom: -4px;
             background: linear-gradient(45deg, #ffffff, #e0e0e0);
             border-radius: 8px; z-index: -1; filter: blur(4px);
@@ -230,27 +270,37 @@
         <div class="splash-credit">BY 1XCODE TEAM</div>
     </div>
 
-    <div id="maint-screen">
-        <div class="maint-panel">
-            <div class="maint-icon" onclick="secretUnblock()" title="Нажмите 5 раз для разблокировки">⚠️</div>
-            <div class="maint-title">СЕРВЕР НА ОБСЛУЖИВАНИИ</div>
-            <div class="maint-text">
-                Flux AI обновляется. Доступ временно ограничен.<br>
-                Ориентировочное время завершения:
+    <div class="modal-overlay" id="pricingModal">
+        <div class="modal-box">
+            <button class="close-btn" onclick="document.getElementById('pricingModal').classList.remove('active')">✕</button>
+            <h3 style="color: #fff; margin-bottom: 20px;">ТАРИФЫ</h3>
+            
+            <div class="pricing-container">
+                <div class="price-card pc-free">
+                    <div class="price-title">FREE</div>
+                    <div class="price-limits">3 msg/час<br>1 img/час</div>
+                    <div class="price-badge">Basic</div>
+                </div>
+                <div class="price-card pc-pro">
+                    <div class="price-title">PRO</div>
+                    <div class="price-limits">100 msg/час<br>50 img/час</div>
+                    <div class="price-badge" style="background:rgba(212, 175, 55, 0.2); color:var(--pro-color);">100₽</div>
+                </div>
+                <div class="price-card pc-ultra featured">
+                    <div class="price-title">ULTRA</div>
+                    <div class="price-limits">500 msg/час<br>500 img/час</div>
+                    <div class="price-badge" style="background:rgba(176, 38, 255, 0.2); color:var(--ultra-color);">300₽</div>
+                </div>
             </div>
-            <div class="maint-timer" id="maintTimer">00:00:00</div>
-            <button class="unlock-btn" onclick="location.reload()" style="margin-top:20px;">ОБНОВИТЬ СТАТУС</button>
-        </div>
-    </div>
 
-    <div class="popup-overlay" id="disclaimerPopup">
-        <div class="small-modal">
-            <h2 style="font-size: 3rem; margin: 0 0 10px 0;">🎄</h2>
-            <h3 style="color: var(--accent); margin-bottom: 15px;">Новогоднее Обновление</h3>
-            <p style="color: #aaa; font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px;">
-                Flux (Node: 1xCode). Cookie используются.
-            </p>
-            <button class="auth-btn" style="width: 100%; padding: 10px;" onclick="acceptDisclaimer()">✅ ПРИНИМАЮ</button>
+            <div class="key-input-area">
+                <div style="font-size:0.8rem; color:#aaa; margin-bottom:10px;">Введите ключ активации:</div>
+                <input type="text" id="licenseKey" class="key-input" placeholder="PRO-XXXX или ULTRA-XXXX">
+                <button class="auth-btn" style="width:100%; background:var(--accent); color:#000;" onclick="activateKey()">АКТИВИРОВАТЬ</button>
+                <div style="margin-top:10px; font-size:0.7rem; color:#666;">
+                    Купить ключ: <a href="https://t.me/FluxPayBot" target="_blank" style="color:var(--accent);">@FluxPayBot</a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -278,31 +328,23 @@
             </div>
 
             <div class="admin-section">
-                <span style="color: #888; font-size: 0.7rem; letter-spacing: 1px; display: block; margin-bottom: 10px;">ВЫДАТЬ ПОДПИСКУ (ПО UID)</span>
-                <input type="text" id="targetUID" class="admin-input" placeholder="UID (напр. K9-X42B)">
-                <select id="proDuration" class="admin-select">
-                    <option value="24h">1 День</option>
-                    <option value="3d">3 Дня</option>
-                    <option value="1w">Неделя</option>
-                    <option value="1m">Месяц</option>
-                    <option value="perm">Навсегда</option>
-                </select>
-                <button class="unlock-btn" style="background:#222; border:1px solid #444; color:#fff;" onclick="grantSubscription()">🎁 ВЫДАТЬ PRO</button>
-            </div>
-
-            <div class="admin-section" style="border:none; padding-bottom:0;">
-                <span style="color: var(--danger); font-size: 0.7rem; letter-spacing: 1px; display: block; margin-bottom: 10px;">УПРАВЛЕНИЕ СЕРВЕРОМ</span>
-                <select id="maintTime" class="admin-select">
-                    <option value="1">1 Час</option>
-                    <option value="2">2 Часа</option>
-                    <option value="24">24 Часа</option>
-                </select>
+                <span style="color: #888; font-size: 0.7rem; letter-spacing: 1px; display: block; margin-bottom: 10px;">УПРАВЛЕНИЕ СЕРВЕРОМ</span>
                 <button class="unlock-btn" style="background:var(--danger); border:none; color:#fff;" onclick="activateMaintenance()">⛔ ВКЛЮЧИТЬ ТЕХ. РАБОТЫ</button>
                 <hr style="border:0; border-top:1px solid #333; margin: 15px 0;">
                 <div style="color:#888; margin-bottom:5px; font-size:0.7rem;">АВТОРИЗАЦИЯ СОЗДАТЕЛЯ</div>
                 <input type="text" id="creatorUidInput" class="admin-input" placeholder="Введите C8N-HPY">
                 <button class="unlock-btn" style="background:var(--pro-color); color:#000;" onclick="setCreatorUid()">ВОЙТИ КАК СОЗДАТЕЛЬ</button>
             </div>
+        </div>
+    </div>
+
+    <div id="maint-screen">
+        <div class="maint-panel">
+            <div class="maint-icon" onclick="secretUnblock()">⚠️</div>
+            <div class="maint-title">СЕРВЕР НА ОБСЛУЖИВАНИИ</div>
+            <div class="maint-text">Доступ временно ограничен.</div>
+            <div class="maint-timer" id="maintTimer">00:00:00</div>
+            <button class="unlock-btn" onclick="location.reload()" style="margin-top:20px;">ОБНОВИТЬ</button>
         </div>
     </div>
 
@@ -314,24 +356,36 @@
         <div class="legal-content" id="kilometerText"></div>
     </div>
 
+    <div class="popup-overlay" id="disclaimerPopup">
+        <div class="small-modal">
+            <h2 style="font-size: 3rem; margin: 0 0 10px 0;">🎄</h2>
+            <h3 style="color: var(--accent); margin-bottom: 15px;">Новогоднее Обновление</h3>
+            <p style="color: #aaa; font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px;">
+                Flux (Node: 1xCode). Cookie используются.
+            </p>
+            <button class="auth-btn" style="width: 100%; padding: 10px;" onclick="acceptDisclaimer()">✅ ПРИНИМАЮ</button>
+        </div>
+    </div>
+
     <div class="overlay" id="overlay" onclick="toggleSidebar(false)"></div>
 
-    <div id="app" style="display:flex; height: 100%; width: 100%; flex-direction: row;">
+    <div id="app">
         <aside class="sidebar" id="sidebar">
             <div class="logo">FLUX <span>AI</span> 
-                <div class="pro-badge-logo" id="proBadge">PRO</div>
+                <div class="badge pro" id="badgePro">PRO</div>
+                <div class="badge ultra" id="badgeUltra">ULTRA</div>
+                <div class="badge admin" id="badgeAdmin">ADMIN</div>
             </div>
             <button class="btn-new-chat" onclick="startNewChat()">+ Новый чат</button>
             <div class="history-list" id="historyList"></div>
             <div class="sidebar-footer">
-                <button onclick="if(confirm('Сбросить данные?')){localStorage.clear();location.reload();}" style="background:none; border:none; color:#666; cursor:pointer; font-size: 0.8rem; text-align: left; margin-bottom: 10px;">🗑 Сброс</button>
+                <button onclick="localStorage.clear();location.reload();" style="background:none; border:none; color:#666; cursor:pointer; font-size: 0.8rem; text-align: left; margin-bottom: 5px;">🗑 Сброс</button>
+                <button class="btn-upgrade" onclick="document.getElementById('pricingModal').classList.add('active')">💎 UPGRADE</button>
                 <div class="user-profile">
                     <div class="user-avatar" id="myAvatar">U</div>
                     <div class="user-info">
                         <div style="font-size:0.9rem;" id="userName">Гость</div>
-                        <div style="font-size:0.65rem; color:#666; font-family: 'JetBrains Mono';" id="userId" onclick="copyID()" title="Скопировать">UID: ...</div>
-                        <div class="pro-date" id="proDate"></div>
-                        <div class="pro-timer" id="subTimer"></div>
+                        <div style="font-size:0.65rem; color:#666; font-family: 'JetBrains Mono';" id="userId" onclick="navigator.clipboard.writeText(myUID)">UID...</div>
                     </div>
                 </div>
                 <div class="footer-credit" id="secretTrigger">CREATED BY <span>1XCODE</span></div>
@@ -339,6 +393,12 @@
         </aside>
 
         <main class="main-content">
+            <div class="chat-background-container">
+                <div class="bg-sky-objects"></div>
+                <div class="bg-mountains"></div>
+                <div class="bg-center-tree"></div>
+            </div>
+
             <header class="mobile-header">
                 <button class="burger-btn" onclick="toggleSidebar(true)">☰</button>
                 <div class="model-selector">
@@ -357,15 +417,12 @@
             <div id="chat-stream">
                 <div class="message-container">
                     <div class="avatar ai">◈</div>
-                    <div class="message-text">Система готова. С Новым Годом! 🎅</div>
+                    <div class="message-text">Система готова. Тариф: <span id="introTier">FREE</span> 🎄</div>
                 </div>
             </div>
 
             <div class="file-preview" id="filePreview">
-                <span style="display:flex; gap:10px; align-items:center;">
-                    <span style="font-size:1.2rem;">📄</span>
-                    <span id="fileName">file.name</span>
-                </span>
+                <span>📄 <span id="fileName">file</span></span>
                 <span style="cursor:pointer;" onclick="clearFile()">✕</span>
             </div>
 
@@ -387,35 +444,27 @@
         const PASS_HASH = "Zmx1eDIwMjU="; 
         
         let chats = JSON.parse(localStorage.getItem('chats_v57') || '[]');
-        let activeId = null;
-        let isPro = localStorage.getItem('isPro_v57') === 'true';
-        let isAdmin = localStorage.getItem('isAdmin_v57') === 'true'; // АДМИН СТАТУС
-        let proExpiry = parseInt(localStorage.getItem('proExpiry_v57') || '0');
+        let currentTier = localStorage.getItem('flux_tier') || 'FREE';
+        let isPro = (currentTier === 'PRO');
+        let isAdmin = (currentTier === 'ADMIN');
         let myUID = localStorage.getItem('myUID');
+        let activeId = null;
+        let currFile = null;
         let clicks = 0;
         let maintClicks = 0;
-        let currFile = null;
 
         function createSnow() {
             const c = document.getElementById('snow-container');
             if(!c) return;
             for(let i=0; i<30; i++) {
-                const s = document.createElement('div');
-                s.className = 'snowflake';
-                s.style.left = Math.random() * 100 + 'vw';
-                s.style.width = Math.random() * 3 + 2 + 'px';
-                s.style.height = s.style.width;
-                s.style.animationDuration = Math.random() * 3 + 5 + 's';
+                const s = document.createElement('div'); s.className='snowflake';
+                s.style.left=Math.random()*100+'vw'; s.style.width=Math.random()*3+'px'; s.style.height=s.style.width; s.style.animationDuration=Math.random()*3+5+'s';
                 c.appendChild(s);
             }
         }
 
         if (!myUID) { 
-            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-            let p1="", p2="";
-            for(let i=0;i<3;i++) p1+=chars.charAt(Math.floor(Math.random()*chars.length));
-            for(let i=0;i<3;i++) p2+=chars.charAt(Math.floor(Math.random()*chars.length));
-            myUID = `${p1}-${p2}`;
+            myUID = 'u-' + Math.random().toString(36).substr(2, 9);
             localStorage.setItem('myUID', myUID);
         }
 
@@ -426,18 +475,7 @@
             
             setTimeout(() => { document.getElementById('splash-screen').classList.add('hidden'); }, 3000);
 
-            // MAINTENANCE CHECK
-            try {
-                const res = await fetch('/api/status');
-                const d = await res.json();
-                if(d.status==='maintenance'){
-                    document.getElementById('maint-screen').classList.add('active');
-                    document.getElementById('splash-screen').style.display='none';
-                    return;
-                }
-            } catch(e){}
-
-            // LOCAL MAINT CHECK
+            // MAINT CHECK
             const mEnd = parseInt(localStorage.getItem('maintEnd_v57')||'0');
             if(mEnd > Date.now()) {
                 document.getElementById('maint-screen').classList.add('active');
@@ -446,38 +484,85 @@
                     if(left<=0) location.reload();
                     const h=Math.floor(left/3600000).toString().padStart(2,'0');
                     const m=Math.floor((left%3600000)/60000).toString().padStart(2,'0');
-                    const s=Math.floor((left%60000)/1000).toString().padStart(2,'0');
-                    document.getElementById('maintTimer').innerText = `${h}:${m}:${s}`;
+                    document.getElementById('maintTimer').innerText = `${h}:${m}`;
                 },1000);
             }
 
             if(!localStorage.getItem('disc_v57')) document.getElementById('disclaimerPopup').classList.add('active');
             
-            checkProStatus();
-            setInterval(checkProStatus, 1000);
-            updateStatusUI(); // Обновленная функция для статусов
-            
-            // Загружаем последний чат
-            if(chats.length > 0) {
-                chats.sort((a,b) => b.ts - a.ts);
-                loadChat(chats[0].id);
-            } else {
-                renderHistory();
-            }
+            updateUI();
+            if(chats.length > 0) { chats.sort((a,b) => b.ts - a.ts); loadChat(chats[0].id); } else { renderHistory(); }
         };
+
+        window.updateUI = function() {
+            const body = document.body;
+            const badgePro = document.getElementById('badgePro');
+            const badgeUltra = document.getElementById('badgeUltra');
+            const badgeAdmin = document.getElementById('badgeAdmin');
+            const avatar = document.getElementById('myAvatar');
+            const modelDisp = document.getElementById('modelDisplay');
+            const intro = document.getElementById('introTier');
+
+            // Reset
+            body.className = '';
+            badgePro.style.display = 'none';
+            badgeUltra.style.display = 'none';
+            badgeAdmin.style.display = 'none';
+            avatar.className = 'user-avatar';
+            if(intro) intro.innerText = currentTier;
+
+            if (currentTier === 'PRO') {
+                body.classList.add('tier-pro');
+                badgePro.style.display = 'inline-block';
+                modelDisp.innerText = "Flux PRO";
+            } else if (currentTier === 'ULTRA') {
+                body.classList.add('tier-ultra');
+                badgeUltra.style.display = 'inline-block';
+                avatar.classList.add('ultra-mode');
+                modelDisp.innerText = "Flux ULTRA";
+            } else if (currentTier === 'ADMIN') {
+                body.classList.add('tier-admin');
+                badgeAdmin.style.display = 'inline-block';
+                avatar.classList.add('admin-mode');
+                modelDisp.innerText = "Flux GOD";
+            } else {
+                modelDisp.innerText = "Flux Free";
+            }
+        }
+
+        window.activateKey = async function() {
+            const key = document.getElementById('licenseKey').value.trim();
+            if(!key) return;
+            try {
+                const res = await fetch('/api/activate-key', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ key, uid: myUID })
+                });
+                const data = await res.json();
+                if(data.status === 'success') {
+                    currentTier = data.tier; 
+                    localStorage.setItem('flux_tier', currentTier);
+                    updateUI();
+                    document.getElementById('pricingModal').classList.remove('active');
+                    alert(`✅ ACTIVATED: ${currentTier}!`);
+                } else {
+                    alert("❌ Invalid Key");
+                }
+            } catch(e) { alert("Server Error"); }
+        }
 
         window.activateMaintenance = function() {
             const hours = parseInt(document.getElementById('maintTime').value);
             const endTime = Date.now() + (hours * 60 * 60 * 1000);
             localStorage.setItem('maintEnd_v57', endTime.toString());
-            alert(`⛔ ТЕХНИЧЕСКИЕ РАБОТЫ ВКЛЮЧЕНЫ НА ${hours} ЧАС(А).`);
             location.reload();
         }
 
         window.secretUnblock = function() {
             maintClicks++;
             if(maintClicks === 5) {
-                if(confirm("АДМИН: Снять блокировку?")) {
+                if(confirm("Снять блокировку?")) {
                     localStorage.setItem('maintEnd_v57', '0');
                     location.reload();
                 }
@@ -500,8 +585,7 @@
             c.msgs.push({role:'user', text:txt, file:currFile});
             appendMsg('user', txt, currFile, false);
             
-            // Отправляем UID и isAdmin на сервер
-            const payload = { message: txt, file: currFile ? currFile.data : null, isPro: isPro, isAdmin: isAdmin, uid: myUID };
+            const payload = { message: txt, file: currFile ? currFile.data : null, tier: currentTier, uid: myUID };
             
             inp.value=''; currFile=null;
             document.getElementById('filePreview').style.display='none';
@@ -513,27 +597,35 @@
             const textEl = aiDiv.querySelector('.message-text');
             textEl.classList.add('typing');
 
-            const stream = document.getElementById('chat-stream');
-            stream.scrollTop = stream.scrollHeight;
-
             try {
                 const response = await fetch('/api/chat', { 
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                 });
                 
-                const data = await response.json();
-                let ans = data.reply || "Ошибка сервера";
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let fullAns = "";
+
+                while(true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, {stream: true});
+                    try {
+                        const json = JSON.parse(chunk);
+                        if(json.reply) fullAns += json.reply;
+                    } catch(e) {}
+                    textEl.innerText = fullAns;
+                }
 
                 textEl.classList.remove('typing'); 
-                textEl.innerHTML = marked.parse(ans);
-                renderMathInElement(textEl, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}] });
+                textEl.innerHTML = marked.parse(fullAns);
+                renderMathInElement(textEl);
 
-                c.msgs.push({role:'ai', text:ans});
+                c.msgs.push({role:'ai', text:fullAns});
                 localStorage.setItem('chats_v57', JSON.stringify(chats));
 
             } catch (error) {
-                textEl.innerText = "Ошибка соединения.";
-                textEl.classList.remove('typing');
+                textEl.innerText = "Error";
             }
         }
 
@@ -543,13 +635,13 @@
             let fh = '';
             if(file) fh = `<div>📄 ${file.name}</div>`;
             
-            // Проверка на админа для аватарки
             let ac = 'avatar ';
             if (role === 'user') ac += 'user';
             else {
-                if (isAdmin) ac += 'ai admin-mode';
-                else if (isPro) ac += 'ai pro-mode';
-                else ac += 'ai';
+                ac += 'ai';
+                if (currentTier === 'PRO') ac += ' pro';
+                if (currentTier === 'ULTRA') ac += ' ultra';
+                if (currentTier === 'ADMIN') ac += ' admin';
             }
 
             let content = anim ? `<div class="message-text typing"></div>` : `<div class="message-text">${marked.parse(text)}</div>`;
@@ -560,91 +652,22 @@
             return d;
         }
 
-        function checkProStatus() {
-            if (isAdmin) {
-                document.getElementById('subTimer').innerText = "GOD MODE";
-                document.getElementById('proDate').innerText = "∞";
-                return;
-            }
-            if (!isPro) {
-                document.getElementById('subTimer').innerText = "";
-                document.getElementById('proDate').innerText = "";
-                return;
-            }
-            const now = Date.now();
-            const left = proExpiry - now;
-            
-            if(proExpiry > 4000000000000) { 
-                document.getElementById('subTimer').innerText = "БЕССРОЧНО"; 
-                document.getElementById('proDate').innerText = "∞";
-                return; 
-            }
-            
-            if (left <= 0) {
-                isPro = false;
-                localStorage.setItem('isPro_v57', 'false');
-                updateStatusUI();
-                alert("⏳ PRO истек.");
-            } else {
-                const date = new Date(proExpiry);
-                const d = date.getDate().toString().padStart(2,'0');
-                const m = (date.getMonth()+1).toString().padStart(2,'0');
-                document.getElementById('proDate').innerText = `до: ${d}.${m}`;
-                const days = Math.floor(left / 86400000);
-                document.getElementById('subTimer').innerText = `Ост: ${days}д`;
-            }
-        }
-
-        window.copyID = function() {
-            navigator.clipboard.writeText(myUID);
-            alert("UID Copied");
-        }
-
-        window.acceptDisclaimer = function() {
-            localStorage.setItem('disc_v57', 'true');
-            document.getElementById('disclaimerPopup').classList.remove('active');
-        }
+        window.copyID = function() { navigator.clipboard.writeText(myUID); alert("UID Copied"); }
+        window.acceptDisclaimer = function() { localStorage.setItem('disc_v57', 'true'); document.getElementById('disclaimerPopup').classList.remove('active'); }
 
         document.getElementById('secretTrigger').onclick = () => {
             clicks++;
-            if(clicks===7) { 
-                document.getElementById('adminPassPopup').style.display='block'; 
-                clicks=0; 
-            }
+            if(clicks===7) { document.getElementById('adminPassPopup').style.display='block'; clicks=0; }
         };
 
         window.verifyAdmin = function() {
             if(btoa(document.getElementById('adminKey').value)===PASS_HASH) {
                 document.getElementById('adminPassPopup').style.display='none';
                 document.getElementById('adminModal').classList.add('active');
-                // Синхронизация свитчей при открытии
-                if(isPro) document.getElementById('proToggle').classList.add('active');
-                if(isAdmin) document.getElementById('adminToggle').classList.add('active', 'admin-on');
-            } else alert('⛔️ Доступ запрещен');
-        }
-
-        window.grantSubscription = function() {
-            let uid = document.getElementById('targetUID').value.trim();
-            const dur = document.getElementById('proDuration').value;
-            
-            if(uid === "" || uid === myUID) {
-                let add = 0;
-                if(dur==='24h') add=86400000; 
-                if(dur==='3d') add=259200000;
-                if(dur==='1w') add=604800000; 
-                if(dur==='1m') add=2592000000;
-                if(dur==='perm') add=5000000000000;
-
-                isPro = true;
-                proExpiry = Date.now() + add;
-                localStorage.setItem('isPro_v57', 'true');
-                localStorage.setItem('proExpiry_v57', proExpiry.toString());
-                updateStatusUI();
-                alert(`✅ PRO выдан локально!`);
-            } else {
-                alert(`❌ В "No DB" режиме можно выдать PRO только себе.`);
-            }
-            checkProStatus();
+                // Sync toggles
+                if(currentTier === 'PRO') document.getElementById('proToggle').classList.add('active');
+                if(currentTier === 'ADMIN') document.getElementById('adminToggle').classList.add('active', 'admin-on');
+            } else alert('⛔️');
         }
         
         window.setCreatorUid = function() {
@@ -653,63 +676,38 @@
                 myUID = val;
                 localStorage.setItem('myUID', myUID);
                 document.getElementById('userId').innerText = "UID: " + myUID;
-                alert("UID изменен на: " + myUID);
+                alert("UID: " + myUID);
                 location.reload();
             }
         }
 
         window.togglePro = function() {
-            isPro = !isPro;
-            if(isPro) { proExpiry = 5000000000000; localStorage.setItem('proExpiry_v57', proExpiry); }
-            localStorage.setItem('isPro_v57', isPro);
-            
+            if(currentTier === 'PRO') currentTier = 'FREE'; else currentTier = 'PRO';
+            localStorage.setItem('flux_tier', currentTier);
+            updateUI();
             const btn = document.getElementById('proToggle');
-            if(isPro) btn.classList.add('active'); else btn.classList.remove('active');
-            
-            updateStatusUI();
-            checkProStatus();
+            if(currentTier === 'PRO') btn.classList.add('active'); else btn.classList.remove('active');
         }
 
         window.toggleAdmin = function() {
-            isAdmin = !isAdmin;
-            localStorage.setItem('isAdmin_v57', isAdmin);
-            
+            if(currentTier === 'ADMIN') currentTier = 'FREE'; else currentTier = 'ADMIN';
+            localStorage.setItem('flux_tier', currentTier);
+            updateUI();
             const btn = document.getElementById('adminToggle');
-            if(isAdmin) btn.classList.add('active', 'admin-on'); else btn.classList.remove('active', 'admin-on');
-            
-            updateStatusUI();
-            checkProStatus();
+            if(currentTier === 'ADMIN') btn.classList.add('active', 'admin-on'); else btn.classList.remove('active', 'admin-on');
         }
 
         window.closeAdmin = function() { document.getElementById('adminModal').classList.remove('active'); }
 
         window.generateLegalText = function() {
-             const text = `ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (РЕДАКЦИЯ 2025)
-
-1. ОБЩИЕ ПОЛОЖЕНИЯ
-1.1. Настоящее Соглашение регулирует отношения между разработчиком (1xCodeTeam) и пользователем сервиса Flux AI.
-1.2. Используя сервис, вы безоговорочно принимаете условия данного соглашения.
-
-2. ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ
-2.1. Сервис предоставляется на условиях "как есть". Разработчик не гарантирует безошибочную работу алгоритмов AI.
-2.2. Пользователь осознает, что ответы нейросети могут содержать неточности.
-
-3. КОНФИДЕНЦИАЛЬНОСТЬ И БЕЗОПАСНОСТЬ
-3.1. Все данные чатов передаются по защищенному протоколу.
-3.2. Ваш уникальный идентификатор (UID) является ключом доступа к истории.
-
-4. PRO-ДОСТУП
-4.1. Статус PRO является добровольным пожертвованием.
-4.2. PRO-статус предоставляет доступ к приоритетной очереди и расширенным моделям.
-
-Дата последнего обновления: 01.01.2025`;
+             const text = `ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (РЕДАКЦИЯ 2025)\n\n1. ОБЩИЕ ПОЛОЖЕНИЯ...`;
              document.getElementById('kilometerText').innerText = text;
         }
         window.openLegal = function() { document.getElementById('legalModal').classList.add('active'); }
 
         window.renderHistory = function() {
             const l = document.getElementById('historyList'); l.innerHTML='';
-            [...chats].sort((a,b)=>b.ts-a.ts).forEach(c => {
+            chats.forEach(c => {
                 const i = document.createElement('div');
                 i.className = `history-item ${activeId===c.id?'active':''}`;
                 i.innerHTML = `<span class="chat-title">${c.title}</span> <button class="delete-btn" onclick="delChat(event,${c.id})">✕</button>`;
@@ -720,19 +718,12 @@
         window.startNewChat = function() { activeId=null; document.getElementById('chat-stream').innerHTML=`<div class="message-container"><div class="avatar ai">◈</div><div class="message-text">Система готова. С Новым Годом! 🎄</div></div>`; renderHistory(); if(window.innerWidth<768) toggleSidebar(false); }
         window.loadChat = function(id) { 
             const c=chats.find(x=>x.id===id); 
-            if(c){ 
-                activeId=id; 
-                const s = document.getElementById('chat-stream');
-                s.innerHTML = '';
-                c.msgs.forEach(m => appendMsg(m.role, m.text, m.file, false));
-                renderHistory(); 
-                if(window.innerWidth<768) toggleSidebar(false); 
-            } 
+            if(c){ activeId=id; const s=document.getElementById('chat-stream'); s.innerHTML=''; c.msgs.forEach(m => appendMsg(m.role, m.text, m.file, false)); renderHistory(); if(window.innerWidth<768) toggleSidebar(false); } 
         }
         
         window.delChat = function(e,id) { 
             e.stopPropagation(); 
-            if(confirm('Удалить чат?')){ 
+            if(confirm('Удалить?')){ 
                 chats=chats.filter(x=>x.id!==id); 
                 localStorage.setItem('chats_v57', JSON.stringify(chats)); 
                 if(activeId===id) startNewChat(); 
@@ -740,48 +731,9 @@
             } 
         }
         
-        window.updateStatusUI = function() {
-            const b = document.body; 
-            const btns = ['deskPro','mobPro'];
-            const badge = document.getElementById('proBadge');
-            const avatar = document.getElementById('myAvatar');
-
-            // Сброс классов
-            b.classList.remove('pro-enabled', 'admin-enabled');
-            badge.classList.remove('admin');
-            badge.style.display = 'none';
-            avatar.style.borderColor = "#333";
-            avatar.style.color = "#fff";
-            avatar.classList.remove('admin-mode'); // Убираем огонь если был
-
-            if (isAdmin) {
-                // ADMIN MODE
-                b.classList.add('admin-enabled');
-                badge.innerText = "ADMIN";
-                badge.classList.add('admin');
-                badge.style.display = 'inline-block';
-                avatar.classList.add('admin-mode'); // ВКЛЮЧАЕМ ОГОНЬ
-                btns.forEach(x => document.getElementById(x).classList.remove('locked'));
-            } else if (isPro) {
-                // PRO MODE
-                b.classList.add('pro-enabled');
-                badge.innerText = "PRO";
-                badge.style.display = 'inline-block';
-                avatar.style.borderColor = "var(--pro-color)";
-                avatar.style.color = "var(--pro-color)";
-                btns.forEach(x => document.getElementById(x).classList.remove('locked'));
-            } else {
-                // FREE MODE
-                btns.forEach(x => document.getElementById(x).classList.add('locked'));
-            }
-        }
-        
-        window.switchMode = function(m) { 
-            if(m==='pro' && !isPro && !isAdmin) return alert('🔒 Только для PRO/ADMIN'); 
-        }
+        window.switchMode = function(m) { if(m==='pro' && currentTier==='FREE') return alert('🔒 Upgrade required'); }
         window.toggleSidebar = function(o) { const s=document.getElementById('sidebar'); const ov=document.getElementById('overlay'); if(o){s.classList.add('open');ov.classList.add('active');}else{s.classList.remove('open');ov.classList.remove('active');} }
         
-        // FILES
         window.handleFile = function(i) {
             const f = i.files[0];
             if(f){
@@ -803,7 +755,8 @@
         document.getElementById('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
     </script>
 </body>
-</html>
+                            </html>
+
 
 
 
