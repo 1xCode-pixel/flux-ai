@@ -16,13 +16,17 @@
         :root {
             --bg-body: #050505; --sidebar-bg: #0a0a0a; --chat-bg: #000000;
             --border: #222; --text-main: #ECECEC; --text-muted: #888;
-            --accent: #ffffff; --pro-color: #d4af37; --admin-color: #ffffff; 
+            --accent: #ffffff; 
+            --pro-color: #d4af37; 
+            --ultra-color: #b026ff; 
+            --admin-color: #ffffff; 
             --danger: #ff4444; --success: #00ff88;
             --frost: rgba(255, 255, 255, 0.03);
         }
 
-        body.pro-enabled { --accent: var(--pro-color); }
-        body.admin-enabled { --accent: var(--admin-color); }
+        body.tier-pro { --accent: var(--pro-color); }
+        body.tier-ultra { --accent: var(--ultra-color); }
+        body.tier-admin { --accent: var(--admin-color); }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--bg-body); color: var(--text-main); font-family: 'Inter', sans-serif; margin: 0; height: 100dvh; display: flex; overflow: hidden; transition: --accent 0.5s; }
@@ -33,15 +37,18 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        @keyframes pulse-red { 0% { text-shadow: 0 0 0 rgba(255,68,68,0); } 50% { text-shadow: 0 0 20px rgba(255,68,68,0.6); } 100% { text-shadow: 0 0 0 rgba(255,68,68,0); } }
-
-        /* --- НОВЫЙ РЕАЛИСТИЧНЫЙ ОГОНЬ (ТУРБУЛЕНТНАЯ АУРА) --- */
+        
+        /* OMEGA FIRE (ADMIN) */
         @keyframes adminTurbulence {
-            0% { transform: rotate(0deg) scale(1); border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%; }
-            25% { scale(1.05); }
-            50% { transform: rotate(180deg) scale(1); border-radius: 50% 45% 55% 50% / 45% 55% 50% 50%; }
-            75% { scale(1.05); }
-            100% { transform: rotate(360deg) scale(1); border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%; }
+            0% { transform: rotate(0deg) scale(1); border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%; box-shadow: 0 0 15px 5px rgba(255,255,255,0.5); }
+            50% { transform: rotate(180deg) scale(1.05); border-radius: 50% 45% 55% 50% / 45% 55% 50% 50%; box-shadow: 0 0 25px 10px rgba(255,255,255,0.8); }
+            100% { transform: rotate(360deg) scale(1); border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%; box-shadow: 0 0 15px 5px rgba(255,255,255,0.5); }
+        }
+        /* ULTRA NEON PULSE */
+        @keyframes ultraPulse {
+            0% { box-shadow: 0 0 10px var(--ultra-color); border-color: var(--ultra-color); }
+            50% { box-shadow: 0 0 20px var(--ultra-color), 0 0 40px var(--ultra-color); border-color: #fff; }
+            100% { box-shadow: 0 0 10px var(--ultra-color); border-color: var(--ultra-color); }
         }
 
         /* --- UI CSS --- */
@@ -51,7 +58,7 @@
         @keyframes blink { 50% { opacity: 0; } }
 
         /* INTRO */
-        #splash-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 15000; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.8s ease, visibility 0.8s; }
+        #splash-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 30000; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.8s ease, visibility 0.8s; }
         #splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
         .splash-logo { font-family: 'JetBrains Mono'; font-size: 3rem; font-weight: 800; letter-spacing: -2px; color: #fff; }
         .loading-container { width: 220px; height: 3px; background: #222; border-radius: 3px; margin: 25px 0; overflow: hidden; }
@@ -60,52 +67,95 @@
         @keyframes loadProgress { 0% { width: 0%; } 40% { width: 30%; } 70% { width: 85%; } 100% { width: 100%; } }
 
         /* MAINTENANCE */
-        #maint-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #050505; z-index: 999999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+        #maint-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #050505; z-index: 29000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
         #maint-screen.active { display: flex; }
         .maint-panel { background: #0a0a0a; border: 1px solid var(--danger); padding: 40px; border-radius: 20px; width: 90%; max-width: 400px; box-shadow: 0 0 50px rgba(255, 68, 68, 0.15); }
-        .maint-icon { font-size: 4rem; margin-bottom: 20px; animation: pulse-red 2s infinite; cursor: pointer; }
+        .maint-icon { font-size: 4rem; margin-bottom: 20px; cursor: pointer; }
         .maint-title { font-family: 'JetBrains Mono'; font-size: 1.4rem; font-weight: bold; color: var(--danger); margin-bottom: 15px; letter-spacing: 2px; }
         .maint-text { color: #aaa; font-size: 0.9rem; line-height: 1.6; margin-bottom: 25px; }
         .maint-timer { font-family: 'JetBrains Mono'; font-size: 2rem; color: #fff; background: #111; border: 1px solid #333; padding: 15px; border-radius: 12px; margin-bottom: 20px; letter-spacing: 2px; }
 
-        /* POPUPS */
-        .admin-pass-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 1px solid var(--pro-color); padding: 40px; border-radius: 16px; z-index: 9500; display: none; text-align: center; box-shadow: 0 0 50px rgba(212, 175, 55, 0.2); width: 320px; }
+        /* MODALS (FIXED) */
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+            background: rgba(0,0,0,0.85); z-index: 20000; 
+            display: none; align-items: center; justify-content: center; 
+            backdrop-filter: blur(8px); 
+        }
+        .modal-overlay.active { display: flex; animation: zoomIn 0.25s ease; }
+        .modal-box { background: #0a0a0a; border: 1px solid #333; padding: 25px; border-radius: 20px; width: 95%; max-width: 550px; text-align: center; position: relative; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.9); }
+        .close-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; color: #666; cursor: pointer; font-size: 1.5rem; line-height: 1; }
+        .close-btn:hover { color: #fff; }
+
+        /* PRICING CARDS */
+        .pricing-container { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding: 5px; align-items: stretch; }
+        .price-card { 
+            flex: 1; background: #111; border: 1px solid #333; border-radius: 12px; 
+            padding: 15px; min-width: 130px; display: flex; flex-direction: column; 
+            align-items: center; justify-content: flex-start; position: relative; transition: 0.3s;
+        }
+        .price-card:hover { transform: translateY(-3px); }
+        
+        .price-title { font-family: 'JetBrains Mono'; font-weight: bold; margin-bottom: 10px; font-size: 1.1rem; }
+        .price-features { font-size: 0.75rem; color: #aaa; line-height: 1.8; margin-bottom: 15px; text-align: left; width: 100%; list-style: none; padding: 0; }
+        .price-features li::before { content: '✓ '; color: var(--success); }
+        .price-badge { font-size: 0.7rem; padding: 6px 12px; border-radius: 20px; font-weight: bold; margin-top: auto; width: 100%; text-align:center; }
+        
+        /* Free */
+        .pc-free .price-title { color: #888; }
+        .pc-free .price-badge { background: #222; color: #ccc; }
+        /* Pro */
+        .pc-pro { border-color: rgba(212, 175, 55, 0.3); }
+        .pc-pro .price-title { color: var(--pro-color); }
+        .pc-pro .price-badge { background: var(--pro-color); color: #000; }
+        /* Ultra */
+        .pc-ultra { border-color: rgba(176, 38, 255, 0.4); background: linear-gradient(180deg, #120516, #0a0a0a); }
+        .pc-ultra .price-title { color: var(--ultra-color); text-shadow: 0 0 10px rgba(176,38,255,0.6); }
+        .pc-ultra .price-badge { background: var(--ultra-color); color: #fff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.4); }
+
+        .key-input-section { border-top: 1px solid #333; padding-top: 20px; margin-top: 10px; }
+        .key-input { width: 100%; background: #151515; border: 1px solid #333; padding: 15px; color: #fff; border-radius: 10px; text-align: center; font-family: 'JetBrains Mono'; margin-bottom: 10px; outline: none; font-size: 1rem; }
+        .key-input:focus { border-color: var(--accent); }
+
+        /* BUTTONS */
+        .auth-btn { background: #fff; color: #000; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; text-transform: uppercase; font-size: 0.9rem; transition: 0.2s; }
+        .auth-btn:hover { opacity: 0.9; }
+
+        /* UPGRADE BUTTON (SIDEBAR) */
+        .btn-upgrade-sidebar { 
+            width: 100%; padding: 12px; margin-top: 5px;
+            background: linear-gradient(90deg, #1a1a1a, #0a0a0a); 
+            border: 1px solid var(--pro-color); color: var(--pro-color); 
+            border-radius: 10px; cursor: pointer; 
+            font-size: 0.75rem; font-weight: bold; text-align: center; 
+            transition: 0.3s; letter-spacing: 1px;
+        }
+        .btn-upgrade-sidebar:hover { background: var(--pro-color); color: #000; box-shadow: 0 0 15px rgba(212, 175, 55, 0.3); }
+
+        /* ADMIN & SECURITY */
+        .admin-pass-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 1px solid var(--pro-color); padding: 40px; border-radius: 16px; z-index: 21000; display: none; text-align: center; box-shadow: 0 0 50px rgba(212, 175, 55, 0.2); width: 320px; }
         .security-title { color: var(--pro-color); margin-bottom: 25px; font-weight: bold; letter-spacing: 3px; font-family: 'JetBrains Mono'; font-size: 1.1rem; }
         .admin-key-input { background: #111; border: 1px solid #333; color: #fff; padding: 15px; border-radius: 8px; width: 100%; margin-bottom: 20px; text-align: center; font-family: inherit; outline: none; font-size: 1.1rem; }
-        .unlock-btn { background: #fff; color: #000; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 1rem; }
+        .unlock-btn { background: #fff; color: #000; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 0.9rem; }
         
-        .admin-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 9000; display: none; align-items: center; justify-content: center; }
-        .admin-modal.active { display: flex; animation: zoomIn 0.3s ease; }
-        .admin-panel { background: #0a0a0a; border: 1px solid #333; padding: 20px; border-radius: 20px; width: 95%; max-width: 400px; text-align: center; position: relative; max-height: 90vh; overflow-y: auto; }
         .admin-section { border-bottom: 1px solid #222; padding-bottom: 20px; margin-bottom: 20px; }
-        .admin-input { background: #111; border: 1px solid #333; padding: 12px; border-radius: 8px; color: #fff; width: 100%; margin-bottom: 10px; text-align: center; font-family: 'JetBrains Mono'; }
-        .admin-select { width: 100%; background: #111; color: #fff; border: 1px solid #333; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-family: inherit; cursor: pointer; text-align: center; }
+        .admin-input { width: 100%; background: #111; border: 1px solid #333; padding: 12px; border-radius: 8px; color: #fff; margin-bottom: 10px; text-align: center; font-family: 'JetBrains Mono'; outline: none; }
+        .admin-select { width: 100%; background: #111; color: #fff; border: 1px solid #333; padding: 12px; border-radius: 8px; margin-bottom: 15px; cursor: pointer; text-align: center; }
         
         .toggle-switch { width: 50px; height: 26px; background: #333; border-radius: 13px; position: relative; cursor: pointer; margin: 0 auto; transition: 0.3s; }
         .toggle-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: 0.3s; }
         .toggle-switch.active { background: var(--pro-color); }
         .toggle-switch.active::after { transform: translateX(24px); }
         .toggle-switch.admin-on { background: #fff; }
-        
-        .legal-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 8500; display: none; flex-direction: column; padding: 30px; }
-        .legal-modal.active { display: flex; animation: slideUp 0.4s ease; }
-        .legal-content { flex: 1; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.8rem; color: #888; line-height: 1.6; padding-right: 15px; white-space: pre-wrap; text-align: left; }
-        .small-modal { width: 90%; max-width: 340px; background: #080808; border: 1px solid var(--accent); border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); animation: zoomIn 0.3s ease; }
-        .auth-btn { background: #fff; color: #000; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; text-transform: uppercase; font-size: 1rem; }
 
-        .popup-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 8000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .legal-content { text-align: left; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.8rem; color: #aaa; max-height: 60vh; overflow-y: auto; line-height: 1.5; }
+        .small-modal { width: 90%; max-width: 340px; background: #080808; border: 1px solid var(--accent); border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); animation: zoomIn 0.3s ease; }
+        .popup-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 25000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         .popup-overlay.active { display: flex; }
 
         /* LAYOUT */
         #app { display: flex; width: 100%; height: 100%; flex-direction: row; }
-        
-        .sidebar { 
-            width: 280px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border); 
-            display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; 
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 2000; 
-            position: relative;
-        }
+        .sidebar { width: 280px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; position: relative; }
         
         .logo { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 1.4rem; display: flex; align-items: center; gap: 8px; margin-bottom: 25px; }
         .pro-badge-logo { font-size: 0.6rem; background: var(--pro-color); color: #000; padding: 2px 5px; border-radius: 4px; display: none; }
@@ -119,58 +169,26 @@
         .delete-btn { background: transparent; border: none; color: #444; cursor: pointer; padding: 0 10px; display: flex; opacity: 0; font-size: 1.2rem; }
         .history-item:hover .delete-btn { opacity: 1; }
 
-        .sidebar-footer { margin-top: auto; padding-top: 15px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; }
+        .sidebar-footer { margin-top: auto; padding-top: 15px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
         .user-profile { display: flex; align-items: center; gap: 10px; padding: 5px; user-select: none; }
         
-        /* --- СТИЛИ АВАТАРКИ --- */
-        .user-avatar { 
-            width: 36px; height: 36px; 
-            background: #222; color: #fff; 
-            border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; 
-            font-weight: bold; border: 1px solid #333; 
-            transition: 0.3s;
-            position: relative;
-            z-index: 2;
-        }
-        body.pro-enabled .user-avatar { border-color: var(--pro-color); color: var(--pro-color); }
-        
-        /* --- ОГОНЬ АДМИНА В САЙДБАРЕ --- */
-        .user-avatar.admin-mode {
-            background: #111; color: #fff; border: none;
-            box-shadow: 0 0 10px rgba(255,255,255,0.3);
-        }
-        .user-avatar.admin-mode::before {
-            content: ''; position: absolute; z-index: -1;
-            top: -6px; left: -6px; right: -6px; bottom: -6px;
-            background: linear-gradient(45deg, #ffffff, #e0e0e0);
-            filter: blur(5px); opacity: 0.8;
-            animation: adminTurbulence 3s linear infinite;
-        }
-        .user-avatar.admin-mode::after {
-            content: ''; position: absolute; z-index: -2;
-            top: -10px; left: -10px; right: -10px; bottom: -10px;
-            background: linear-gradient(-45deg, #ffffff, #f0f0f0);
-            filter: blur(8px); opacity: 0.5;
-            animation: adminTurbulence 4s linear infinite reverse;
-        }
+        /* AVATARS */
+        .user-avatar { width: 36px; height: 36px; background: #222; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 1px solid #333; transition: 0.3s; position: relative; z-index: 2; }
+        body.tier-pro .user-avatar { border-color: var(--pro-color); color: var(--pro-color); }
+        .user-avatar.ultra-mode { background: #1a0520; color: #fff; border: 1px solid #b026ff; animation: ultraPulse 2s infinite alternate; }
+        .user-avatar.admin-mode { background: #fff; color: #000; border: none; }
+        .user-avatar.admin-mode::before { content: ''; position: absolute; z-index: -1; top: -6px; left: -6px; right: -6px; bottom: -6px; background: linear-gradient(45deg, #ffffff, #e0e0e0); filter: blur(5px); opacity: 0.8; animation: adminTurbulence 3s linear infinite; }
 
         #userId { font-size: 0.7rem; color: #666; font-family: 'JetBrains Mono'; cursor: pointer; margin-top: 2px; }
         #userId:hover { color: var(--accent); }
-        .pro-timer, .pro-date { font-size: 0.65rem; color: var(--pro-color); font-family: 'JetBrains Mono'; margin-top: 4px; display: none; }
-        body.pro-enabled .pro-timer, body.pro-enabled .pro-date { display: block; }
+        .pro-timer { font-size: 0.65rem; color: var(--pro-color); font-family: 'JetBrains Mono'; margin-top: 4px; display: none; }
+        body.pro-enabled .pro-timer { display: block; }
         .footer-credit { font-size: 0.65rem; color: #444; text-align: center; font-family: 'JetBrains Mono'; margin-top: 5px; cursor: default; }
 
         /* MAIN CONTENT */
         .main-content { flex: 1; display: flex; flex-direction: column; background-color: var(--chat-bg); position: relative; width: 100%; height: 100%; }
         
-        .mobile-header { 
-            display: none; height: 60px; padding: 0 15px; 
-            border-bottom: 1px solid var(--border); 
-            align-items: center; justify-content: space-between; 
-            background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); 
-            position: absolute; top: 0; left: 0; width: 100%; z-index: 50; 
-        }
+        .mobile-header { display: none; height: 60px; padding: 0 15px; border-bottom: 1px solid var(--border); align-items: center; justify-content: space-between; background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); position: absolute; top: 0; left: 0; width: 100%; z-index: 50; }
         .top-bar-desktop { padding: 15px; display: flex; justify-content: center; position: absolute; top: 0; left: 0; right: 0; z-index: 10; pointer-events: none; }
 
         .model-selector { background: #111; border: 1px solid #333; padding: 4px; border-radius: 8px; display: flex; gap: 4px; pointer-events: auto; }
@@ -185,18 +203,10 @@
         .avatar { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; transition: 0.5s; position: relative; z-index: 1; }
         .avatar.ai { background: #fff; color: #000; }
         .avatar.user { background: #222; color: #fff; }
-        .avatar.ai.pro-mode { background: var(--pro-color); box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
         
-        /* АВАТАР АДМИНА В ЧАТЕ */
-        .avatar.ai.admin-mode { 
-            background: #fff; color: #000; border: none;
-        }
-        .avatar.ai.admin-mode::before {
-            content: ''; position: absolute; top: -4px; left: -4px; right: -4px; bottom: -4px;
-            background: linear-gradient(45deg, #ffffff, #e0e0e0);
-            border-radius: 8px; z-index: -1; filter: blur(4px);
-            animation: adminTurbulence 3s linear infinite;
-        }
+        .avatar.ai.pro-mode { background: var(--pro-color); box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+        .avatar.ai.ultra-mode { background: var(--ultra-color); color: #fff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.5); }
+        .avatar.ai.admin-mode { background: #fff; color: #000; animation: adminTurbulence 3s infinite alternate; }
 
         .input-wrapper { max-width: 800px; margin: 0 auto; width: 100%; padding: 15px; background: linear-gradient(to top, #000 80%, transparent); display: flex; flex-direction: column; z-index: 60; }
         .input-box { background: #111; border: 1px solid var(--border); border-radius: 14px; padding: 10px 14px; display: flex; align-items: flex-end; gap: 10px; transition: 0.2s; }
@@ -216,7 +226,7 @@
             .mobile-header { display: flex; }
             .top-bar-desktop { display: none; }
             #chat-stream { padding-top: 70px; padding-bottom: 80px; }
-            .admin-modal .admin-panel { width: 95%; max-height: 85vh; overflow-y: auto; }
+            .modal-box { width: 95%; max-height: 85vh; padding: 20px; }
         }
     </style>
 </head>
@@ -227,96 +237,124 @@
     <div id="splash-screen">
         <div class="splash-logo">FLUX 🎄 AI</div>
         <div class="loading-container"><div class="loading-bar"></div></div>
-        <div class="splash-credit">BY 1XCODE TEAM</div>
+        <div class="splash-credit">BY 1XCODE</div>
     </div>
 
-    <div id="maint-screen">
-        <div class="maint-panel">
-            <div class="maint-icon" onclick="secretUnblock()" title="Нажмите 5 раз для разблокировки">⚠️</div>
-            <div class="maint-title">СЕРВЕР НА ОБСЛУЖИВАНИИ</div>
-            <div class="maint-text">
-                Flux AI обновляется. Доступ временно ограничен.<br>
-                Ориентировочное время завершения:
+    <div class="modal-overlay" id="pricingModal">
+        <div class="modal-box">
+            <button class="close-btn" onclick="document.getElementById('pricingModal').classList.remove('active')">✕</button>
+            <h3 style="color: #fff; margin-bottom: 20px;">ТАРИФЫ FLUX</h3>
+            
+            <div class="pricing-container">
+                <div class="price-card pc-free">
+                    <div class="price-title">FREE</div>
+                    <ul class="price-features">
+                        <li>3 запроса/час</li>
+                        <li>1 анализ фото</li>
+                        <li>Стандарт скорость</li>
+                    </ul>
+                    <div class="price-badge">Ваш тариф</div>
+                </div>
+                <div class="price-card pc-pro">
+                    <div class="price-title">PRO</div>
+                    <ul class="price-features">
+                        <li>100 запросов/час</li>
+                        <li>50 фото/час</li>
+                        <li>Модель v66 Pro</li>
+                    </ul>
+                    <div class="price-badge">199₽</div>
+                </div>
+                <div class="price-card pc-ultra">
+                    <div class="price-title">ULTRA</div>
+                    <ul class="price-features">
+                        <li>500 запросов/час</li>
+                        <li>500 фото/час</li>
+                        <li>Модель Flux MAX</li>
+                    </ul>
+                    <div class="price-badge">499₽</div>
+                </div>
             </div>
-            <div class="maint-timer" id="maintTimer">00:00:00</div>
-            <button class="unlock-btn" onclick="location.reload()" style="margin-top:20px;">ОБНОВИТЬ СТАТУС</button>
+
+            <div class="key-input-section">
+                <div style="font-size:0.8rem; color:#aaa; margin-bottom:10px;">Активация ключа доступа:</div>
+                <input type="text" id="licenseKey" class="key-input" placeholder="Введите ключ (PRO-XXX)">
+                <button class="auth-btn" style="background:var(--accent); color:#000;" onclick="activateKey()">🚀 АКТИВИРОВАТЬ</button>
+                <div style="margin-top:10px; font-size:0.7rem; color:#666;">
+                    Приобрести ключ: <a href="https://t.me/FluxPayBot" target="_blank" style="color:var(--accent);">@FluxPayBot</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-pass-popup" id="adminPassPopup">
+        <div class="security-title">/// SECURITY CHECK ///</div>
+        <input type="password" id="adminKey" class="admin-key-input" placeholder="Admin Key">
+        <button class="unlock-btn" onclick="verifyAdmin()">UNLOCK</button>
+    </div>
+
+    <div class="modal-overlay" id="adminModal">
+        <div class="modal-box">
+            <button class="close-btn" onclick="closeAdmin()">✕</button>
+            <div style="font-family: 'JetBrains Mono'; color: var(--success); font-weight: bold; margin-bottom: 20px;">АДМИН ПАНЕЛЬ</div>
+            
+            <div class="admin-section">
+                <span style="color: #888; font-size: 0.7rem; display: block; margin-bottom: 10px;">МОЙ СТАТУС</span>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 15px;">
+                    <span style="color: #ccc;">PRO</span>
+                    <div class="toggle-switch" id="proToggle" onclick="togglePro()"></div>
+                </div>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top:10px;">
+                    <span style="color: #fff; font-weight:bold;">ADMIN</span>
+                    <div class="toggle-switch" id="adminToggle" onclick="toggleAdmin()"></div>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <span style="color: #888; font-size: 0.7rem; display: block; margin-bottom: 10px;">ВЫДАЧА ПРАВ</span>
+                <input type="text" id="targetUID" class="admin-input" placeholder="UID Пользователя">
+                <select id="grantType" class="admin-select">
+                    <option value="PRO">PRO</option>
+                    <option value="ULTRA">ULTRA</option>
+                </select>
+                <button class="unlock-btn" style="background:#222; border:1px solid #444; color:#fff;" onclick="grantSubscription()">ВЫДАТЬ</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="legalModal">
+        <div class="modal-box" style="text-align: left; max-width: 600px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
+                <h3 style="color: var(--accent); margin:0;">Пользовательское Соглашение</h3>
+                <button class="close-btn" style="position:static;" onclick="document.getElementById('legalModal').classList.remove('active')">✕</button>
+            </div>
+            <div class="legal-content" id="kilometerText"></div>
         </div>
     </div>
 
     <div class="popup-overlay" id="disclaimerPopup">
         <div class="small-modal">
             <h2 style="font-size: 3rem; margin: 0 0 10px 0;">🎄</h2>
-            <h3 style="color: var(--accent); margin-bottom: 15px;">Новогоднее Обновление</h3>
+            <h3 style="color: var(--accent); margin-bottom: 15px;">Flux AI Update</h3>
             <p style="color: #aaa; font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px;">
-                Flux (Node: 1xCode). Cookie используются.
+                Node: 1xCode.
             </p>
-            <button class="auth-btn" style="width: 100%; padding: 10px;" onclick="acceptDisclaimer()">✅ ПРИНИМАЮ</button>
+            <button class="auth-btn" style="width: 100%; padding: 10px;" onclick="acceptDisclaimer()">ПРИНЯТЬ</button>
         </div>
     </div>
 
-    <div class="admin-pass-popup" id="adminPassPopup">
-        <div class="security-title">/// SECURITY CHECK ///</div>
-        <input type="password" id="adminKey" class="admin-key-input" placeholder="Ключ Администратора">
-        <button class="unlock-btn" onclick="verifyAdmin()">🔓 РАЗБЛОКИРОВАТЬ</button>
-    </div>
-
-    <div class="admin-modal" id="adminModal">
-        <div class="admin-panel">
-            <button style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: #555; cursor: pointer; font-size: 1.2rem;" onclick="closeAdmin()">✕</button>
-            <div style="font-family: 'JetBrains Mono'; color: var(--success); font-weight: bold; margin-bottom: 20px;">АДМИН ПАНЕЛЬ</div>
-            
-            <div class="admin-section">
-                <span style="color: #888; font-size: 0.7rem; letter-spacing: 1px; display: block; margin-bottom: 10px;">МОЙ АККАУНТ</span>
-                <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 10px;">
-                    <span style="color: #ccc;">PRO Режим</span>
-                    <div class="toggle-switch" id="proToggle" onclick="togglePro()"></div>
-                </div>
-                <div style="display: flex; justify-content: center; align-items: center; gap: 15px;">
-                    <span style="color: #fff; font-weight:bold;">ADMIN Режим</span>
-                    <div class="toggle-switch" id="adminToggle" onclick="toggleAdmin()"></div>
-                </div>
-            </div>
-
-            <div class="admin-section">
-                <span style="color: #888; font-size: 0.7rem; letter-spacing: 1px; display: block; margin-bottom: 10px;">ВЫДАТЬ ПОДПИСКУ (ПО UID)</span>
-                <input type="text" id="targetUID" class="admin-input" placeholder="UID (напр. K9-X42B)">
-                <select id="proDuration" class="admin-select">
-                    <option value="24h">1 День</option>
-                    <option value="3d">3 Дня</option>
-                    <option value="1w">Неделя</option>
-                    <option value="1m">Месяц</option>
-                    <option value="perm">Навсегда</option>
-                </select>
-                <button class="unlock-btn" style="background:#222; border:1px solid #444; color:#fff;" onclick="grantSubscription()">🎁 ВЫДАТЬ PRO</button>
-            </div>
-
-            <div class="admin-section" style="border:none; padding-bottom:0;">
-                <span style="color: var(--danger); font-size: 0.7rem; letter-spacing: 1px; display: block; margin-bottom: 10px;">УПРАВЛЕНИЕ СЕРВЕРОМ</span>
-                <select id="maintTime" class="admin-select">
-                    <option value="1">1 Час</option>
-                    <option value="2">2 Часа</option>
-                    <option value="24">24 Часа</option>
-                </select>
-                <button class="unlock-btn" style="background:var(--danger); border:none; color:#fff;" onclick="activateMaintenance()">⛔ ВКЛЮЧИТЬ ТЕХ. РАБОТЫ</button>
-                <hr style="border:0; border-top:1px solid #333; margin: 15px 0;">
-                <div style="color:#888; margin-bottom:5px; font-size:0.7rem;">АВТОРИЗАЦИЯ СОЗДАТЕЛЯ</div>
-                <input type="text" id="creatorUidInput" class="admin-input" placeholder="Введите C8N-HPY">
-                <button class="unlock-btn" style="background:var(--pro-color); color:#000;" onclick="setCreatorUid()">ВОЙТИ КАК СОЗДАТЕЛЬ</button>
-            </div>
+    <div id="maint-screen">
+        <div class="maint-panel">
+            <div class="maint-icon" onclick="secretUnblock()">⚠️</div>
+            <div class="maint-title">ТЕХНИЧЕСКИЕ РАБОТЫ</div>
+            <div class="maint-text">Сервер временно недоступен.</div>
+            <div class="maint-timer" id="maintTimer">00:00:00</div>
+            <button class="unlock-btn" onclick="location.reload()" style="margin-top:20px;">ОБНОВИТЬ</button>
         </div>
-    </div>
-
-    <div class="legal-modal" id="legalModal">
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
-            <div style="color: var(--accent); font-weight: bold; font-family: 'JetBrains Mono';">ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ</div>
-            <button onclick="document.getElementById('legalModal').classList.remove('active')" style="background:none; border:none; color:#fff; font-size:1.5rem; cursor:pointer;">✕</button>
-        </div>
-        <div class="legal-content" id="kilometerText"></div>
     </div>
 
     <div class="overlay" id="overlay" onclick="toggleSidebar(false)"></div>
 
-    <div id="app" style="display:flex; height: 100%; width: 100%; flex-direction: row;">
+    <div id="app">
         <aside class="sidebar" id="sidebar">
             <div class="logo">FLUX <span>AI</span> 
                 <div class="pro-badge-logo" id="proBadge">PRO</div>
@@ -324,16 +362,19 @@
             <button class="btn-new-chat" onclick="startNewChat()">+ Новый чат</button>
             <div class="history-list" id="historyList"></div>
             <div class="sidebar-footer">
-                <button onclick="if(confirm('Сбросить данные?')){localStorage.clear();location.reload();}" style="background:none; border:none; color:#666; cursor:pointer; font-size: 0.8rem; text-align: left; margin-bottom: 10px;">🗑 Сброс</button>
+                <button onclick="localStorage.clear();location.reload();" style="background:none; border:none; color:#666; cursor:pointer; font-size: 0.8rem; text-align: left;">🗑 Сброс данных</button>
+                
                 <div class="user-profile">
                     <div class="user-avatar" id="myAvatar">U</div>
                     <div class="user-info">
                         <div style="font-size:0.9rem;" id="userName">Гость</div>
-                        <div style="font-size:0.65rem; color:#666; font-family: 'JetBrains Mono';" id="userId" onclick="copyID()" title="Скопировать">UID: ...</div>
-                        <div class="pro-date" id="proDate"></div>
+                        <div style="font-size:0.65rem; color:#666; font-family: 'JetBrains Mono';" id="userId" onclick="copyID()">UID...</div>
                         <div class="pro-timer" id="subTimer"></div>
                     </div>
                 </div>
+
+                <button class="btn-upgrade-sidebar" onclick="document.getElementById('pricingModal').classList.add('active')">💎 АКТИВИРОВАТЬ ПОДПИСКУ</button>
+
                 <div class="footer-credit" id="secretTrigger">CREATED BY <span>1XCODE</span></div>
             </div>
         </aside>
@@ -357,17 +398,11 @@
             <div id="chat-stream">
                 <div class="message-container">
                     <div class="avatar ai">◈</div>
-                    <div class="message-text">Система готова. С Новым Наступающем Годом! 🎅</div>
+                    <div class="message-text">Система готова. Тариф: <span id="introTier">FREE</span> 🎄</div>
                 </div>
             </div>
 
-            <div class="file-preview" id="filePreview">
-                <span style="display:flex; gap:10px; align-items:center;">
-                    <span style="font-size:1.2rem;">📄</span>
-                    <span id="fileName">file.name</span>
-                </span>
-                <span style="cursor:pointer;" onclick="clearFile()">✕</span>
-            </div>
+            <div class="file-preview" id="filePreview"><span>📄 <span id="fileName">file</span></span><span style="cursor:pointer;" onclick="clearFile()">✕</span></div>
 
             <div class="input-wrapper">
                 <div class="input-box">
@@ -387,14 +422,16 @@
         const PASS_HASH = "Zmx1eDIwMjU="; 
         
         let chats = JSON.parse(localStorage.getItem('chats_v57') || '[]');
-        let activeId = null;
-        let isPro = localStorage.getItem('isPro_v57') === 'true';
-        let isAdmin = localStorage.getItem('isAdmin_v57') === 'true'; // АДМИН СТАТУС
-        let proExpiry = parseInt(localStorage.getItem('proExpiry_v57') || '0');
+        let currentTier = localStorage.getItem('flux_tier') || 'FREE';
         let myUID = localStorage.getItem('myUID');
+        let activeId = null;
+        let currFile = null;
         let clicks = 0;
         let maintClicks = 0;
-        let currFile = null;
+        
+        let isPro = (currentTier === 'PRO' || currentTier === 'ULTRA');
+        let isAdmin = (currentTier === 'ADMIN');
+        let proExpiry = parseInt(localStorage.getItem('proExpiry_v57') || '0');
 
         function createSnow() {
             const c = document.getElementById('snow-container');
@@ -411,11 +448,7 @@
         }
 
         if (!myUID) { 
-            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-            let p1="", p2="";
-            for(let i=0;i<3;i++) p1+=chars.charAt(Math.floor(Math.random()*chars.length));
-            for(let i=0;i<3;i++) p2+=chars.charAt(Math.floor(Math.random()*chars.length));
-            myUID = `${p1}-${p2}`;
+            myUID = 'u-' + Math.random().toString(36).substr(2, 9);
             localStorage.setItem('myUID', myUID);
         }
 
@@ -426,7 +459,7 @@
             
             setTimeout(() => { document.getElementById('splash-screen').classList.add('hidden'); }, 3000);
 
-            // MAINTENANCE CHECK
+            // MAINT CHECK
             try {
                 const res = await fetch('/api/status');
                 const d = await res.json();
@@ -437,7 +470,6 @@
                 }
             } catch(e){}
 
-            // LOCAL MAINT CHECK
             const mEnd = parseInt(localStorage.getItem('maintEnd_v57')||'0');
             if(mEnd > Date.now()) {
                 document.getElementById('maint-screen').classList.add('active');
@@ -446,8 +478,7 @@
                     if(left<=0) location.reload();
                     const h=Math.floor(left/3600000).toString().padStart(2,'0');
                     const m=Math.floor((left%3600000)/60000).toString().padStart(2,'0');
-                    const s=Math.floor((left%60000)/1000).toString().padStart(2,'0');
-                    document.getElementById('maintTimer').innerText = `${h}:${m}:${s}`;
+                    document.getElementById('maintTimer').innerText = `${h}:${m}`;
                 },1000);
             }
 
@@ -455,9 +486,8 @@
             
             checkProStatus();
             setInterval(checkProStatus, 1000);
-            updateStatusUI(); // Обновленная функция для статусов
+            updateStatusUI(); 
             
-            // Загружаем последний чат
             if(chats.length > 0) {
                 chats.sort((a,b) => b.ts - a.ts);
                 loadChat(chats[0].id);
@@ -466,11 +496,38 @@
             }
         };
 
+        window.activateKey = async function() {
+            const key = document.getElementById('licenseKey').value.trim();
+            if(!key) return;
+            try {
+                const res = await fetch('/api/activate-key', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ key, uid: myUID })
+                });
+                const data = await res.json();
+                if(data.status === 'success') {
+                    if (data.tier === 'PRO' || data.tier === 'ULTRA') {
+                        currentTier = data.tier;
+                        isPro = true;
+                        localStorage.setItem('isPro_v57', 'true');
+                        localStorage.setItem('flux_tier', currentTier);
+                    }
+                    proExpiry = 5000000000000; 
+                    localStorage.setItem('proExpiry_v57', proExpiry);
+                    updateStatusUI();
+                    document.getElementById('pricingModal').classList.remove('active');
+                    alert(`✅ ACTIVATED: ${data.tier}!`);
+                } else {
+                    alert("❌ Invalid Key");
+                }
+            } catch(e) { alert("Server Error"); }
+        }
+
         window.activateMaintenance = function() {
             const hours = parseInt(document.getElementById('maintTime').value);
             const endTime = Date.now() + (hours * 60 * 60 * 1000);
             localStorage.setItem('maintEnd_v57', endTime.toString());
-            alert(`⛔ ТЕХНИЧЕСКИЕ РАБОТЫ ВКЛЮЧЕНЫ НА ${hours} ЧАС(А).`);
             location.reload();
         }
 
@@ -501,7 +558,7 @@
             appendMsg('user', txt, currFile, false);
             
             // Отправляем UID и isAdmin на сервер
-            const payload = { message: txt, file: currFile ? currFile.data : null, isPro: isPro, isAdmin: isAdmin, uid: myUID };
+            const payload = { message: txt, file: currFile ? currFile.data : null, tier: currentTier, uid: myUID };
             
             inp.value=''; currFile=null;
             document.getElementById('filePreview').style.display='none';
@@ -547,9 +604,10 @@
             let ac = 'avatar ';
             if (role === 'user') ac += 'user';
             else {
-                if (isAdmin) ac += 'ai admin-mode';
-                else if (isPro) ac += 'ai pro-mode';
-                else ac += 'ai';
+                ac += 'ai';
+                if (currentTier === 'PRO') ac += ' pro-mode';
+                if (currentTier === 'ULTRA') ac += ' ultra-mode';
+                if (currentTier === 'ADMIN') ac += ' admin-mode';
             }
 
             let content = anim ? `<div class="message-text typing"></div>` : `<div class="message-text">${marked.parse(text)}</div>`;
@@ -563,12 +621,12 @@
         function checkProStatus() {
             if (isAdmin) {
                 document.getElementById('subTimer').innerText = "GOD MODE";
-                document.getElementById('proDate').innerText = "∞";
+                currentTier = 'ADMIN';
                 return;
             }
             if (!isPro) {
                 document.getElementById('subTimer').innerText = "";
-                document.getElementById('proDate').innerText = "";
+                currentTier = 'FREE';
                 return;
             }
             const now = Date.now();
@@ -576,20 +634,16 @@
             
             if(proExpiry > 4000000000000) { 
                 document.getElementById('subTimer').innerText = "БЕССРОЧНО"; 
-                document.getElementById('proDate').innerText = "∞";
                 return; 
             }
             
             if (left <= 0) {
                 isPro = false;
                 localStorage.setItem('isPro_v57', 'false');
+                currentTier = 'FREE';
                 updateStatusUI();
                 alert("⏳ PRO истек.");
             } else {
-                const date = new Date(proExpiry);
-                const d = date.getDate().toString().padStart(2,'0');
-                const m = (date.getMonth()+1).toString().padStart(2,'0');
-                document.getElementById('proDate').innerText = `до: ${d}.${m}`;
                 const days = Math.floor(left / 86400000);
                 document.getElementById('subTimer').innerText = `Ост: ${days}д`;
             }
@@ -617,7 +671,6 @@
             if(btoa(document.getElementById('adminKey').value)===PASS_HASH) {
                 document.getElementById('adminPassPopup').style.display='none';
                 document.getElementById('adminModal').classList.add('active');
-                // Синхронизация свитчей при открытии
                 if(isPro) document.getElementById('proToggle').classList.add('active');
                 if(isAdmin) document.getElementById('adminToggle').classList.add('active', 'admin-on');
             } else alert('⛔️ Доступ запрещен');
@@ -625,54 +678,41 @@
 
         window.grantSubscription = function() {
             let uid = document.getElementById('targetUID').value.trim();
-            const dur = document.getElementById('proDuration').value;
+            const dur = document.getElementById('proDuration').value; // игнор в демо, всегда perm
+            const type = document.getElementById('grantType').value;
             
             if(uid === "" || uid === myUID) {
                 let add = 0;
-                if(dur==='24h') add=86400000; 
-                if(dur==='3d') add=259200000;
-                if(dur==='1w') add=604800000; 
-                if(dur==='1m') add=2592000000;
-                if(dur==='perm') add=5000000000000;
+                // Всегда выдаем вечный для теста
+                if(dur) add=5000000000000;
 
                 isPro = true;
+                currentTier = type;
                 proExpiry = Date.now() + add;
                 localStorage.setItem('isPro_v57', 'true');
+                localStorage.setItem('flux_tier', type);
                 localStorage.setItem('proExpiry_v57', proExpiry.toString());
                 updateStatusUI();
-                alert(`✅ PRO выдан локально!`);
+                alert(`✅ ${type} выдан локально!`);
             } else {
-                alert(`❌ В "No DB" режиме можно выдать PRO только себе.`);
+                alert(`❌ В "No DB" режиме можно выдать только себе.`);
             }
             checkProStatus();
-        }
-        
-        window.setCreatorUid = function() {
-            const val = document.getElementById('creatorUidInput').value.trim();
-            if(val) {
-                myUID = val;
-                localStorage.setItem('myUID', myUID);
-                document.getElementById('userId').innerText = "UID: " + myUID;
-                alert("UID изменен на: " + myUID);
-                location.reload();
-            }
         }
 
         window.togglePro = function() {
-            isPro = !isPro;
-            if(isPro) { proExpiry = 5000000000000; localStorage.setItem('proExpiry_v57', proExpiry); }
+            if(currentTier === 'PRO') { currentTier = 'FREE'; isPro = false; } 
+            else { currentTier = 'PRO'; isPro = true; proExpiry = 5000000000000; }
+            localStorage.setItem('flux_tier', currentTier);
             localStorage.setItem('isPro_v57', isPro);
-            
-            const btn = document.getElementById('proToggle');
-            if(isPro) btn.classList.add('active'); else btn.classList.remove('active');
-            
+            localStorage.setItem('proExpiry_v57', proExpiry);
             updateStatusUI();
-            checkProStatus();
         }
 
         window.toggleAdmin = function() {
             isAdmin = !isAdmin;
             localStorage.setItem('isAdmin_v57', isAdmin);
+            if(isAdmin) currentTier = 'ADMIN'; else currentTier = isPro ? 'PRO' : 'FREE';
             
             const btn = document.getElementById('adminToggle');
             if(isAdmin) btn.classList.add('active', 'admin-on'); else btn.classList.remove('active', 'admin-on');
@@ -684,32 +724,14 @@
         window.closeAdmin = function() { document.getElementById('adminModal').classList.remove('active'); }
 
         window.generateLegalText = function() {
-             const text = `ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (РЕДАКЦИЯ 2025)
-
-1. ОБЩИЕ ПОЛОЖЕНИЯ
-1.1. Настоящее Соглашение регулирует отношения между разработчиком (1xCode) и пользователем сервиса Flux AI.
-1.2. Используя сервис, вы безоговорочно принимаете условия данного соглашения.
-
-2. ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ
-2.1. Сервис предоставляется на условиях "как есть". Разработчик не гарантирует безошибочную работу алгоритмов AI.
-2.2. Пользователь осознает, что ответы нейросети могут содержать неточности.
-
-3. КОНФИДЕНЦИАЛЬНОСТЬ И БЕЗОПАСНОСТЬ
-3.1. Все данные чатов передаются по защищенному протоколу.
-3.2. Ваш уникальный идентификатор (UID) является ключом доступа к истории.
-
-4. PRO-ДОСТУП
-4.1. Статус PRO является добровольным пожертвованием.
-4.2. PRO-статус предоставляет доступ к приоритетной очереди и расширенным моделям.
-
-Дата последнего обновления: 01.01.2025`;
+             const text = `ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (РЕДАКЦИЯ 2025)\n\n1. ОБЩИЕ ПОЛОЖЕНИЯ (1xCode)\n...\n(Полный текст соглашения)`;
              document.getElementById('kilometerText').innerText = text;
         }
         window.openLegal = function() { document.getElementById('legalModal').classList.add('active'); }
 
         window.renderHistory = function() {
             const l = document.getElementById('historyList'); l.innerHTML='';
-            [...chats].sort((a,b)=>b.ts-a.ts).forEach(c => {
+            chats.forEach(c => {
                 const i = document.createElement('div');
                 i.className = `history-item ${activeId===c.id?'active':''}`;
                 i.innerHTML = `<span class="chat-title">${c.title}</span> <button class="delete-btn" onclick="delChat(event,${c.id})">✕</button>`;
@@ -717,7 +739,7 @@
                 l.appendChild(i);
             });
         }
-        window.startNewChat = function() { activeId=null; document.getElementById('chat-stream').innerHTML=`<div class="message-container"><div class="avatar ai">◈</div><div class="message-text">Система готова. С Новым Годом! 🎄</div></div>`; renderHistory(); if(window.innerWidth<768) toggleSidebar(false); }
+        window.startNewChat = function() { activeId=null; document.getElementById('chat-stream').innerHTML=`<div class="message-container"><div class="avatar ai">◈</div><div class="message-text">Система готова. Тариф: <span id="introTier">FREE</span> 🎄</div></div>`; renderHistory(); if(window.innerWidth<768) toggleSidebar(false); }
         window.loadChat = function(id) { 
             const c=chats.find(x=>x.id===id); 
             if(c){ 
@@ -743,35 +765,38 @@
         window.updateStatusUI = function() {
             const b = document.body; 
             const btns = ['deskPro','mobPro'];
-            const badge = document.getElementById('proBadge');
+            const badge = document.querySelector('.pro-badge-logo');
             const avatar = document.getElementById('myAvatar');
+            const intro = document.getElementById('introTier');
 
-            // Сброс классов
+            // Сброс
             b.classList.remove('pro-enabled', 'admin-enabled');
-            badge.classList.remove('admin');
-            badge.style.display = 'none';
+            if(badge) {
+                badge.style.display = 'none';
+                badge.classList.remove('admin');
+            }
             avatar.style.borderColor = "#333";
             avatar.style.color = "#fff";
-            avatar.classList.remove('admin-mode'); // Убираем огонь если был
+            avatar.classList.remove('admin-mode', 'ultra-mode');
+            if(intro) intro.innerText = currentTier;
 
             if (isAdmin) {
-                // ADMIN MODE
                 b.classList.add('admin-enabled');
-                badge.innerText = "ADMIN";
-                badge.classList.add('admin');
-                badge.style.display = 'inline-block';
-                avatar.classList.add('admin-mode'); // ВКЛЮЧАЕМ ОГОНЬ
+                if(badge) { badge.innerText = "ADMIN"; badge.classList.add('admin'); badge.style.display = 'inline-block'; }
+                avatar.classList.add('admin-mode');
+                btns.forEach(x => document.getElementById(x).classList.remove('locked'));
+            } else if (currentTier === 'ULTRA') {
+                b.classList.add('pro-enabled');
+                if(badge) { badge.innerText = "ULTRA"; badge.style.background = "var(--ultra-color)"; badge.style.display = 'inline-block'; }
+                avatar.classList.add('ultra-mode');
                 btns.forEach(x => document.getElementById(x).classList.remove('locked'));
             } else if (isPro) {
-                // PRO MODE
                 b.classList.add('pro-enabled');
-                badge.innerText = "PRO";
-                badge.style.display = 'inline-block';
+                if(badge) { badge.innerText = "PRO"; badge.style.background = "var(--pro-color)"; badge.style.display = 'inline-block'; }
                 avatar.style.borderColor = "var(--pro-color)";
                 avatar.style.color = "var(--pro-color)";
                 btns.forEach(x => document.getElementById(x).classList.remove('locked'));
             } else {
-                // FREE MODE
                 btns.forEach(x => document.getElementById(x).classList.add('locked'));
             }
         }
@@ -781,7 +806,6 @@
         }
         window.toggleSidebar = function(o) { const s=document.getElementById('sidebar'); const ov=document.getElementById('overlay'); if(o){s.classList.add('open');ov.classList.add('active');}else{s.classList.remove('open');ov.classList.remove('active');} }
         
-        // FILES
         window.handleFile = function(i) {
             const f = i.files[0];
             if(f){
@@ -803,7 +827,8 @@
         document.getElementById('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
     </script>
 </body>
-</html>
+                        </html>
+
 
 
 
