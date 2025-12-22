@@ -178,7 +178,7 @@ if (TELEGRAM_TOKEN) {
 // ==========================================
 // 🔗 WEBHOOK ROUTE (БЕЗ /api)
 // ==========================================
-app.post('/telegram-webhook', (req, res) => {
+app.post('/https://api.telegram.org/bot8546739392:AAEK_AlGR0sllOhu4_U6KetL7AL2yQuWtko/setWebhook?url=https://flux-ai-1xcode.vercel.app/api/telegram-webhook', (req, res) => {
     if (bot) {
         bot.processUpdate(req.body);
     }
@@ -267,6 +267,7 @@ app.post('/chat', async (req, res) => {
 app.get('/status', (req, res) => res.json({ status: 'online' }));
 
 module.exports = app;
+
 
 
 
