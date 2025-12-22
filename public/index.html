@@ -130,17 +130,16 @@
             display: flex; align-items: center; justify-content: center; 
             font-weight: bold; border: 1px solid #333; 
             transition: 0.3s;
-            position: relative; /* Важно для псевдоэлементов */
+            position: relative;
             z-index: 2;
         }
         body.pro-enabled .user-avatar { border-color: var(--pro-color); color: var(--pro-color); }
         
-        /* --- ОГОНЬ АДМИНА В САЙДБАРЕ (КРАСИВЫЙ) --- */
+        /* --- ОГОНЬ АДМИНА В САЙДБАРЕ --- */
         .user-avatar.admin-mode {
             background: #111; color: #fff; border: none;
             box-shadow: 0 0 10px rgba(255,255,255,0.3);
         }
-        /* Слой 1: Основное пламя */
         .user-avatar.admin-mode::before {
             content: ''; position: absolute; z-index: -1;
             top: -6px; left: -6px; right: -6px; bottom: -6px;
@@ -148,7 +147,6 @@
             filter: blur(5px); opacity: 0.8;
             animation: adminTurbulence 3s linear infinite;
         }
-        /* Слой 2: Внешнее свечение */
         .user-avatar.admin-mode::after {
             content: ''; position: absolute; z-index: -2;
             top: -10px; left: -10px; right: -10px; bottom: -10px;
@@ -229,7 +227,7 @@
     <div id="splash-screen">
         <div class="splash-logo">FLUX 🎄 AI</div>
         <div class="loading-container"><div class="loading-bar"></div></div>
-        <div class="splash-credit">BY 1XCODE </div>
+        <div class="splash-credit">BY 1XCODE TEAM</div>
     </div>
 
     <div id="maint-screen">
@@ -689,7 +687,7 @@
              const text = `ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (РЕДАКЦИЯ 2025)
 
 1. ОБЩИЕ ПОЛОЖЕНИЯ
-1.1. Настоящее Соглашение регулирует отношения между разработчиком (1xCode) и пользователем сервиса Flux AI.
+1.1. Настоящее Соглашение регулирует отношения между разработчиком (1xCodeTeam) и пользователем сервиса Flux AI.
 1.2. Используя сервис, вы безоговорочно принимаете условия данного соглашения.
 
 2. ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ
@@ -805,7 +803,8 @@
         document.getElementById('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
     </script>
 </body>
-                            </html>
+</html>
+
 
 
 
