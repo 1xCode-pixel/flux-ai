@@ -7,257 +7,142 @@
     <style>
         :root {
             --bg: #050505;
-            --card-bg: rgba(25, 25, 30, 0.6);
+            --card-bg: rgba(25, 25, 30, 0.8);
             --accent-pro: #ffd700;
             --accent-ultra: #bc13fe;
             --text: #ffffff;
         }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: radial-gradient(circle at top, #1a1a2e 0%, var(--bg) 100%);
-            color: var(--text);
-            min-height: 100vh;
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: radial-gradient(circle at top, #1a1a2e 0%, var(--bg) 100%); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+        .header { text-align: center; padding: 40px 20px 10px; }
+        h1 { font-size: 2.2rem; margin: 0; background: linear-gradient(90deg, #7f5af0, #2cb67d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        /* ПЕРЕКЛЮЧАТЕЛЬ СРОКОВ */
+        .period-selector {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .header {
-            text-align: center;
-            padding: 40px 20px 20px;
-        }
-        
-        h1 {
-            font-size: 2.5rem;
-            margin: 0;
-            background: linear-gradient(90deg, #7f5af0, #2cb67d);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 800;
-            letter-spacing: -1px;
-        }
-
-        p.subtitle { color: #888; margin-top: 10px; font-size: 1rem; }
-
-        .container {
-            width: 100%;
-            max-width: 800px;
-            padding: 20px;
-            box-sizing: border-box;
-            padding-bottom: 100px; /* Место для скролла на мобилке */
-        }
-
-        /* Сетка карточек */
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        /* Карточка */
-        .card {
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 30px;
-            text-align: center;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card:hover { transform: translateY(-5px); }
-        .card.pro:hover { border-color: var(--accent-pro); box-shadow: 0 0 30px rgba(255, 215, 0, 0.15); }
-        .card.ultra:hover { border-color: var(--accent-ultra); box-shadow: 0 0 30px rgba(188, 19, 254, 0.15); }
-
-        .badge {
-            font-size: 0.9rem;
-            font-weight: bold;
-            letter-spacing: 1px;
-            margin-bottom: 15px;
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.1);
-        }
-        .pro .badge { color: var(--accent-pro); border: 1px solid var(--accent-pro); }
-        .ultra .badge { color: var(--accent-ultra); border: 1px solid var(--accent-ultra); }
-
-        .price { font-size: 2.5rem; font-weight: 700; margin-bottom: 20px; }
-        .price span { font-size: 1rem; color: #888; font-weight: 400; }
-
-        ul { list-style: none; padding: 0; margin-bottom: 30px; text-align: left; }
-        ul li { margin-bottom: 12px; color: #ccc; font-size: 0.95rem; display: flex; align-items: center; }
-        ul li::before { content: "✓"; margin-right: 10px; font-weight: bold; }
-        .pro ul li::before { color: var(--accent-pro); }
-        .ultra ul li::before { color: var(--accent-ultra); }
-
-        button {
-            width: 100%;
-            padding: 16px;
-            border: none;
-            border-radius: 14px;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.2s;
-            color: #000;
-        }
-        .btn-pro { background: var(--accent-pro); }
-        .btn-ultra { background: var(--accent-ultra); color: white; }
-        
-        button:active { transform: scale(0.98); }
-
-        /* Окно с ключом (Popup) */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(5px);
-            z-index: 100;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .modal-active { display: flex; opacity: 1; }
-
-        .key-box {
             background: #16161a;
-            width: 90%;
-            max-width: 400px;
-            padding: 30px;
-            border-radius: 24px;
-            text-align: center;
-            border: 1px solid #333;
-            transform: scale(0.9);
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .modal-active .key-box { transform: scale(1); }
-
-        .key-value {
-            background: #000;
-            padding: 15px;
-            border-radius: 10px;
-            font-family: monospace;
-            font-size: 1.2rem;
-            color: #2cb67d;
-            border: 1px dashed #2cb67d;
+            padding: 5px;
+            border-radius: 12px;
             margin: 20px 0;
-            word-break: break-all;
-            user-select: text;
+            gap: 5px;
+            border: 1px solid #333;
         }
-
-        .btn-close { background: #333; color: white; margin-top: 10px; }
-        .back-link { position: fixed; top: 20px; left: 20px; color: #666; text-decoration: none; font-size: 24px; }
-
-        /* --- МОБИЛЬНАЯ ВЕРСИЯ --- */
-        @media (max-width: 768px) {
-            .grid { grid-template-columns: 1fr; } /* Одна колонка */
-            .card { margin-bottom: 10px; padding: 25px; }
-            h1 { font-size: 2rem; }
-            .container { padding-top: 0; }
+        .p-btn {
+            background: transparent; border: none; color: #888; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s;
         }
+        .p-btn.active { background: #2cb67d; color: white; box-shadow: 0 0 10px rgba(44,182,125,0.4); }
+
+        .container { width: 100%; max-width: 800px; padding: 20px; padding-bottom: 100px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        .card { background: var(--card-bg); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 25px; text-align: center; position: relative; transition: 0.3s; }
+        .card:hover { transform: translateY(-5px); }
+        .card.pro { border-top: 3px solid var(--accent-pro); }
+        .card.ultra { border-top: 3px solid var(--accent-ultra); }
+        
+        .badge { font-size: 0.8rem; font-weight: bold; padding: 4px 10px; border-radius: 10px; background: rgba(255,255,255,0.1); display: inline-block; margin-bottom: 10px; }
+        .pro .badge { color: var(--accent-pro); } .ultra .badge { color: var(--accent-ultra); }
+        
+        .price { font-size: 2rem; font-weight: 800; margin: 15px 0; }
+        
+        button.buy-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        .pro .buy-btn { background: var(--accent-pro); color: black; }
+        .ultra .buy-btn { background: var(--accent-ultra); color: white; }
+
+        /* MODAL */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); z-index: 100; }
+        .key-box { background: #16161a; padding: 30px; border-radius: 20px; border: 1px solid #333; text-align: center; width: 80%; max-width: 350px; }
+        .key-val { background: black; color: #2cb67d; padding: 15px; font-family: monospace; border-radius: 8px; border: 1px dashed #2cb67d; margin: 15px 0; word-break: break-all; }
+        
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-    <a href="/" class="back-link">✕</a>
-
     <div class="header">
         <h1>Flux Market</h1>
-        <p class="subtitle">Выберите уровень доступа</p>
+        
+        <div class="period-selector">
+            <button class="p-btn active" onclick="setPeriod('1D')">1 День</button>
+            <button class="p-btn" onclick="setPeriod('3D')">3 Дня</button>
+            <button class="p-btn" onclick="setPeriod('1W')">Неделя</button>
+            <button class="p-btn" onclick="setPeriod('1M')">Месяц</button>
+        </div>
     </div>
 
     <div class="container">
         <div class="grid">
             <div class="card pro">
-                <div class="badge">POPULAR</div>
-                <div class="price">199₽ <span>/ мес</span></div>
-                <ul>
-                    <li>100 сообщений в час</li>
-                    <li>50 генераций изображений</li>
-                    <li>Доступ к модели Flux Ultra</li>
-                    <li>Приоритетная очередь</li>
-                </ul>
-                <button class="btn-pro" onclick="buy('PRO')">Купить PRO</button>
+                <div class="badge">PRO</div>
+                <div class="price" id="price-pro">99₽</div>
+                <div style="color:#aaa; font-size: 0.9rem; text-align: left; margin-bottom: 10px;">
+                    ✓ 100 сообщений/час<br>
+                    ✓ 50 картинок/час<br>
+                    ✓ Быстрая очередь
+                </div>
+                <button class="buy-btn" onclick="buy('PRO')">Купить PRO</button>
             </div>
 
             <div class="card ultra">
-                <div class="badge">MAXIMUM</div>
-                <div class="price">499₽ <span>/ мес</span></div>
-                <ul>
-                    <li>500 сообщений в час</li>
-                    <li>500 генераций изображений</li>
-                    <li>Доступ к Flux MAXIMUS</li>
-                    <li>Мгновенные ответы</li>
-                </ul>
-                <button class="btn-ultra" onclick="buy('ULTRA')">Купить ULTRA</button>
+                <div class="badge">ULTRA</div>
+                <div class="price" id="price-ultra">249₽</div>
+                <div style="color:#aaa; font-size: 0.9rem; text-align: left; margin-bottom: 10px;">
+                    ✓ 500 сообщений/час<br>
+                    ✓ 500 картинок/час<br>
+                    ✓ Модель MAXIMUS
+                </div>
+                <button class="buy-btn" onclick="buy('ULTRA')">Купить ULTRA</button>
             </div>
         </div>
     </div>
 
-    <div id="modal" class="modal-overlay">
+    <div id="modal" class="modal">
         <div class="key-box">
-            <h2 style="margin: 0 0 10px;">🎉 Успешно!</h2>
-            <p style="color:#aaa; font-size: 14px;">Ваш персональный ключ доступа:</p>
-            
-            <div class="key-value" id="keyText">LOADING...</div>
-            
-            <button class="btn-pro" style="background: #2cb67d; color: white;" onclick="copyKey()">Скопировать</button>
-            <button class="btn-close" onclick="closeModal()">Закрыть</button>
+            <h3>Ваш ключ готов!</h3>
+            <div class="key-val" id="keyText">...</div>
+            <button class="buy-btn" style="background: #333; color: white;" onclick="document.getElementById('modal').style.display='none'">Закрыть</button>
         </div>
     </div>
 
     <script>
+        let selectedPeriod = '1D';
+        
+        // Цены (Просто для вида)
+        const prices = {
+            '1D': { pro: '49₽', ultra: '99₽' },
+            '3D': { pro: '99₽', ultra: '199₽' },
+            '1W': { pro: '199₽', ultra: '399₽' },
+            '1M': { pro: '499₽', ultra: '999₽' }
+        };
+
+        function setPeriod(p) {
+            selectedPeriod = p;
+            document.querySelectorAll('.p-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Обновляем цены на экране
+            document.getElementById('price-pro').innerText = prices[p].pro;
+            document.getElementById('price-ultra').innerText = prices[p].ultra;
+        }
+
         async function buy(tier) {
             const btn = event.target;
-            const oldText = btn.innerText;
-            btn.innerText = "Обработка...";
+            btn.innerText = "Загрузка...";
             
             try {
                 const res = await fetch('/api/buy-key', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ tier: tier })
+                    body: JSON.stringify({ tier: tier, period: selectedPeriod })
                 });
                 const data = await res.json();
                 
                 if(data.status === 'success') {
-                    showModal(data.key);
-                } else {
-                    alert("Ошибка: " + data.message);
+                    document.getElementById('keyText').innerText = data.key;
+                    document.getElementById('modal').style.display = 'flex';
                 }
-            } catch(e) {
-                alert("Ошибка соединения с сервером");
-            } finally {
-                btn.innerText = oldText;
-            }
-        }
-
-        function showModal(key) {
-            document.getElementById('keyText').innerText = key;
-            const modal = document.getElementById('modal');
-            modal.style.display = 'flex';
-            // Небольшая задержка для плавности opacity
-            setTimeout(() => modal.classList.add('modal-active'), 10);
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('modal');
-            modal.classList.remove('modal-active');
-            setTimeout(() => modal.style.display = 'none', 300);
-        }
-
-        function copyKey() {
-            const key = document.getElementById('keyText').innerText;
-            navigator.clipboard.writeText(key);
-            event.target.innerText = "Скопировано!";
-            setTimeout(() => event.target.innerText = "Скопировать", 2000);
+            } catch(e) { alert("Ошибка"); }
+            
+            btn.innerText = `Купить ${tier}`;
         }
     </script>
 </body>
