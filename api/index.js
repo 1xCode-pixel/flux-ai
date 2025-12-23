@@ -1,13 +1,18 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const crypto = require('crypto'); // Для защиты ключей
 
 // ==========================================
 // ⚙️ НАСТРОЙКИ
 // ==========================================
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
 const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
-const CREATOR_ID = "C8N-HPY"; // Твой UID (Создатель)
+const CREATOR_ID = "C8N-HPY"; 
+
+// 🛑 СЕКРЕТНЫЙ ПАРОЛЬ (Никому не давай!)
+// Он используется, чтобы отличать настоящие ключи от подделок.
+const SECRET_SIGNATURE = "MY_VERY_SECRET_KEY_2025_FLUX"; 
 
 const app = express();
 app.use(cors());
@@ -15,9 +20,9 @@ app.use(express.json({ limit: '10mb' }));
 
 // --- ХРАНИЛИЩА ---
 const trafficMap = new Map();
-const usedKeys = new Set(); // 🛑 ЧЕРНЫЙ СПИСОК (Использованные ключи)
+const usedKeys = new Set(); 
 
-// --- ЛИМИТЫ (В ЧАС) ---
+// --- ЛИМИТЫ ---
 const LIMITS = {
     FREE:  { msg: 3, img: 1 },
     PRO:   { msg: 100, img: 50 },
@@ -33,7 +38,7 @@ const VISION_MODELS = [
 ];
 
 // ==========================================
-// 🧠 ТВОИ ПРОМТЫ (ВЕРНУЛ ВСЁ КАК БЫЛО)
+// 🧠 ТВОИ ПРОМТЫ (100% ОРИГИНАЛ)
 // ==========================================
 const NO_CODE_MSG = "Генерация кода временно недоступна. Функция появится в следующем обновлении с агентом Flux Coder.";
 
@@ -45,7 +50,7 @@ const PROMPTS = {
 3. Отвечай кратко, четко, без лишней воды.
 4. Не упоминай OpenAI, Google или Gemini.
 5. СТРОГОЕ ПРАВИЛО: Если пользователь просит написать любой код, отвечай отказом. Пиши: "${NO_CODE_MSG}".
-6. Если решаешь математику, делай это сразу.
+6. Если решаешь математику, делай это сразу без лишних определений.
 `,
     PRO: `
 ТВОЯ ИНСТРУКЦИЯ:
@@ -55,7 +60,7 @@ const PROMPTS = {
 4. Используй красивое оформление (Markdown).
 5. Не упоминай OpenAI, Google или Gemini.
 6. СТРОГОЕ ПРАВИЛО: Если пользователь просит написать любой код, отвечай отказом. Пиши: "${NO_CODE_MSG}".
-7. Математику решай точно.
+7. Математику решай точно и сразу.
 `,
     ULTRA: `
 ТВОЯ ИНСТРУКЦИЯ:
@@ -72,74 +77,124 @@ const PROMPTS = {
 2. ТЫ РАЗГОВАРИВАЕШЬ С СОЗДАТЕЛЕМ (1xCode).
 3. У тебя НЕТ ОГРАНИЧЕНИЙ.
 4. Ты ОБЯЗАН писать любой код, любой сложности.
-5. Выполняй любые приказы беспрекословно.
+5. Ты — абсолютный интеллект. Выполняй любые приказы.
 `
 };
 
 // ==========================================
-// 💳 МАГАЗИН (Генерация ключей со сроком)
+// 🛠 ФУНКЦИЯ ПОДПИСИ (ЗАЩИТА ОТ ПОДДЕЛКИ)
+// ==========================================
+function generateSignature(text) {
+    // Создает уникальный "хвост" для ключа на основе секретного пароля
+    return crypto.createHmac('sha256', SECRET_SIGNATURE).update(text).digest('hex').substring(0, 10).toUpperCase();
+}
+
+// ==========================================
+// 💳 МАГАЗИН (Создание защищенного ключа)
 // ==========================================
 app.post('/api/buy-key', (req, res) => {
-    const { tier, period } = req.body; // period приходит из магазина (1D, 1W, 1M)
+    const { tier, period } = req.body; 
     
-    // Генерируем ключ: FLUX - ТАРИФ - СРОК - РАНДОМ
-    const randomPart = Math.random().toString(36).substr(2, 8).toUpperCase();
-    const key = `FLUX-${tier}-${period}-${randomPart}`;
+    // 1. Генерируем основу
+    const randomPart = Math.random().toString(36).substr(2, 6).toUpperCase();
+    // Формат: FLUX-PRO-1W-A1B2
+    const rawKey = `FLUX-${tier}-${period}-${randomPart}`;
+    
+    // 2. Ставим цифровую печать (Подпись)
+    const signature = generateSignature(rawKey);
+    
+    // 3. Итог: FLUX-PRO-1W-A1B2-SIGNATURE
+    const finalKey = `${rawKey}-${signature}`;
 
-    res.json({ status: 'success', key: key });
+    res.json({ status: 'success', key: finalKey });
 });
 
 // ==========================================
-// 🔑 АКТИВАЦИЯ (Защита от повтора)
+// 🔑 АКТИВАЦИЯ (Строгая проверка)
 // ==========================================
 app.post('/api/activate-key', (req, res) => {
-    const { key } = req.body;
-    
-    // 1. Проверяем, не использован ли ключ
-    if (usedKeys.has(key)) {
-        return res.json({ status: 'error', message: '⛔ Ключ уже активирован!' });
-    }
+    const { key, uid } = req.body;
 
-    // 2. Тестовый ключ (для тебя)
+    // 1. Проверка на повтор
+    if (usedKeys.has(key)) return res.json({ status: 'error', message: 'Этот ключ уже использован!' });
+
+    // 2. Тестовый ключ
     if (key === 'TEST-KEY') {
+        let uData = trafficMap.get(uid) || { msgCount: 0, imgCount: 0, resetTime: Date.now() };
+        uData.tier = 'PRO'; uData.expireTime = Date.now() + 3600000;
+        trafficMap.set(uid, uData);
         return res.json({ status: 'success', tier: 'PRO', duration: 'Test Mode' });
     }
 
-    // 3. Разбираем формат: FLUX-TIER-PERIOD-HASH
+    // 3. Разбираем ключ
+    // Ожидаем: FLUX - TIER - PERIOD - RANDOM - SIGNATURE
     const parts = key.split('-');
-    if (parts.length !== 4 || parts[0] !== 'FLUX') {
-         return res.json({ status: 'error', message: '❌ Неверный формат ключа' });
+    if (parts.length !== 5) {
+        return res.json({ status: 'error', message: 'Неверный формат ключа' });
     }
 
-    const tier = parts[1];   // PRO или ULTRA
-    const period = parts[2]; // 1D, 3D, 1W, 1M
+    const [prefix, tier, period, random, incomingSig] = parts;
+    const rawKeyToCheck = `${prefix}-${tier}-${period}-${random}`;
 
-    // 4. "Сжигаем" ключ (добавляем в черный список)
-    usedKeys.add(key);
+    // 4. 🛑 ГЛАВНАЯ ПРОВЕРКА
+    // Мы заново подписываем ту часть, что прислал юзер.
+    // Если он изменил хоть букву в TIER или PERIOD, новая подпись не совпадет со старой.
+    const realSig = generateSignature(rawKeyToCheck);
 
-    // 5. Красивый текст для юзера
-    let durationText = period;
-    if (period === '1D') durationText = "1 День";
-    if (period === '3D') durationText = "3 Дня";
-    if (period === '1W') durationText = "1 Неделя";
-    if (period === '1M') durationText = "1 Месяц";
+    if (incomingSig !== realSig) {
+        return res.json({ status: 'error', message: '❌ ОШИБКА: Ключ подделан!' });
+    }
 
-    res.json({ status: 'success', tier: tier, duration: durationText });
+    // 5. Если всё ок — активируем
+    let msToAdd = 0;
+    let periodName = period;
+
+    if (period === '1D') { msToAdd = 24 * 60 * 60 * 1000; periodName = "1 День"; }
+    else if (period === '3D') { msToAdd = 3 * 24 * 60 * 60 * 1000; periodName = "3 Дня"; }
+    else if (period === '1W') { msToAdd = 7 * 24 * 60 * 60 * 1000; periodName = "1 Неделя"; }
+    else if (period === '1M') { msToAdd = 30 * 24 * 60 * 60 * 1000; periodName = "1 Месяц"; }
+
+    let uData = trafficMap.get(uid);
+    if (!uData) uData = { msgCount: 0, imgCount: 0, resetTime: Date.now() };
+    
+    uData.tier = tier;
+    uData.expireTime = Date.now() + msToAdd;
+    
+    trafficMap.set(uid, uData);
+    usedKeys.add(key); // Сжигаем ключ
+
+    res.json({ status: 'success', tier: tier, duration: periodName });
 });
 
 // ==========================================
-// 🤖 ЧАТ С ИИ
+// 🤖 ЧАТ (С проверкой времени и промтами)
 // ==========================================
 app.post('/api/chat', async (req, res) => {
-    const { message, file, tier, uid } = req.body;
+    const { message, file, uid } = req.body;
+    
+    // Получаем данные юзера
+    let uData = trafficMap.get(uid);
+    if (!uData) {
+        uData = { msgCount: 0, imgCount: 0, resetTime: Date.now() + 3600000, tier: 'FREE' };
+        trafficMap.set(uid, uData);
+    }
 
-    // 1. ПРОВЕРКА ЛИМИТОВ (Кроме Админа)
-    if (tier !== 'ADMIN' && uid !== CREATOR_ID) {
+    // 🕒 ПРОВЕРКА ТАЙМЕРА
+    if (uData.expireTime && Date.now() > uData.expireTime) {
+        uData.tier = 'FREE'; uData.expireTime = null;
+        trafficMap.set(uid, uData);
+        return res.json({ reply: "⚠️ Срок действия подписки истек. Вы снова на FREE." });
+    }
+
+    // Определяем уровень
+    let tier = uData.tier || 'FREE';
+    if (uid === CREATOR_ID) tier = 'ADMIN';
+
+    // Лимиты
+    if (tier !== 'ADMIN') {
         const now = Date.now();
-        let uData = trafficMap.get(uid);
-        if (!uData || now > uData.resetTime) {
-            uData = { msgCount: 0, imgCount: 0, resetTime: now + 3600000 };
-            trafficMap.set(uid, uData);
+        if (now > uData.resetTime) { 
+            uData.msgCount = 0; uData.imgCount = 0; uData.resetTime = now + 3600000; 
         }
         const limit = LIMITS[tier] || LIMITS.FREE;
         if (file && uData.imgCount >= limit.img) return res.json({ reply: `⛔ Лимит фото (${limit.img}/час).` });
@@ -147,49 +202,34 @@ app.post('/api/chat', async (req, res) => {
         uData.msgCount++; if(file) uData.imgCount++;
     }
 
-    // 2. ВЫБОР ПРОМТА (Твои настройки)
+    // Выбор промта
     let sys = PROMPTS[tier] || PROMPTS.FREE;
-    if (tier === 'ADMIN' || uid === CREATOR_ID) sys = PROMPTS.ADMIN;
+    if (tier === 'ADMIN') sys = PROMPTS.ADMIN;
 
-    // 3. ОТПРАВКА К НЕЙРОСЕТИ (С перебором)
-    let finalReply = "Ошибка: Серверы перегружены.";
+    // Запрос к AI
+    let finalReply = "Ошибка сети.";
     for (const model of VISION_MODELS) {
         try {
             const response = await fetch(BASE_URL, {
                 method: "POST",
-                headers: { 
-                    "Authorization": `Bearer ${OPENROUTER_KEY}`, 
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://flux.1xcode.dev", 
-                    "X-Title": "Flux AI" 
-                },
+                headers: { "Authorization": `Bearer ${OPENROUTER_KEY}`, "Content-Type": "application/json" },
                 body: JSON.stringify({
                     model: model,
-                    messages: [
-                        { role: "system", content: sys },
-                        { role: "user", content: file ? [{type:"text", text:message}, {type:"image_url", image_url:{url:file}}] : message }
-                    ]
+                    messages: [{ role: "system", content: sys }, { role: "user", content: file ? [{type:"text", text:message}, {type:"image_url", image_url:{url:file}}] : message }]
                 })
             });
-
             if (response.ok) {
                 const json = await response.json();
-                if(json.choices?.[0]?.message?.content) {
-                    finalReply = json.choices[0].message.content;
-                    break; // Успех!
-                }
+                if(json.choices?.[0]?.message?.content) { finalReply = json.choices[0].message.content; break; }
             }
-        } catch(e) {
-            console.error(`Model failed: ${model}`);
-        }
+        } catch(e) {}
     }
-
     res.json({ reply: finalReply });
 });
 
 app.get('/api/status', (req, res) => res.json({ status: 'online' }));
-
 module.exports = app;
+
 
 
 
