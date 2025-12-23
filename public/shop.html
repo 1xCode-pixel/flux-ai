@@ -3,110 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flux Store</title>
+    <title>Flux Noir Shop</title>
     <style>
+        /* ЧЕРНО-БЕЛАЯ ТЕМА */
         :root {
-            --bg: #050505;
-            --card-bg: rgba(25, 25, 30, 0.8);
-            --accent-pro: #ffd700;
-            --accent-ultra: #bc13fe;
-            --text: #ffffff;
+            --bg: #000000;
+            --card-bg: #0a0a0a;
+            --border: #333333;
+            --text-main: #ffffff;
+            --text-dim: #888888;
+            
+            /* Цвет только для акцентов */
+            --pro: #ffd700;
+            --ultra: #bd00ff;
         }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: radial-gradient(circle at top, #1a1a2e 0%, var(--bg) 100%); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
-        .header { text-align: center; padding: 40px 20px 10px; }
-        h1 { font-size: 2.2rem; margin: 0; background: linear-gradient(90deg, #7f5af0, #2cb67d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        
-        /* ПЕРЕКЛЮЧАТЕЛЬ СРОКОВ */
+
+        body {
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace; /* Стиль печатной машинки */
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .header { text-align: center; padding: 40px 20px 20px; border-bottom: 1px solid #111; width: 100%; }
+        h1 { font-size: 2rem; text-transform: uppercase; letter-spacing: 4px; margin: 0; }
+        .subtitle { color: var(--text-dim); font-size: 0.9rem; margin-top: 5px; }
+
+        /* ВЫБОР СРОКА (Черно-белые кнопки) */
         .period-selector {
             display: flex;
-            background: #16161a;
-            padding: 5px;
-            border-radius: 12px;
-            margin: 20px 0;
-            gap: 5px;
-            border: 1px solid #333;
+            justify-content: center;
+            gap: 10px;
+            margin: 30px 0;
+            flex-wrap: wrap;
         }
         .p-btn {
-            background: transparent; border: none; color: #888; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s;
+            background: black;
+            border: 1px solid #333;
+            color: #555;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: 0.2s;
         }
-        .p-btn.active { background: #2cb67d; color: white; box-shadow: 0 0 10px rgba(44,182,125,0.4); }
+        .p-btn:hover { border-color: #fff; color: #fff; }
+        .p-btn.active { background: #fff; color: #000; border-color: #fff; }
 
-        .container { width: 100%; max-width: 800px; padding: 20px; padding-bottom: 100px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        
-        .card { background: var(--card-bg); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 25px; text-align: center; position: relative; transition: 0.3s; }
-        .card:hover { transform: translateY(-5px); }
-        .card.pro { border-top: 3px solid var(--accent-pro); }
-        .card.ultra { border-top: 3px solid var(--accent-ultra); }
-        
-        .badge { font-size: 0.8rem; font-weight: bold; padding: 4px 10px; border-radius: 10px; background: rgba(255,255,255,0.1); display: inline-block; margin-bottom: 10px; }
-        .pro .badge { color: var(--accent-pro); } .ultra .badge { color: var(--accent-ultra); }
-        
-        .price { font-size: 2rem; font-weight: 800; margin: 15px 0; }
-        
-        button.buy-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
-        .pro .buy-btn { background: var(--accent-pro); color: black; }
-        .ultra .buy-btn { background: var(--accent-ultra); color: white; }
+        /* СЕТКА */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 800px;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
 
-        /* MODAL */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); z-index: 100; }
-        .key-box { background: #16161a; padding: 30px; border-radius: 20px; border: 1px solid #333; text-align: center; width: 80%; max-width: 350px; }
-        .key-val { background: black; color: #2cb67d; padding: 15px; font-family: monospace; border-radius: 8px; border: 1px dashed #2cb67d; margin: 15px 0; word-break: break-all; }
+        /* КАРТОЧКИ */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 30px;
+            text-align: center;
+            transition: 0.3s;
+            position: relative;
+        }
         
-        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+        /* ЦВЕТА ТОЛЬКО ПРИ НАВЕДЕНИИ ИЛИ В РАМКАХ */
+        .card.pro { border-top: 2px solid var(--pro); }
+        .card.ultra { border-top: 2px solid var(--ultra); }
+
+        .card:hover { transform: translateY(-5px); border-color: #fff; }
+
+        .title { font-size: 1.5rem; margin-bottom: 10px; font-weight: bold; }
+        .price { font-size: 2.5rem; margin: 20px 0; font-weight: bold; }
+        .desc { color: var(--text-dim); font-size: 0.8rem; line-height: 1.6; text-align: left; margin-bottom: 20px; }
+        
+        /* КНОПКИ ПОКУПКИ */
+        .buy-btn {
+            width: 100%;
+            padding: 15px;
+            background: transparent;
+            border: 1px solid #fff;
+            color: #fff;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .buy-btn:hover { background: #fff; color: #000; }
+        .pro .buy-btn:hover { background: var(--pro); border-color: var(--pro); color: black; }
+        .ultra .buy-btn:hover { background: var(--ultra); border-color: var(--ultra); color: white; }
+
+        /* МОДАЛЬНОЕ ОКНО */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none; align-items: center; justify-content: center;
+            z-index: 100;
+        }
+        .key-box {
+            background: #000;
+            border: 1px solid #fff;
+            padding: 40px;
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+        }
+        
+        /* ПОЛЕ КЛЮЧА (НЕЛЬЗЯ ПИСАТЬ) */
+        .key-input {
+            background: #111;
+            color: #fff;
+            border: 1px solid #333;
+            padding: 15px;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: monospace;
+            font-size: 1.2rem;
+            text-align: center;
+            margin: 20px 0;
+            outline: none;
+        }
+        .key-input:focus { border-color: #fff; }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>Flux Market</h1>
-        
-        <div class="period-selector">
-            <button class="p-btn active" onclick="setPeriod('1D')">1 День</button>
-            <button class="p-btn" onclick="setPeriod('3D')">3 Дня</button>
-            <button class="p-btn" onclick="setPeriod('1W')">Неделя</button>
-            <button class="p-btn" onclick="setPeriod('1M')">Месяц</button>
-        </div>
+        <h1>Flux Shop</h1>
+        <div class="subtitle">STORE_V2.0 // NOIR_EDITION</div>
     </div>
 
-    <div class="container">
-        <div class="grid">
-            <div class="card pro">
-                <div class="badge">PRO</div>
-                <div class="price" id="price-pro">99₽</div>
-                <div style="color:#aaa; font-size: 0.9rem; text-align: left; margin-bottom: 10px;">
-                    ✓ 100 сообщений/час<br>
-                    ✓ 50 картинок/час<br>
-                    ✓ Быстрая очередь
-                </div>
-                <button class="buy-btn" onclick="buy('PRO')">Купить PRO</button>
-            </div>
+    <div class="period-selector">
+        <button class="p-btn active" onclick="setPeriod('1D')">1 ДЕНЬ</button>
+        <button class="p-btn" onclick="setPeriod('3D')">3 ДНЯ</button>
+        <button class="p-btn" onclick="setPeriod('1W')">НЕДЕЛЯ</button>
+        <button class="p-btn" onclick="setPeriod('1M')">МЕСЯЦ</button>
+    </div>
 
-            <div class="card ultra">
-                <div class="badge">ULTRA</div>
-                <div class="price" id="price-ultra">249₽</div>
-                <div style="color:#aaa; font-size: 0.9rem; text-align: left; margin-bottom: 10px;">
-                    ✓ 500 сообщений/час<br>
-                    ✓ 500 картинок/час<br>
-                    ✓ Модель MAXIMUS
-                </div>
-                <button class="buy-btn" onclick="buy('ULTRA')">Купить ULTRA</button>
+    <div class="grid">
+        <div class="card pro">
+            <div class="title" style="color: var(--pro);">PRO</div>
+            <div class="price" id="price-pro">99₽</div>
+            <div class="desc">
+                [+] 100 сообщений/час<br>
+                [+] 50 генераций/час<br>
+                [+] Приоритет скорости
             </div>
+            <button class="buy-btn" onclick="buy('PRO')">КУПИТЬ PRO</button>
+        </div>
+
+        <div class="card ultra">
+            <div class="title" style="color: var(--ultra);">ULTRA</div>
+            <div class="price" id="price-ultra">249₽</div>
+            <div class="desc">
+                [+] 500 сообщений/час<br>
+                [+] 500 генераций/час<br>
+                [+] Модель MAXIMUS
+            </div>
+            <button class="buy-btn" onclick="buy('ULTRA')">КУПИТЬ ULTRA</button>
         </div>
     </div>
 
     <div id="modal" class="modal">
         <div class="key-box">
-            <h3>Ваш ключ готов!</h3>
-            <div class="key-val" id="keyText">...</div>
-            <button class="buy-btn" style="background: #333; color: white;" onclick="document.getElementById('modal').style.display='none'">Закрыть</button>
+            <h2>ОПЛАТА ПРИНЯТА</h2>
+            <p style="color: #666; font-size: 12px;">СКОПИРУЙТЕ ЭТОТ КЛЮЧ</p>
+            
+            <input type="text" id="keyText" class="key-input" value="LOADING..." readonly onclick="this.select()">
+            
+            <button class="buy-btn" onclick="copyAndClose()">СКОПИРОВАТЬ</button>
         </div>
     </div>
 
     <script>
         let selectedPeriod = '1D';
-        
-        // Цены (Просто для вида)
         const prices = {
             '1D': { pro: '49₽', ultra: '99₽' },
             '3D': { pro: '99₽', ultra: '199₽' },
@@ -118,15 +200,13 @@
             selectedPeriod = p;
             document.querySelectorAll('.p-btn').forEach(b => b.classList.remove('active'));
             event.target.classList.add('active');
-            
-            // Обновляем цены на экране
             document.getElementById('price-pro').innerText = prices[p].pro;
             document.getElementById('price-ultra').innerText = prices[p].ultra;
         }
 
         async function buy(tier) {
             const btn = event.target;
-            btn.innerText = "Загрузка...";
+            btn.innerText = "ОБРАБОТКА...";
             
             try {
                 const res = await fetch('/api/buy-key', {
@@ -137,12 +217,26 @@
                 const data = await res.json();
                 
                 if(data.status === 'success') {
-                    document.getElementById('keyText').innerText = data.key;
+                    const input = document.getElementById('keyText');
+                    input.value = data.key;
                     document.getElementById('modal').style.display = 'flex';
                 }
-            } catch(e) { alert("Ошибка"); }
+            } catch(e) { alert("ERROR"); }
             
-            btn.innerText = `Купить ${tier}`;
+            btn.innerText = `КУПИТЬ ${tier}`;
+        }
+
+        function copyAndClose() {
+            const copyText = document.getElementById("keyText");
+            copyText.select();
+            document.execCommand("copy"); // Копируем
+            
+            const btn = event.target;
+            btn.innerText = "СКОПИРОВАНО!";
+            setTimeout(() => {
+                document.getElementById('modal').style.display = 'none';
+                btn.innerText = "СКОПИРОВАТЬ";
+            }, 1000);
         }
     </script>
 </body>
