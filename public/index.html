@@ -39,11 +39,13 @@
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         
+        /* OMEGA FIRE (ADMIN) */
         @keyframes adminTurbulence {
             0% { transform: rotate(0deg) scale(1); border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%; box-shadow: 0 0 15px 5px rgba(255,255,255,0.5); }
             50% { transform: rotate(180deg) scale(1.05); border-radius: 50% 45% 55% 50% / 45% 55% 50% 50%; box-shadow: 0 0 25px 10px rgba(255,255,255,0.8); }
             100% { transform: rotate(360deg) scale(1); border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%; box-shadow: 0 0 15px 5px rgba(255,255,255,0.5); }
         }
+        /* ULTRA NEON PULSE */
         @keyframes ultraPulse {
             0% { box-shadow: 0 0 10px var(--ultra-color); border-color: var(--ultra-color); }
             50% { box-shadow: 0 0 20px var(--ultra-color), 0 0 40px var(--ultra-color); border-color: #fff; }
@@ -86,18 +88,6 @@
         .close-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; color: #666; cursor: pointer; font-size: 1.5rem; line-height: 1; }
         .close-btn:hover { color: #fff; }
 
-        /* CUSTOM TOAST NOTIFICATION */
-        .toast {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
-            background: #111; border: 1px solid var(--accent); color: #fff;
-            padding: 10px 20px; border-radius: 30px; z-index: 30000;
-            font-size: 0.9rem; font-weight: 500;
-            opacity: 0; visibility: hidden; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            display: flex; align-items: center; gap: 8px;
-        }
-        .toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
-
         /* PRICING CARDS */
         .pricing-container { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding: 5px; align-items: stretch; }
         .price-card { 
@@ -112,10 +102,14 @@
         .price-features li::before { content: '✓ '; color: var(--success); }
         .price-badge { font-size: 0.7rem; padding: 6px 12px; border-radius: 20px; font-weight: bold; margin-top: auto; width: 100%; text-align:center; }
         
+        /* Free */
         .pc-free .price-title { color: #888; }
         .pc-free .price-badge { background: #222; color: #ccc; }
+        /* Pro */
+        .pc-pro { border-color: rgba(212, 175, 55, 0.3); }
         .pc-pro .price-title { color: var(--pro-color); }
         .pc-pro .price-badge { background: var(--pro-color); color: #000; }
+        /* Ultra */
         .pc-ultra { border-color: rgba(176, 38, 255, 0.4); background: linear-gradient(180deg, #120516, #0a0a0a); }
         .pc-ultra .price-title { color: var(--ultra-color); text-shadow: 0 0 10px rgba(176,38,255,0.6); }
         .pc-ultra .price-badge { background: var(--ultra-color); color: #fff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.4); }
@@ -128,6 +122,7 @@
         .auth-btn { background: #fff; color: #000; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; text-transform: uppercase; font-size: 0.9rem; transition: 0.2s; }
         .auth-btn:hover { opacity: 0.9; }
 
+        /* UPGRADE BUTTON (SIDEBAR) */
         .btn-upgrade-sidebar { 
             width: 100%; padding: 12px; margin-top: 5px;
             background: linear-gradient(90deg, #1a1a1a, #0a0a0a); 
@@ -170,22 +165,10 @@
 
         .btn-new-chat { width: 100%; padding: 12px; background: var(--frost); border: 1px solid #333; color: #fff; border-radius: 8px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px; -webkit-overflow-scrolling: touch; }
-        
-        /* CHAT ITEM */
-        .history-item { 
-            padding: 12px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; color: #aaa; 
-            display: flex; justify-content: space-between; align-items: center; 
-        }
+        .history-item { padding: 12px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; color: #aaa; display: flex; justify-content: space-between; }
         .history-item:hover { background: #1a1a1a; color: #fff; }
-        
-        /* DELETE BUTTON (CROSS) */
-        .delete-btn { 
-            background: transparent; border: none; color: #444; 
-            cursor: pointer; padding: 0 10px; display: flex; 
-            opacity: 0; font-size: 1.2rem; transition: 0.2s;
-        }
+        .delete-btn { background: transparent; border: none; color: #444; cursor: pointer; padding: 0 10px; display: flex; opacity: 0; font-size: 1.2rem; }
         .history-item:hover .delete-btn { opacity: 1; }
-        .delete-btn:hover { color: var(--danger); }
 
         .sidebar-footer { margin-top: auto; padding-top: 15px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
         .user-profile { display: flex; align-items: center; gap: 10px; padding: 5px; user-select: none; }
@@ -207,58 +190,14 @@
         .main-content { flex: 1; display: flex; flex-direction: column; background-color: var(--chat-bg); position: relative; width: 100%; height: 100%; }
         
         .mobile-header { display: none; height: 60px; padding: 0 15px; border-bottom: 1px solid var(--border); align-items: center; justify-content: space-between; background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); position: absolute; top: 0; left: 0; width: 100%; z-index: 50; }
-        
-        /* === MODEL SELECTOR (DROPDOWN WITH CHAINS) === */
-        .top-bar-desktop { padding: 15px; display: flex; justify-content: flex-end; padding-right: 30px; position: absolute; top: 0; left: 0; right: 0; z-index: 10; pointer-events: none; }
-        .top-bar-desktop > * { pointer-events: auto; }
+        .top-bar-desktop { padding: 15px; display: flex; justify-content: center; position: absolute; top: 0; left: 0; right: 0; z-index: 10; pointer-events: none; }
 
-        .model-select-wrapper { position: relative; display: inline-block; }
-        .model-select-btn {
-            background: #111; color: #fff; border: 1px solid #333; padding: 8px 16px; 
-            border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;
-            font-family: 'Inter', sans-serif;
-        }
-        .model-select-btn:hover { background: #1a1a1a; }
-        
-        .model-dropdown {
-            position: absolute; right: 0; top: 45px; width: 220px;
-            background: #080808; border: 1px solid #333; border-radius: 10px;
-            overflow: hidden; display: none; z-index: 3000;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.9);
-        }
-        .model-dropdown.active { display: block; animation: zoomIn 0.2s; }
-
-        .model-item { padding: 12px; color: #ccc; border-bottom: 1px solid #222; cursor: pointer; font-size: 0.9rem; }
-        .model-item:hover { background: #151515; color: #fff; }
-        .model-item.selected { color: var(--success); font-weight: bold; }
-
-        /* CHAINED ITEM (V2) */
-        .chained-item {
-            position: relative;
-            background: #111;
-            color: #666;
-            cursor: pointer;
-            overflow: hidden;
-            border-bottom: none;
-            padding: 12px;
-            text-align: center;
-        }
-        .chained-item::before, .chained-item::after {
-            content: ''; position: absolute; top: 0; bottom: 0; width: 4px;
-            background: repeating-linear-gradient(to bottom, #444, #444 4px, transparent 4px, transparent 8px);
-            z-index: 2;
-        }
-        .chained-item::before { left: 15px; }
-        .chained-item::after { right: 15px; }
-
-        .lock-icon-overlay {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 24px; height: 24px;
-            background: #000; border: 1px solid #444; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 10px; color: #888; z-index: 5;
-        }
+        .model-selector { background: #111; border: 1px solid #333; padding: 4px; border-radius: 8px; display: flex; gap: 4px; pointer-events: auto; }
+        .model-option { padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; color: #666; transition: 0.2s; font-weight: 500; }
+        .model-option.active { background: #333; color: #fff; }
+        .model-option.pro-active { background: rgba(212, 175, 55, 0.15); color: var(--pro-color); }
+        .model-option.locked { opacity: 0.5; cursor: not-allowed; position: relative; }
+        .model-option.locked::after { content: '🔒'; font-size: 0.7rem; position: absolute; top: -4px; right: -4px; }
 
         #chat-stream { flex: 1; overflow-y: auto; padding: 80px 20px 20px 20px; scroll-behavior: auto; -webkit-overflow-scrolling: touch; }
         .message-container { max-width: 800px; margin: 0 auto 25px auto; display: flex; gap: 15px; animation: slideUp 0.3s ease forwards; }
@@ -279,32 +218,34 @@
         .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 900; display: none; }
         .overlay.active { display: block; }
         
-        /* === NEW PLUS BUTTON & ACTION MENU === */
-        .btn-plus { 
-            background: none; border: 1px solid #333; color: #666; width: 32px; height: 32px;
-            border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; 
-            align-items: center; justify-content: center; margin-bottom: 4px; transition: 0.2s;
+        /* === NEW: BUTTON PLUS AND ACTION MENU === */
+        .btn-plus {
+            background: transparent; border: 1px solid #444; color: #aaa;
+            border-radius: 50%; width: 30px; height: 30px;
+            font-size: 1.2rem; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; margin-bottom: 6px; transition: 0.2s;
         }
-        .btn-plus:hover, .btn-plus.active { background: #222; color: #fff; border-color: #555; }
+        .btn-plus:hover { color: #fff; border-color: #fff; background: #222; }
 
         .action-menu {
-            position: absolute; bottom: 60px; left: 15px; 
-            background: #111; border: 1px solid #333; border-radius: 12px;
-            display: none; flex-direction: column; overflow: hidden; 
-            z-index: 200; min-width: 150px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            position: absolute; bottom: 60px; left: 15px;
+            background: #111; border: 1px solid #333; border-radius: 10px;
+            display: none; flex-direction: column; overflow: hidden;
+            z-index: 200; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            min-width: 160px;
         }
         .action-menu.active { display: flex; animation: slideUp 0.15s ease; }
         
-        .action-item { 
-            padding: 12px 15px; cursor: pointer; display: flex; gap: 10px; 
-            align-items: center; color: #ccc; font-size: 0.85rem; border-bottom: 1px solid #1a1a1a;
+        .action-item {
+            padding: 12px 15px; color: #ccc; font-size: 0.9rem; cursor: pointer;
+            display: flex; gap: 10px; align-items: center; border-bottom: 1px solid #222;
         }
         .action-item:last-child { border-bottom: none; }
         .action-item:hover { background: #222; color: #fff; }
-        
-        /* CODE MODE VISUALS */
-        .code-mode-active .input-box { border-color: var(--success); box-shadow: 0 0 15px rgba(0,255,136,0.1); }
+        .action-item i { width: 20px; text-align: center; color: var(--accent); }
+
+        /* Code Mode visual indicator */
+        .code-mode-active .input-box { border-color: var(--success); box-shadow: 0 0 10px rgba(0,255,136,0.1); }
         .code-mode-active textarea { color: var(--success); }
 
         .burger-btn { background: none; border: none; color: #fff; cursor: pointer; padding: 5px; font-size: 1.5rem; }
@@ -322,35 +263,11 @@
 <body>
 
     <div id="snow-container"></div>
-    <div id="customToast" class="toast">✅ UID скопирован!</div>
 
     <div id="splash-screen">
         <div class="splash-logo">FLUX 🎄 AI</div>
         <div class="loading-container"><div class="loading-bar"></div></div>
         <div class="splash-credit">BY 1XCODE</div>
-    </div>
-
-    <div class="modal-overlay" id="deleteConfirmModal">
-        <div class="modal-box" style="max-width: 350px;">
-            <button class="close-btn" onclick="document.getElementById('deleteConfirmModal').classList.remove('active')">✕</button>
-            <h3 style="color: #fff; margin-bottom: 15px;">Удаление чата</h3>
-            <p style="color: #aaa; margin-bottom: 25px;">Вы уверены, что хотите удалить этот чат? Это действие нельзя отменить.</p>
-            <div style="display: flex; gap: 10px;">
-                <button class="auth-btn" style="background: #222; color: #fff; border: 1px solid #444;" onclick="document.getElementById('deleteConfirmModal').classList.remove('active')">ОТМЕНА</button>
-                <button class="auth-btn" style="background: var(--danger); color: #fff;" onclick="confirmDeleteChat()">УДАЛИТЬ</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="devModal">
-        <div class="modal-box" style="max-width: 380px;">
-            <button class="close-btn" onclick="document.getElementById('devModal').classList.remove('active')">✕</button>
-            <div style="font-size: 3rem; margin-bottom: 10px;">🚧</div>
-            <h3 style="color: #fff; margin-bottom: 10px;">В РАЗРАБОТКЕ</h3>
-            <p style="color: #ccc; font-size: 0.9rem; line-height: 1.5;">
-                Модель <b>Flux Ai v2</b> пока недоступна. Ведутся работы.
-            </p>
-        </div>
     </div>
 
     <div class="modal-overlay" id="pricingModal">
@@ -495,32 +412,16 @@
         <main class="main-content">
             <header class="mobile-header">
                 <button class="burger-btn" onclick="toggleSidebar(true)">☰</button>
-                <div class="model-select-wrapper">
-                    <button class="model-select-btn" onclick="toggleModelSelector(this)">
-                        Flux Ai v1 <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i>
-                    </button>
-                    <div class="model-dropdown">
-                        <div class="model-item selected" onclick="selectModel('v1')">Flux Ai v1</div>
-                        <div class="chained-item" onclick="openDevModal()">
-                             <div class="lock-icon-overlay"><i class="fas fa-lock"></i></div>
-                             Flux Ai v2
-                        </div>
-                    </div>
+                <div class="model-selector">
+                    <div class="model-option active" id="mobStd" onclick="switchMode('std')">Free</div>
+                    <div class="model-option locked" id="mobPro" onclick="switchMode('pro')">Pro</div>
                 </div>
             </header>
 
             <div class="top-bar-desktop">
-                <div class="model-select-wrapper">
-                    <button class="model-select-btn" onclick="toggleModelSelector(this)">
-                        Flux Ai v1 <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i>
-                    </button>
-                    <div class="model-dropdown">
-                        <div class="model-item selected" onclick="selectModel('v1')">Flux Ai v1</div>
-                        <div class="chained-item" onclick="openDevModal()">
-                             <div class="lock-icon-overlay"><i class="fas fa-lock"></i></div>
-                             Flux Ai v2
-                        </div>
-                    </div>
+                <div class="model-selector">
+                    <div class="model-option active" id="deskStd" onclick="switchMode('std')">Flux Free</div>
+                    <div class="model-option locked" id="deskPro" onclick="switchMode('pro')">Flux Pro</div>
                 </div>
             </div>
 
@@ -568,8 +469,7 @@
         let currFile = null;
         let clicks = 0;
         let maintClicks = 0;
-        let pendingDeleteId = null; // ID to delete
-        let isCodeMode = false; // Flux Coder Mode
+        let isCodeMode = false; // Состояние режима кодера
         
         let isPro = (currentTier === 'PRO' || currentTier === 'ULTRA');
         let isAdmin = (currentTier === 'ADMIN');
@@ -601,11 +501,8 @@
             
             setTimeout(() => { document.getElementById('splash-screen').classList.add('hidden'); }, 3000);
 
-            // CLOSE DROPDOWNS ON CLICK OUTSIDE
+            // Close menu on click outside
             document.addEventListener('click', (e) => {
-                if (!e.target.closest('.model-select-wrapper')) {
-                    document.querySelectorAll('.model-dropdown').forEach(el => el.classList.remove('active'));
-                }
                 if (!e.target.closest('.btn-plus') && !e.target.closest('.action-menu')) {
                     document.getElementById('actionMenu').classList.remove('active');
                 }
@@ -683,10 +580,20 @@
             location.reload();
         }
 
-        // --- ACTION MENU LOGIC ---
+        window.secretUnblock = function() {
+            maintClicks++;
+            if(maintClicks === 5) {
+                if(confirm("АДМИН: Снять блокировку?")) {
+                    localStorage.setItem('maintEnd_v57', '0');
+                    location.reload();
+                }
+                maintClicks = 0;
+            }
+        }
+
+        // --- ACTION MENU FUNCTIONS ---
         window.toggleActionMenu = function() {
-            const menu = document.getElementById('actionMenu');
-            menu.classList.toggle('active');
+            document.getElementById('actionMenu').classList.toggle('active');
         }
 
         window.triggerFileUpload = function() {
@@ -709,36 +616,6 @@
             document.getElementById('actionMenu').classList.remove('active');
         }
 
-        // --- NEW MODEL SELECTOR LOGIC ---
-        window.toggleModelSelector = function(btn) {
-            const dropdown = btn.nextElementSibling;
-            const isActive = dropdown.classList.contains('active');
-            document.querySelectorAll('.model-dropdown').forEach(el => el.classList.remove('active'));
-            if(!isActive) dropdown.classList.add('active');
-        }
-
-        window.selectModel = function(v) {
-            if(v === 'v1') {
-                document.querySelectorAll('.model-dropdown').forEach(el => el.classList.remove('active'));
-            }
-        }
-
-        window.openDevModal = function() {
-            document.getElementById('devModal').classList.add('active');
-            document.querySelectorAll('.model-dropdown').forEach(el => el.classList.remove('active'));
-        }
-
-        window.secretUnblock = function() {
-            maintClicks++;
-            if(maintClicks === 5) {
-                if(confirm("АДМИН: Снять блокировку?")) {
-                    localStorage.setItem('maintEnd_v57', '0');
-                    location.reload();
-                }
-                maintClicks = 0;
-            }
-        }
-
         window.sendMsg = async function() {
             const inp = document.getElementById('userInput');
             const txt = inp.value.trim();
@@ -746,7 +623,7 @@
 
             if(!activeId) {
                 const nid = Date.now();
-                chats.unshift({id:nid, title: txt.slice(0,15)||'Чат', ts:nid, msgs:[], uid:'chat-'+nid});
+                chats.unshift({id:nid, title: txt.slice(0,15)||'Чат', ts:nid, msgs:[]});
                 activeId = nid;
             }
             const c = chats.find(x=>x.id===activeId);
@@ -754,13 +631,13 @@
             c.msgs.push({role:'user', text:txt, file:currFile});
             appendMsg('user', txt, currFile, false);
             
-            // Sending 'mode' parameter for Code/General switch
+            // Sending 'mode' for server
             const payload = { 
                 message: txt, 
                 file: currFile ? currFile.data : null, 
                 tier: currentTier, 
                 uid: myUID,
-                mode: isCodeMode ? 'code' : 'general'
+                mode: isCodeMode ? 'code' : 'general' 
             };
             
             inp.value=''; currFile=null;
@@ -852,12 +729,9 @@
             }
         }
 
-        // --- NEW CUSTOM TOAST (REPLACES ALERT) ---
         window.copyID = function() {
             navigator.clipboard.writeText(myUID);
-            const toast = document.getElementById('customToast');
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2000);
+            alert("UID Copied");
         }
 
         window.acceptDisclaimer = function() {
@@ -930,7 +804,33 @@
         window.closeAdmin = function() { document.getElementById('adminModal').classList.remove('active'); }
 
         window.generateLegalText = function() {
-             const text = `ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (РЕДАКЦИЯ 2025)\n\n1. ОБЩИЕ ПОЛОЖЕНИЯ (1xCode)\n...\n(Полный текст соглашения)`;
+             const text = `ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (РЕДАКЦИЯ 2025)\n\n1. ОБЩИЕ ПОЛОЖЕНИЯ (1xCode)\n...\n(ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (РЕДАКЦИЯ 2025)
+
+1. ОБЩИЕ ПОЛОЖЕНИЯ
+
+1.1. Настоящее Соглашение регулирует отношения между разработчиком (1xCodeTeam) и пользователем сервиса Flux AI.
+
+1.2. Используя сервис, вы безоговорочно принимаете условия данного соглашения.
+
+2. ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ
+
+2.1. Сервис предоставляется на условиях "как есть". Разработчик не гарантирует безошибочную работу алгоритмов AI.
+
+2.2. Пользователь осознает, что ответы нейросети могут содержать неточности.
+
+3. КОНФИДЕНЦИАЛЬНОСТЬ И БЕЗОПАСНОСТЬ
+
+3.1. Все данные чатов передаются по защищенному протоколу.
+
+3.2. Ваш уникальный идентификатор (UID) является ключом доступа к истории.
+
+4. PRO-ДОСТУП
+
+4.1. Статус PRO является добровольным пожертвованием.
+
+4.2. PRO-статус предоставляет доступ к приоритетной очереди и расширенным моделям.
+
+Дата последнего обновления: 01.01.2025)`;
              document.getElementById('kilometerText').innerText = text;
         }
         window.openLegal = function() { document.getElementById('legalModal').classList.add('active'); }
@@ -940,8 +840,7 @@
             chats.forEach(c => {
                 const i = document.createElement('div');
                 i.className = `history-item ${activeId===c.id?'active':''}`;
-                // Using standard "X" button, but triggering custom modal
-                i.innerHTML = `<span class="chat-title">${c.title}</span> <button class="delete-btn" onclick="askDeleteChat(event,${c.id})">✕</button>`;
+                i.innerHTML = `<span class="chat-title">${c.title}</span> <button class="delete-btn" onclick="delChat(event,${c.id})">✕</button>`;
                 i.onclick = (e) => { if(e.target.tagName!=='BUTTON') loadChat(c.id); };
                 l.appendChild(i);
             });
@@ -959,26 +858,19 @@
             } 
         }
         
-        // --- NEW CUSTOM DELETE MODAL LOGIC ---
-        window.askDeleteChat = function(e, id) {
-            e.stopPropagation();
-            pendingDeleteId = id;
-            document.getElementById('deleteConfirmModal').classList.add('active');
-        }
-
-        window.confirmDeleteChat = function() {
-            if (pendingDeleteId) {
-                chats = chats.filter(x => x.id !== pendingDeleteId);
-                localStorage.setItem('chats_v57', JSON.stringify(chats));
-                if (activeId === pendingDeleteId) startNewChat();
-                else renderHistory();
-                pendingDeleteId = null;
-                document.getElementById('deleteConfirmModal').classList.remove('active');
-            }
+        window.delChat = function(e,id) { 
+            e.stopPropagation(); 
+            if(confirm('Удалить чат?')){ 
+                chats=chats.filter(x=>x.id!==id); 
+                localStorage.setItem('chats_v57', JSON.stringify(chats)); 
+                if(activeId===id) startNewChat(); 
+                else renderHistory(); 
+            } 
         }
         
         window.updateStatusUI = function() {
             const b = document.body; 
+            const btns = ['deskPro','mobPro'];
             const badge = document.querySelector('.pro-badge-logo');
             const avatar = document.getElementById('myAvatar');
             const intro = document.getElementById('introTier');
@@ -998,18 +890,26 @@
                 b.classList.add('admin-enabled');
                 if(badge) { badge.innerText = "ADMIN"; badge.classList.add('admin'); badge.style.display = 'inline-block'; }
                 avatar.classList.add('admin-mode');
+                btns.forEach(x => document.getElementById(x).classList.remove('locked'));
             } else if (currentTier === 'ULTRA') {
                 b.classList.add('pro-enabled');
                 if(badge) { badge.innerText = "ULTRA"; badge.style.background = "var(--ultra-color)"; badge.style.display = 'inline-block'; }
                 avatar.classList.add('ultra-mode');
+                btns.forEach(x => document.getElementById(x).classList.remove('locked'));
             } else if (isPro) {
                 b.classList.add('pro-enabled');
                 if(badge) { badge.innerText = "PRO"; badge.style.background = "var(--pro-color)"; badge.style.display = 'inline-block'; }
                 avatar.style.borderColor = "var(--pro-color)";
                 avatar.style.color = "var(--pro-color)";
+                btns.forEach(x => document.getElementById(x).classList.remove('locked'));
+            } else {
+                btns.forEach(x => document.getElementById(x).classList.add('locked'));
             }
         }
         
+        window.switchMode = function(m) { 
+            if(m==='pro' && !isPro && !isAdmin) return alert('🔒 Только для PRO/ADMIN'); 
+        }
         window.toggleSidebar = function(o) { const s=document.getElementById('sidebar'); const ov=document.getElementById('overlay'); if(o){s.classList.add('open');ov.classList.add('active');}else{s.classList.remove('open');ov.classList.remove('active');} }
         
         window.handleFile = function(i) {
@@ -1033,7 +933,8 @@
         document.getElementById('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
     </script>
 </body>
-                        </html>
+    </html>
+
 
 
 
