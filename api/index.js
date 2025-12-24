@@ -1,8 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const crypto = require('crypto'); // Для защиты ключей
-const Redis = require('ioredis'); // Подключаем базу данных
+const crypto = require('crypto');
+const Redis = require('ioredis');
 
 // ==========================================
 // ⚙️ НАСТРОЙКИ
@@ -11,24 +11,29 @@ const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
 const BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 const CREATOR_ID = "C8N-HPY"; 
 
-// 🛑 СЕКРЕТНАЯ ПОДПИСЬ
 const SECRET_SIGNATURE = "MY_VERY_SECRET_KEY_2025_FLUX"; 
 
-// 🔌 ПОДКЛЮЧЕНИЕ К REDIS
-// Если URL нет, код не упадет, но данные не сохранятся
 const redis = process.env.REDIS_URL ? new Redis(process.env.REDIS_URL) : null;
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// --- ЛИМИТЫ ---
+// ==========================================
+// 📊 ЛИМИТЫ
+// ==========================================
 const LIMITS = {
-    FREE:  { msg: 3, img: 1 },
-    PRO:   { msg: 100, img: 50 },
-    ULTRA: { msg: 500, img: 500 }
+    // FREE: 3 обычных, 1 фото, 1 КОД в час
+    FREE:  { msg: 3, img: 1, code: 1 },
+    // PRO: 100 обычных, 50 фото, 100 КОД в час
+    PRO:   { msg: 100, img: 50, code: 100 },
+    // ULTRA: 500 всего
+    ULTRA: { msg: 500, img: 500, code: 500 }
 };
 
+// ==========================================
+// 🤖 МОДЕЛИ
+// ==========================================
 const VISION_MODELS = [
     "google/gemini-2.0-flash-exp:free",
     "google/gemini-2.0-pro-exp-02-05:free",
@@ -36,10 +41,16 @@ const VISION_MODELS = [
     "qwen/qwen-2-vl-7b-instruct:free"
 ];
 
+const CODE_MODELS = [
+    "qwen/qwen-2.5-coder-32b-instruct:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "google/gemini-2.0-flash-thinking-exp:free"
+];
+
 // ==========================================
-// 🧠 ПРОМТЫ (ТВОИ ОРИГИНАЛЬНЫЕ)
+// 🧠 ПРОМТЫ
 // ==========================================
-const NO_CODE_MSG = "Генерация кода временно недоступна. Функция появится в следующем обновлении с агентом Flux Coder.";
+const NO_CODE_MSG = "Генерация кода временно недоступна в этом режиме. Пожалуйста, переключитесь на модель Flux Coder.";
 
 const PROMPTS = {
     FREE: `
@@ -68,6 +79,25 @@ const PROMPTS = {
 5. Не упоминай OpenAI, Google или Gemini.
 6. СТРОГОЕ ПРАВИЛО: Если пользователь просит написать любой код, отвечай отказом. Пиши: "${NO_CODE_MSG}".
 `,
+    
+    // --- РЕЖИМ КОДЕРА (На русском) ---
+    CODE_MASTER: `
+РОЛЬ: Senior Principal Software Engineer & Architect (Flux Coder).
+СОЗДАТЕЛЬ: 1xCode.
+
+ИНСТРУКЦИИ:
+1. БЕЗ ВОДЫ: Сразу пиши код. Минимум слов ("Конечно", "Вот ваш код" - запрещено).
+2. КАЧЕСТВО: Пиши чистый код по стандартам (Clean Code, SOLID, DRY).
+3. СТЕК: Используй современный синтаксис (ES6+, Python 3.11+ и т.д.).
+4. БЕЗОПАСНОСТЬ: Всегда учитывай уязвимости.
+5. КОММЕНТАРИИ: Комментируй только сложные участки логики (Почему, а не Что).
+
+ФОРМАТ ОТВЕТА:
+- Краткое описание решения (1 строка).
+- Блок кода (Markdown) с именем файла.
+- Важные нюансы реализации (маркированный список).
+`,
+
     ADMIN: `
 ТВОЯ ИНСТРУКЦИЯ:
 1. Ты — **Flux OMEGA** (God Mode).
@@ -79,58 +109,43 @@ const PROMPTS = {
 };
 
 // ==========================================
-// 🛠 ПОМОЩНИКИ (REDIS + CRYPTO)
+// 🛠 ПОМОЩНИКИ
 // ==========================================
-
 function generateSignature(text) {
     return crypto.createHmac('sha256', SECRET_SIGNATURE).update(text).digest('hex').substring(0, 10).toUpperCase();
 }
 
-// Получить данные юзера из Redis
 async function getUserData(uid) {
-    if (!redis) return { msgCount: 0, imgCount: 0, resetTime: Date.now(), tier: 'FREE' };
+    if (!redis) return { msgCount: 0, imgCount: 0, codeCount: 0, resetTime: Date.now(), tier: 'FREE' };
     
     const data = await redis.get(`user:${uid}`);
     if (data) return JSON.parse(data);
     
-    return { msgCount: 0, imgCount: 0, resetTime: Date.now(), tier: 'FREE' };
+    return { msgCount: 0, imgCount: 0, codeCount: 0, resetTime: Date.now(), tier: 'FREE' };
 }
 
-// Сохранить данные юзера в Redis
 async function saveUserData(uid, data) {
     if (redis) await redis.set(`user:${uid}`, JSON.stringify(data));
 }
 
 // ==========================================
-// 💳 МАГАЗИН (Генерация ключа)
+// 💳 МАГАЗИН И АКТИВАЦИЯ
 // ==========================================
 app.post('/api/buy-key', (req, res) => {
     const { tier, period } = req.body; 
-    
-    // Генерируем основу: FLUX-PRO-1W-XXXX
     const randomPart = Math.random().toString(36).substr(2, 6).toUpperCase();
     const rawKey = `FLUX-${tier}-${period}-${randomPart}`;
-    
-    // Подписываем
     const signature = generateSignature(rawKey);
-    const finalKey = `${rawKey}-${signature}`;
-
-    res.json({ status: 'success', key: finalKey });
+    res.json({ status: 'success', key: `${rawKey}-${signature}` });
 });
 
-// ==========================================
-// 🔑 АКТИВАЦИЯ (С проверкой в REDIS)
-// ==========================================
 app.post('/api/activate-key', async (req, res) => {
     const { key, uid } = req.body;
+    if (!redis) return res.json({ status: 'error', message: 'No DB' });
 
-    if (!redis) return res.json({ status: 'error', message: 'Ошибка сервера: Нет базы данных' });
-
-    // 1. Проверка в базе: Использован ли ключ?
     const isUsed = await redis.get(`used:${key}`);
-    if (isUsed) return res.json({ status: 'error', message: 'Этот ключ уже активирован кем-то!' });
+    if (isUsed) return res.json({ status: 'error', message: 'Ключ использован!' });
 
-    // 2. Тестовый ключ
     if (key === 'TEST-KEY') {
         let uData = await getUserData(uid);
         uData.tier = 'PRO'; uData.expireTime = Date.now() + 3600000;
@@ -138,94 +153,113 @@ app.post('/api/activate-key', async (req, res) => {
         return res.json({ status: 'success', tier: 'PRO', duration: 'Test Mode' });
     }
 
-    // 3. Проверка подписи (защита от подделки)
     const parts = key.split('-');
     if (parts.length !== 5) return res.json({ status: 'error', message: 'Неверный формат' });
 
     const [prefix, tier, period, random, incomingSig] = parts;
-    const rawKeyToCheck = `${prefix}-${tier}-${period}-${random}`;
-    
-    // Сверяем подписи
-    if (generateSignature(rawKeyToCheck) !== incomingSig) {
-        return res.json({ status: 'error', message: '❌ ОШИБКА: Ключ подделан!' });
+    if (generateSignature(`${prefix}-${tier}-${period}-${random}`) !== incomingSig) {
+        return res.json({ status: 'error', message: 'Подделка!' });
     }
 
-    // 4. Расчет времени
     let msToAdd = 0;
-    let periodName = period;
+    if (period === '1D') msToAdd = 86400000;
+    else if (period === '3D') msToAdd = 259200000;
+    else if (period === '1W') msToAdd = 604800000;
+    else if (period === '1M') msToAdd = 2592000000;
 
-    if (period === '1D') { msToAdd = 24 * 60 * 60 * 1000; periodName = "1 День"; }
-    else if (period === '3D') { msToAdd = 3 * 24 * 60 * 60 * 1000; periodName = "3 Дня"; }
-    else if (period === '1W') { msToAdd = 7 * 24 * 60 * 60 * 1000; periodName = "1 Неделя"; }
-    else if (period === '1M') { msToAdd = 30 * 24 * 60 * 60 * 1000; periodName = "1 Месяц"; }
-
-    // 5. Сохраняем в Redis
     let uData = await getUserData(uid);
     uData.tier = tier;
     uData.expireTime = Date.now() + msToAdd;
     
-    await saveUserData(uid, uData);       // Сохраняем профиль юзера
-    await redis.set(`used:${key}`, '1');  // Помечаем ключ как использованный (навсегда)
+    await saveUserData(uid, uData);
+    await redis.set(`used:${key}`, '1');
 
-    res.json({ status: 'success', tier: tier, duration: periodName });
+    res.json({ status: 'success', tier: tier, duration: period });
 });
 
 // ==========================================
-// 🤖 ЧАТ (С базой данных)
+// 🤖 ЧАТ
 // ==========================================
 app.post('/api/chat', async (req, res) => {
-    const { message, file, uid } = req.body;
+    const { message, file, uid, mode } = req.body;
     
-    // Загружаем профиль из Redis
     let uData = await getUserData(uid);
 
-    // 1. Проверка таймера
+    // 1. Проверка подписки
     if (uData.expireTime && Date.now() > uData.expireTime) {
-        uData.tier = 'FREE'; 
-        uData.expireTime = null;
-        await saveUserData(uid, uData); // Сохраняем, что он теперь Free
+        uData.tier = 'FREE'; uData.expireTime = null;
+        await saveUserData(uid, uData);
         return res.json({ reply: "⚠️ Срок действия подписки истек. Вы переведены на FREE." });
     }
 
     let tier = uData.tier || 'FREE';
     if (uid === CREATOR_ID) tier = 'ADMIN';
 
-    // 2. Проверка лимитов (с сохранением в Redis)
+    // 2. Лимиты (с учетом CODE режима)
     if (tier !== 'ADMIN') {
         const now = Date.now();
         if (now > uData.resetTime) { 
-            uData.msgCount = 0; uData.imgCount = 0; uData.resetTime = now + 3600000; 
+            uData.msgCount = 0; uData.imgCount = 0; uData.codeCount = 0; 
+            uData.resetTime = now + 3600000; 
         }
         
         const limit = LIMITS[tier] || LIMITS.FREE;
-        if (file && uData.imgCount >= limit.img) return res.json({ reply: `⛔ Лимит фото (${limit.img}/час).` });
-        if (uData.msgCount >= limit.msg) return res.json({ reply: `⛔ Лимит сообщений (${limit.msg}/час).` });
         
-        uData.msgCount++; 
-        if(file) uData.imgCount++;
+        if (mode === 'code') {
+            // ПРОВЕРКА ЛИМИТА НА КОД
+            if ((uData.codeCount || 0) >= limit.code) {
+                return res.json({ reply: `⛔ Лимит Flux Coder исчерпан (${limit.code}/час).` });
+            }
+            uData.codeCount = (uData.codeCount || 0) + 1;
+        } else {
+            // ОБЫЧНЫЕ ЛИМИТЫ
+            if (file && uData.imgCount >= limit.img) return res.json({ reply: `⛔ Лимит фото (${limit.img}/час).` });
+            if (uData.msgCount >= limit.msg) return res.json({ reply: `⛔ Лимит сообщений (${limit.msg}/час).` });
+            
+            uData.msgCount++;
+            if(file) uData.imgCount++;
+        }
         
-        await saveUserData(uid, uData); // Сохраняем новые счетчики
+        await saveUserData(uid, uData);
     }
 
-    // 3. Выбор промта
-    let sys = PROMPTS[tier] || PROMPTS.FREE;
-    if (tier === 'ADMIN') sys = PROMPTS.ADMIN;
+    // 3. Выбор промта и моделей
+    let sysPrompt;
+    let targetModels;
 
-    // 4. Запрос к AI
-    let finalReply = "Ошибка сети.";
-    for (const model of VISION_MODELS) {
+    if (tier === 'ADMIN') {
+        sysPrompt = PROMPTS.ADMIN;
+        targetModels = mode === 'code' ? CODE_MODELS : VISION_MODELS;
+    } else if (mode === 'code') {
+        sysPrompt = PROMPTS.CODE_MASTER;
+        targetModels = CODE_MODELS;
+    } else {
+        sysPrompt = PROMPTS[tier] || PROMPTS.FREE;
+        targetModels = VISION_MODELS;
+    }
+
+    // 4. Отправка запроса
+    let finalReply = "Ошибка сети или модели перегружены.";
+    
+    for (const model of targetModels) {
         try {
             const response = await fetch(BASE_URL, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${OPENROUTER_KEY}`, "Content-Type": "application/json" },
                 body: JSON.stringify({
                     model: model,
-                    messages: [{ role: "system", content: sys }, { role: "user", content: file ? [{type:"text", text:message}, {type:"image_url", image_url:{url:file}}] : message }]
+                    messages: [
+                        { role: "system", content: sysPrompt }, 
+                        { role: "user", content: file ? [{type:"text", text:message}, {type:"image_url", image_url:{url:file}}] : message }
+                    ]
                 })
             });
             if (response.ok) {
                 const json = await response.json();
-                if(json.choices?.[0]?.message?.content) { finalReply = json.choices[0].message.content; break; }
+                if(json.choices?.[0]?.message?.content) { 
+                    finalReply = json.choices[0].message.content; 
+                    break; 
+                }
             }
         } catch(e) {}
     }
@@ -234,6 +268,7 @@ app.post('/api/chat', async (req, res) => {
 
 app.get('/api/status', (req, res) => res.json({ status: 'online', redis: !!redis }));
 module.exports = app;
+
 
 
 
