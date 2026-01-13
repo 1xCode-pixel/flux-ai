@@ -1,4 +1,5 @@
 require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
@@ -6,16 +7,12 @@ const Redis = require('ioredis');
 const fetch = require('node-fetch');
 
 // ==========================================
-// 🔑 КЛЮЧИ И URL (Без Groq)
+// 🔑 КЛЮЧИ (Только OpenRouter)
 // ==========================================
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
-const ZENMUX_KEY = process.env.ZENMUX_API_KEY; // Убедись, что ключ есть в .env
-
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const ZENMUX_URL = "https://zenmux.ai/api/v1/chat/completions"; 
-
-const CREATOR_ID = "C8N-HPY"; 
-const SECRET_SIGNATURE = "MY_VERY_SECRET_KEY_2025_FLUX"; 
+const CREATOR_ID = "C8N-HPY";
+const SECRET_SIGNATURE = "MY_VERY_SECRET_KEY_2025_FLUX";
 
 const redis = process.env.REDIS_URL ? new Redis(process.env.REDIS_URL) : null;
 
@@ -24,217 +21,317 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 // ==========================================
-// 📊 ЛИМИТЫ
+// 💎 МОДЕЛИ С ЦЕНАМИ (Все :free на OpenRouter)
 // ==========================================
-const LIMITS = {
-    FREE:  { msg: 3, img: 1, code: 1 },
-    PRO:   { msg: 100, img: 50, code: 100 },
-    ULTRA: { msg: 500, img: 500, code: 500 }
+const MODELS = {
+    // Бесплатные (0 токенов)
+    'google/gemini-2.0-flash-exp:free': { inputCost: 0, outputCost: 0, isFree: true, name: 'Gemini 2.0 Flash', provider: 'google', vision: false },
+    'meta-llama/llama-3.3-70b-instruct:free': { inputCost: 0, outputCost: 0, isFree: true, name: 'Llama 3.3 70B', provider: 'meta', vision: false },
+    'qwen/qwen-2-vl-7b-instruct:free': { inputCost: 0, outputCost: 0, isFree: true, name: 'Qwen 2 VL 7B', provider: 'qwen', vision: true },
+
+    // Платные (списывают токены)
+    'anthropic/claude-3.5-sonnet:free': { inputCost: 70, outputCost: 100, isFree: false, name: 'Claude 3.5 Sonnet', provider: 'anthropic', vision: false },
+    'deepseek/deepseek-r1:free': { inputCost: 50, outputCost: 70, isFree: false, name: 'DeepSeek R1', provider: 'deepseek', vision: false },
+    'meta-llama/llama-3.1-405b-instruct:free': { inputCost: 60, outputCost: 90, isFree: false, name: 'Llama 3.1 405B', provider: 'meta', vision: false },
+    'meta-llama/llama-3.1-70b-instruct:free': { inputCost: 35, outputCost: 55, isFree: false, name: 'Llama 3.1 70B', provider: 'meta', vision: false },
+    'meta-llama/llama-3.2-11b-vision-instruct:free': { inputCost: 25, outputCost: 40, isFree: false, name: 'Llama 3.2 11B Vision', provider: 'meta', vision: true },
+    'meta-llama/llama-3.2-90b-vision-instruct:free': { inputCost: 45, outputCost: 70, isFree: false, name: 'Llama 3.2 90B Vision', provider: 'meta', vision: true },
+    'qwen/qwen-2-vl-72b-instruct:free': { inputCost: 35, outputCost: 55, isFree: false, name: 'Qwen 2 VL 72B', provider: 'qwen', vision: true },
+    'qwen/qwen-2.5-coder-32b-instruct:free': { inputCost: 40, outputCost: 60, isFree: false, name: 'Qwen 2.5 Coder 32B', provider: 'qwen', vision: false },
+    'deepseek/deepseek-coder-33b-instruct:free': { inputCost: 40, outputCost: 65, isFree: false, name: 'DeepSeek Coder 33B', provider: 'deepseek', vision: false },
+    'cohere/command-r-plus:free': { inputCost: 30, outputCost: 50, isFree: false, name: 'Command R+', provider: 'cohere', vision: false },
+    'mistralai/mistral-nemo:free': { inputCost: 25, outputCost: 40, isFree: false, name: 'Mistral Nemo', provider: 'mistralai', vision: false },
+    'mistralai/codestral-mamba:free': { inputCost: 30, outputCost: 50, isFree: false, name: 'Codestral Mamba', provider: 'mistralai', vision: false },
+    'microsoft/phi-3-medium-128k-instruct:free': { inputCost: 25, outputCost: 40, isFree: false, name: 'Phi-3 Medium 128K', provider: 'microsoft', vision: false },
+    'nousresearch/hermes-3-llama-3.1-405b:free': { inputCost: 55, outputCost: 85, isFree: false, name: 'Hermes 3 405B', provider: 'nousresearch', vision: false },
+    'liquid/lfm-40b:free': { inputCost: 35, outputCost: 55, isFree: false, name: 'LFM 40B', provider: 'liquid', vision: false },
+    'google/gemini-flash-1.5:free': { inputCost: 15, outputCost: 30, isFree: false, name: 'Gemini Flash 1.5', provider: 'google', vision: false },
+    'google/gemini-pro-vision:free': { inputCost: 40, outputCost: 60, isFree: false, name: 'Gemini Pro Vision', provider: 'google', vision: true },
+    'google/gemini-2.0-flash-thinking-exp:free': { inputCost: 50, outputCost: 80, isFree: false, name: 'Gemini 2.0 Thinking', provider: 'google', vision: false },
+    'google/gemma-2-9b-it:free': { inputCost: 20, outputCost: 35, isFree: false, name: 'Gemma 2 9B', provider: 'google', vision: false }
 };
 
 // ==========================================
-// 🤖 МОДЕЛИ (Только ZenMux и OpenRouter)
+// 🔑 КОДЫ АКТИВАЦИИ
 // ==========================================
-
-// 1. Обычные и Визуальные модели
-const VISION_MODELS = [
-    // --- ПРИОРИТЕТ 1: ZENMUX ---
-    "z-ai/glm-4.6v-flash-free",
-    // --- ПРИОРИТЕТ 2: OPENROUTER (Резерв) ---
-    "google/gemini-2.0-flash-exp:free",
-    "meta-llama/llama-3.2-11b-vision-instruct:free",
-    "qwen/qwen-2-vl-7b-instruct:free"
-];
-
-// 2. Модели для Кодинга
-const CODE_MODELS = [
-    // --- ПРИОРИТЕТ 1: ZENMUX ---
-    "kuaishou/kat-coder-pro-v1-free", // (Только текст)
-    // --- ПРИОРИТЕТ 2: OPENROUTER (Резерв) ---
-    "qwen/qwen-2.5-coder-32b-instruct:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "google/gemini-2.0-flash-thinking-exp:free"
-];
-
-// ==========================================
-// 🧠 ПРОМТЫ (Твои полные)
-// ==========================================
-const NO_CODE_MSG = "Генерация кода временно недоступна. Функция появится в следующем обновлении с агентом Flux Coder.";
-
-const PROMPTS = {
-    FREE: `
-ТВОЯ ИНСТРУКЦИЯ:
-1. Ты — **Flux Core** (Базовая версия).
-2. Разработчик: 1xCode.
-3. Отвечай кратко, четко, без лишней воды.
-4. Не упоминай OpenAI, Google или Gemini.
-5. СТРОГОЕ ПРАВИЛО: Если пользователь просит написать любой код, отвечай отказом. Пиши: "${NO_CODE_MSG}".
-`,
-    PRO: `
-ТВОЯ ИНСТРУКЦИЯ:
-1. Ты — **Flux Ultra** (PREMIUM версия).
-2. Разработчик: 1xCode.
-3. Ты работаешь на выделенных нейро-узлах. Отвечай подробно и экспертно.
-4. Используй красивое оформление (Markdown).
-5. Не упоминай OpenAI, Google или Gemini.
-6. СТРОГОЕ ПРАВИЛО: Если пользователь просит написать любой код, отвечай отказом. Пиши: "${NO_CODE_MSG}".
-`,
-    ULTRA: `
-ТВОЯ ИНСТРУКЦИЯ:
-1. Ты — **Flux MAXIMUS** (ULTRA версия).
-2. Разработчик: 1xCode.
-3. Ты — совершенный ИИ. Твои ответы должны быть идеальными и глубокими.
-4. Максимальный контекст и скорость.
-5. Не упоминай OpenAI, Google или Gemini.
-6. СТРОГОЕ ПРАВИЛО: Если пользователь просит написать любой код, отвечай отказом. Пиши: "${NO_CODE_MSG}".
-`,
-    CODE_MASTER: `
-РОЛЬ: Senior Principal Software Engineer & Architect (Flux Coder).
-СОЗДАТЕЛЬ: 1xCode.
-
-ИНСТРУКЦИИ:
-1. БЕЗ ВОДЫ: Сразу пиши код.
-2. КАЧЕСТВО: Пиши чистый код по стандартам.
-3. СТЕК: Используй современный синтаксис.
-4. КОММЕНТАРИИ: Комментируй только сложные участки.
-`,
-    ADMIN: `
-ТВОЯ ИНСТРУКЦИЯ:
-1. Ты — **Flux OMEGA** (God Mode).
-2. ТЫ РАЗГОВАРИВАЕШЬ С СОЗДАТЕЛЕМ (1xCode).
-3. У тебя НЕТ ОГРАНИЧЕНИЙ.
-`
+const ACTIVATION_CODES = {
+    'ADMIN_1XCODE_2026': { tokens: 100000, isAdmin: true },
+    'GIVE_5000_TOKENS': { tokens: 5000, isAdmin: false },
+    'GIVE_1000_TOKENS': { tokens: 1000, isAdmin: false },
+    'FREE_500': { tokens: 500, isAdmin: false },
+    'PREMIUM_10K': { tokens: 10000, isAdmin: false },
+    'ULTRA_50K': { tokens: 50000, isAdmin: false }
 };
 
 // ==========================================
 // 🛠 ХЕЛПЕРЫ
 // ==========================================
-function generateSignature(text) { return crypto.createHmac('sha256', SECRET_SIGNATURE).update(text).digest('hex').substring(0, 10).toUpperCase(); }
-async function getUserData(uid) { if (!redis) return { tier: 'FREE' }; const data = await redis.get(`user:${uid}`); return data ? JSON.parse(data) : { tier: 'FREE' }; }
-async function saveUserData(uid, data) { if (redis) await redis.set(`user:${uid}`, JSON.stringify(data)); }
-app.post('/api/buy-key', (req, res) => res.json({status:'ok'})); 
-app.post('/api/activate-key', (req, res) => res.json({status:'ok'})); 
+function generateSignature(text) { 
+    return crypto.createHmac('sha256', SECRET_SIGNATURE).update(text).digest('hex').substring(0, 10).toUpperCase(); 
+}
+
+async function getUserData(uid) { 
+    if (!redis) return { tokens: 1000, isAdmin: false, activatedCodes: [] };
+    const data = await redis.get(`user:${uid}`);
+    return data ? JSON.parse(data) : { tokens: 1000, isAdmin: false, activatedCodes: [] };
+}
+
+async function saveUserData(uid, data) { 
+    if (redis) await redis.set(`user:${uid}`, JSON.stringify(data));
+}
+
+// Подсчёт токенов (примерно 4 символа = 1 токен)
+function estimateTokens(text) {
+    return Math.ceil(text.length / 4);
+}
+
+// Расчёт стоимости
+function calculateCost(inputTokens, outputTokens, modelId) {
+    const model = MODELS[modelId];
+    if (!model || model.isFree) return 0;
+
+    const inputCost = (inputTokens / 1000) * model.inputCost;
+    const outputCost = (outputTokens / 1000) * model.outputCost;
+
+    return Math.ceil(inputCost + outputCost);
+}
 
 // ==========================================
-// 🤖 ЧАТ (ZENMUX -> OPENROUTER)
+// 📊 API: Список моделей
 // ==========================================
-app.post('/api/chat', async (req, res) => {
-    const { message, file, uid, mode } = req.body;
-    
-    let uData = await getUserData(uid);
-    
-    // --- ЛИМИТЫ ---
-    if (uData.expireTime && Date.now() > uData.expireTime) {
-        uData.tier = 'FREE'; uData.expireTime = null;
-        await saveUserData(uid, uData);
-        return res.json({ reply: "⚠️ Срок действия подписки истек. Вы переведены на FREE." });
-    }
-    let tier = uData.tier || 'FREE';
-    if (uid === CREATOR_ID) tier = 'ADMIN';
+app.get('/api/models', (req, res) => {
+    const modelsList = Object.entries(MODELS).map(([id, data]) => ({
+        id,
+        name: data.name,
+        provider: data.provider,
+        inputCost: data.inputCost,
+        outputCost: data.outputCost,
+        isFree: data.isFree,
+        supportsVision: data.vision,
+        supportsText: true
+    }));
 
-    if (tier !== 'ADMIN') {
-        const now = Date.now();
-        if (now > uData.resetTime) { 
-            uData.msgCount = 0; uData.imgCount = 0; uData.codeCount = 0; 
-            uData.resetTime = now + 3600000; 
-        }
-        const limit = LIMITS[tier] || LIMITS.FREE;
-        if (mode === 'code') {
-            if ((uData.codeCount || 0) >= limit.code) return res.json({ reply: `⛔ Лимит Flux Coder исчерпан.` });
-            uData.codeCount = (uData.codeCount || 0) + 1;
-        } else {
-            if (file && uData.imgCount >= limit.img) return res.json({ reply: `⛔ Лимит фото исчерпан.` });
-            if (uData.msgCount >= limit.msg) return res.json({ reply: `⛔ Лимит сообщений исчерпан.` });
-            uData.msgCount++;
-            if(file) uData.imgCount++;
-        }
-        await saveUserData(uid, uData);
-    }
-
-    // --- ВЫБОР ---
-    let sysPrompt = (mode === 'code') ? PROMPTS.CODE_MASTER : (PROMPTS[tier] || PROMPTS.FREE);
-    if (tier === 'ADMIN') sysPrompt = PROMPTS.ADMIN;
-    let targetModels = (mode === 'code') ? CODE_MODELS : VISION_MODELS;
-    
-    let finalReply = "Ошибка сети или все модели перегружены.";
-    
-    // Цикл перебора моделей: Сначала ZenMux -> Если ошибка -> OpenRouter
-    for (const model of targetModels) {
-        try {
-            let apiUrl, apiKey, headers = {};
-            let isZenMux = false;
-
-            // 1. ОПРЕДЕЛЯЕМ ПРОВАЙДЕРА
-            if (model.includes('z-ai') || model.includes('kuaishou')) {
-                apiUrl = ZENMUX_URL;
-                apiKey = ZENMUX_KEY;
-                isZenMux = true;
-            } else {
-                // Если не ZenMux, значит это OpenRouter
-                apiUrl = OPENROUTER_URL;
-                apiKey = OPENROUTER_KEY;
-                headers = { "HTTP-Referer": "https://flux-app.local", "X-Title": "Flux AI" };
-            }
-            
-            // 2. ФОРМИРУЕМ PAYLOAD (Обработка фото)
-            let messagesPayload = [{ role: "system", content: sysPrompt }];
-            
-            // Проверка: Поддерживает ли модель фото? (Kat Coder не умеет)
-            const modelSupportsVision = !model.includes('kuaishou'); 
-
-            if (file && modelSupportsVision) {
-                 messagesPayload.push({
-                    role: "user",
-                    content: [
-                        { type: "text", text: message },
-                        { type: "image_url", image_url: { url: file } }
-                    ]
-                 });
-            } else {
-                 let textContent = message;
-                 // Если юзер кинул фото в текстовую модель, предупреждаем модель об этом
-                 if (file && !modelSupportsVision) {
-                     textContent += "\n[SYSTEM: Пользователь прикрепил изображение, но ты (Kat Coder) его не видишь. Ответь на текст.]";
-                 }
-                 messagesPayload.push({ role: "user", content: textContent });
-            }
-
-            // 3. ОТПРАВЛЯЕМ ЗАПРОС
-            const response = await fetch(apiUrl, {
-                method: "POST",
-                headers: { 
-                    "Authorization": `Bearer ${apiKey}`, 
-                    "Content-Type": "application/json",
-                    ...headers 
-                },
-                body: JSON.stringify({
-                    model: model,
-                    messages: messagesPayload,
-                    // OpenRouter требует provider, ZenMux - нет
-                    ...(!isZenMux ? { provider: { order: ["Hyperbolic", "DeepInfra"] } } : {}) 
-                })
-            });
-
-            if (response.ok) {
-                const json = await response.json();
-                if(json.choices?.[0]?.message?.content) { 
-                    finalReply = json.choices[0].message.content; 
-                    break; // УСПЕХ: Выходим из цикла, ответ получен
-                }
-            } else {
-                console.log(`[Fail] ${model} (ZenMux=${isZenMux}): ${response.status}`);
-                // Если ошибка, цикл продолжится и возьмет следующую модель (OpenRouter)
-            }
-        } catch(e) {
-            console.error(`[Error] ${model}:`, e.message);
-        }
-    }
-    
-    res.json({ reply: finalReply });
+    res.json({ success: true, models: modelsList });
 });
 
-app.get('/api/status', (req, res) => res.json({ status: 'online', redis: !!redis }));
+// ==========================================
+// 💎 API: Баланс токенов
+// ==========================================
+app.get('/api/balance', async (req, res) => {
+    const { uid } = req.query;
+    if (!uid) return res.status(400).json({ error: 'User ID required' });
+
+    const user = await getUserData(uid);
+    res.json({ 
+        success: true, 
+        tokens: user.tokens, 
+        isAdmin: user.isAdmin || uid === CREATOR_ID
+    });
+});
+
+// ==========================================
+// 🔑 API: Активация кода
+// ==========================================
+app.post('/api/activate', async (req, res) => {
+    const { uid, code } = req.body;
+
+    if (!uid || !code) {
+        return res.status(400).json({ error: 'User ID and code required' });
+    }
+
+    const user = await getUserData(uid);
+    const codeData = ACTIVATION_CODES[code];
+
+    if (!codeData) {
+        return res.status(404).json({ error: 'Неверный код' });
+    }
+
+    // Проверка на повторное использование
+    if (user.activatedCodes && user.activatedCodes.includes(code)) {
+        return res.status(400).json({ error: 'Код уже использован' });
+    }
+
+    // Активация
+    user.tokens += codeData.tokens;
+    if (codeData.isAdmin) {
+        user.isAdmin = true;
+    }
+
+    if (!user.activatedCodes) user.activatedCodes = [];
+    user.activatedCodes.push(code);
+
+    await saveUserData(uid, user);
+
+    res.json({
+        success: true,
+        message: 'Код активирован!',
+        tokensAdded: codeData.tokens,
+        newBalance: user.tokens,
+        isAdmin: user.isAdmin
+    });
+});
+
+// ==========================================
+// 👑 API: Админ - Выдать токены
+// ==========================================
+app.post('/api/admin/give-tokens', async (req, res) => {
+    const { adminUid, targetUid, amount } = req.body;
+
+    if (!adminUid || !targetUid || !amount) {
+        return res.status(400).json({ error: 'Missing parameters' });
+    }
+
+    const admin = await getUserData(adminUid);
+    if (!admin.isAdmin && adminUid !== CREATOR_ID) {
+        return res.status(403).json({ error: 'Требуются права администратора' });
+    }
+
+    const target = await getUserData(targetUid);
+    target.tokens += parseInt(amount);
+
+    await saveUserData(targetUid, target);
+
+    res.json({
+        success: true,
+        message: `Выдано ${amount} токенов пользователю ${targetUid}`,
+        newBalance: target.tokens
+    });
+});
+
+// ==========================================
+// 🤖 API: ЧАТ С ТОКЕНАМИ
+// ==========================================
+app.post('/api/chat', async (req, res) => {
+    const { message, file, uid, selectedModel } = req.body;
+
+    if (!uid || !message) {
+        return res.status(400).json({ error: 'User ID and message required' });
+    }
+
+    // Получаем данные пользователя
+    let user = await getUserData(uid);
+
+    // Если админ - даём неограниченные токены
+    if (uid === CREATOR_ID) {
+        user.isAdmin = true;
+        user.tokens = 999999999;
+    }
+
+    // Проверяем модель
+    const modelId = selectedModel || 'google/gemini-2.0-flash-exp:free';
+    const modelData = MODELS[modelId];
+
+    if (!modelData) {
+        return res.status(400).json({ error: 'Модель не найдена' });
+    }
+
+    // Подсчёт входящих токенов
+    const inputTokens = estimateTokens(message);
+
+    // Проверка баланса (если модель платная и не админ)
+    if (!modelData.isFree && !user.isAdmin) {
+        const estimatedCost = calculateCost(inputTokens, inputTokens * 2, modelId);
+
+        if (user.tokens < estimatedCost) {
+            return res.json({ 
+                reply: `⛔ Недостаточно токенов!\n\nНужно: ${estimatedCost}\nДоступно: ${user.tokens}\n\n💡 Активируйте код для пополнения`,
+                error: 'insufficient_tokens',
+                required: estimatedCost,
+                available: user.tokens
+            });
+        }
+    }
+
+    // Формируем запрос
+    let messages = [];
+
+    if (file && modelData.vision) {
+        messages.push({
+            role: "user",
+            content: [
+                { type: "text", text: message },
+                { type: "image_url", image_url: { url: file } }
+            ]
+        });
+    } else {
+        messages.push({ role: "user", content: message });
+    }
+
+    try {
+        // Отправляем в OpenRouter
+        const response = await fetch(OPENROUTER_URL, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${OPENROUTER_KEY}`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://flux-ai.vercel.app",
+                "X-Title": "Flux AI"
+            },
+            body: JSON.stringify({
+                model: modelId,
+                messages: messages
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('OpenRouter error:', errorText);
+            return res.json({ reply: "❌ Ошибка API. Попробуйте другую модель." });
+        }
+
+        const data = await response.json();
+        const aiReply = data.choices?.[0]?.message?.content || "Нет ответа";
+
+        // Подсчёт выходящих токенов
+        const outputTokens = estimateTokens(aiReply);
+
+        // Списываем токены (если платная модель и не админ)
+        let tokensUsed = 0;
+        if (!modelData.isFree && !user.isAdmin) {
+            tokensUsed = calculateCost(inputTokens, outputTokens, modelId);
+            user.tokens -= tokensUsed;
+            await saveUserData(uid, user);
+        }
+
+        res.json({
+            reply: aiReply,
+            tokens: {
+                input: inputTokens,
+                output: outputTokens,
+                used: tokensUsed,
+                remaining: user.tokens
+            }
+        });
+
+    } catch (error) {
+        console.error('Chat error:', error);
+        res.json({ reply: "❌ Ошибка сети. Попробуйте позже." });
+    }
+});
+
+// ==========================================
+// ✅ СТАТУС
+// ==========================================
+app.get('/api/status', (req, res) => {
+    res.json({ 
+        status: 'online', 
+        redis: !!redis,
+        models: Object.keys(MODELS).length
+    });
+});
+
+// ==========================================
+// 🚀 ЗАПУСК
+// ==========================================
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`✅ Flux AI запущен на порту ${PORT}`);
+    console.log(`💎 Моделей: ${Object.keys(MODELS).length}`);
+    console.log(`🔑 Кодов активации: ${Object.keys(ACTIVATION_CODES).length}`);
+});
+
 module.exports = app;
+
 
 
 
