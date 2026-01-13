@@ -574,42 +574,6 @@
     }
 }
 
-
-
-/* HEADER RIGHT GROUP */
-.header-right-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: auto;
-}
-
-/* TOKENS BUTTON */
-.tokens-btn {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    padding: 8px 12px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    color: #fff;
-    transition: all 0.3s;
-}
-
-.tokens-btn:hover {
-    background: rgba(255,255,255,0.1);
-    transform: translateY(-1px);
-}
-
-.token-icon { font-size: 1.2em; }
-.token-count { font-weight: 600; }
-
-@media (max-width: 768px) {
-    .tokens-btn { padding: 6px 10px; font-size: 0.9em; }
-}
-
 </style>
 </head>
 <body>
@@ -769,7 +733,7 @@
                         <span class="token-icon">💎</span>
                         <span class="token-count" id="tokenCountMob">0</span>
                     </button>
-                    <button class="model-btn-custom" id="mobModelBtn">
+                    <button class="model-btn-custom" id="mobModelBtn" onclick="openModelModal()">
                         <img class="model-avatar-img" id="mobModelAvatar" src="https://api.dicebear.com/7.x/shapes/svg?seed=ai" alt="">
                         <span class="model-name-short" id="mobModelName">Выбрать</span>
                     </button>
@@ -782,7 +746,7 @@
                         <span class="token-icon">💎</span>
                         <span class="token-count" id="tokenCountDesk">0</span>
                     </button>
-                    <button class="model-btn-custom" id="deskModelBtn">
+                    <button class="model-btn-custom" id="deskModelBtn" onclick="openModelModal()">
                         <img class="model-avatar-img" id="deskModelAvatar" src="https://api.dicebear.com/7.x/shapes/svg?seed=ai" alt="">
                         <div class="model-text-info">
                             <span class="model-name-main" id="deskModelName">Выберите модель</span>
@@ -861,7 +825,108 @@
             localStorage.setItem('myUID', myUID);
         }
 
-        window.onload = async () => {
+        
+// СЖАТИЕ ИЗОБРАЖЕНИЙ
+async function compressImage(file, maxSize = 1024, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            const img = new Image();
+
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxSize || height > maxSize) {
+                    if (width > height) {
+                        height = (height / width) * maxSize;
+                        width = maxSize;
+                    } else {
+                        width = (width / height) * maxSize;
+                        height = maxSize;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const compressed = canvas.toDataURL('image/jpeg', quality);
+                resolve(compressed);
+            };
+
+            img.onerror = () => reject(new Error('Не удалось загрузить изображение'));
+            img.src = e.target.result;
+        };
+
+        reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
+        reader.readAsDataURL(file);
+    });
+}
+
+// НОВАЯ handleFile с сжатием
+window.handleFile = async function(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const preview = document.getElementById('filePreview');
+    const fileName = document.getElementById('fileName');
+    preview.style.display = 'flex';
+    fileName.textContent = '⏳ Сжимаем...';
+
+    try {
+        const compressed = await compressImage(file, 1024, 0.85);
+
+        currFile = {
+            name: file.name,
+            type: file.type,
+            data: compressed
+        };
+
+        fileName.textContent = file.name + ' ✓';
+        console.log('📷 Оригинал:', (file.size / 1024).toFixed(0), 'KB → Сжато:', (compressed.length / 1024).toFixed(0), 'KB');
+    } catch (error) {
+        console.error('Ошибка сжатия:', error);
+        alert('Ошибка обработки изображения');
+        clearFile();
+    }
+};
+
+// Сохранение чатов БЕЗ base64 фото (они огромные!)
+function saveChats() {
+    try {
+        // УДАЛЯЕМ base64 из фото перед сохранением
+        const chatsToSave = chats.map(chat => ({
+            ...chat,
+            msgs: chat.msgs.map(msg => {
+                if (msg.file && msg.file.data) {
+                    // НЕ сохраняем base64! Только имя файла
+                    return {
+                        ...msg,
+                        file: { name: msg.file.name, type: msg.file.type }
+                    };
+                }
+                return msg;
+            })
+        }));
+
+        localStorage.setItem('chats' + STORAGE_VERSION, JSON.stringify(chatsToSave));
+    } catch (e) {
+        console.error('⚠️ Ошибка сохранения (localStorage переполнен?):', e);
+        // Если переполнение - удаляем старые чаты
+        if (chats.length > 10) {
+            chats = chats.slice(0, 10);
+            console.log('🗑️ Удалены старые чаты (оставлено 10)');
+            saveChats(); // Пробуем снова
+        }
+    }
+}
+
+window.onload = async () => {
             document.getElementById('userId').innerText = "UID: " + myUID;
             generateLegalText();
             createSnow();
@@ -1652,197 +1717,153 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
+<!-- МОДАЛЬНОЕ ОКНО ВЫБОРА МОДЕЛИ -->
+<div id="modelModal" class="modal-overlay">
+    <div class="modal-container" style="max-width: 650px;">
+        <div class="modal-header">
+            <h2>🤖 Выбор модели</h2>
+            <button class="modal-close" onclick="closeModelModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height:500px;overflow-y:auto;">
+            <div id="modelsList"></div>
+        </div>
+    </div>
+</div>
 
+<style>
+.header-right-group{display:flex;align-items:center;gap:8px;margin-left:auto}
+.tokens-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:6px;cursor:pointer;color:#fff;transition:all 0.3s}
+.tokens-btn:hover{background:rgba(255,255,255,0.1);transform:translateY(-1px)}
+.token-icon{font-size:1.2em}
+.token-count{font-weight:600}
+@media(max-width:768px){.tokens-btn{padding:6px 10px;font-size:0.9em}}
+.model-item{padding:15px;margin-bottom:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;transition:all 0.3s}
+.model-item:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2);transform:translateX(5px)}
+.model-item.active{background:rgba(102,126,234,0.2);border-color:#667eea}
+.model-name{color:#fff;font-weight:600;font-size:1.1em;margin-bottom:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.model-info{color:rgba(255,255,255,0.6);font-size:0.85em}
+.model-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:0.75em;font-weight:600}
+.badge-free{background:rgba(74,222,128,0.2);color:#4ade80}
+.badge-paid{background:rgba(251,191,36,0.2);color:#fbbf24}
+.badge-text{background:rgba(59,130,246,0.2);color:#3b82f6}
+.badge-vision{background:rgba(139,92,246,0.2);color:#8b5cf6}
+</style>
 
 <script>
-// ============================================
-// СИСТЕМА ТОКЕНОВ (localStorage)
-// ============================================
+const PROMO_CODES={'FREE500':500,'PREMIUM10K':10000,'ULTRA50K':50000,'ADMIN100K':100000,'TEST1000':1000,'BONUS5K':5000,'MEGA20K':20000,'VIP200K':200000};
 
-// ПРОМОКОДЫ (все работают, но в UI показан только FREE500)
-const PROMO_CODES = {
-    'FREE500': 500,
-    'PREMIUM10K': 10000,
-    'ULTRA50K': 50000,
-    'ADMIN100K': 100000,
-    'TEST1000': 1000,
-    'BONUS5K': 5000,
-    'MEGA20K': 20000,
-    'VIP200K': 200000,
-    'START100': 100,
-    'GIFT3K': 3000
+// ТОЛЬКО РЕАЛЬНЫЕ :free МОДЕЛИ OPENROUTER (БЕЗ Claude и DeepSeek R1!)
+const MODELS=[
+{id:'mistralai/mistral-7b-instruct:free',name:'Mistral 7B',provider:'Mistral AI',siteFree:true,vision:false,cost:0},
+{id:'google/gemma-2-9b-it:free',name:'Gemma 2 9B',provider:'Google',siteFree:true,vision:false,cost:0},
+{id:'meta-llama/llama-3.2-11b-vision-instruct:free',name:'Llama 3.2 11B Vision',provider:'Meta',siteFree:true,vision:true,cost:0},
+{id:'meta-llama/llama-3.3-70b-instruct:free',name:'Llama 3.3 70B 🚀',provider:'Meta',siteFree:false,vision:false,cost:100},
+{id:'mistralai/mixtral-8x7b-instruct:free',name:'Mixtral 8x7B',provider:'Mistral AI',siteFree:false,vision:false,cost:90},
+{id:'meta-llama/llama-3-8b-instruct:free',name:'Llama 3 8B',provider:'Meta',siteFree:false,vision:false,cost:60},
+{id:'google/gemma-3-27b-it:free',name:'Gemma 3 27B',provider:'Google',siteFree:false,vision:false,cost:110},
+{id:'qwen/qwen-2.5-coder-32b-instruct:free',name:'Qwen 2.5 Coder 💻',provider:'Qwen',siteFree:false,vision:false,cost:80},
+{id:'google/gemini-2.0-flash-exp:free',name:'Gemini 2.0 Flash 👁️',provider:'Google',siteFree:false,vision:true,cost:150},
+{id:'meta-llama/llama-3.2-90b-vision-instruct:free',name:'Llama 3.2 90B Vision 👁️',provider:'Meta',siteFree:false,vision:true,cost:200},
+{id:'google/gemini-pro-1.5:free',name:'Gemini Pro 1.5',provider:'Google',siteFree:false,vision:false,cost:100}
+];
+
+let currentModel=MODELS[0];
+function getBalance(){return parseInt(localStorage.getItem('userTokens')||'0')}
+function setBalance(amount){localStorage.setItem('userTokens',amount.toString())}
+function getUsedCodes(){const u=localStorage.getItem('usedPromoCodes');return u?JSON.parse(u):[]}
+function markCodeAsUsed(code){const u=getUsedCodes();u.push(code);localStorage.setItem('usedPromoCodes',JSON.stringify(u))}
+function spendTokens(amount){const balance=getBalance();if(balance<amount)return false;setBalance(balance-amount);updateBalanceDisplay();return true}
+function refundTokens(amount){setBalance(getBalance()+amount);updateBalanceDisplay();console.log('💰 Токены возвращены:',amount)}
+function canUseModel(model){if(model.siteFree)return true;return getBalance()>=model.cost}
+
+window.openTokensModal=function(){document.getElementById('tokensModal').classList.add('active');document.body.style.overflow='hidden';updateBalanceDisplay()}
+window.closeTokensModal=function(){document.getElementById('tokensModal').classList.remove('active');document.body.style.overflow=''}
+
+function updateBalanceDisplay(){
+const balance=getBalance();
+['tokenCountMob','tokenCountDesk'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=balance.toLocaleString()});
+const cur=document.getElementById('currentBalance');if(cur)cur.textContent=balance.toLocaleString()+' токенов';
+}
+
+function activatePromoCode(){
+const input=document.getElementById('activationCodeInput');const msg=document.getElementById('activationResultMsg');const code=input.value.trim().toUpperCase();
+if(!code||!PROMO_CODES[code]){msg.textContent='❌ Неверный промокод';msg.style.display='block';msg.style.background='rgba(239,68,68,0.2)';msg.style.color='#ef4444';setTimeout(()=>msg.style.display='none',3000);return}
+if(getUsedCodes().includes(code)){msg.textContent='❌ Уже использован';msg.style.display='block';msg.style.background='rgba(239,68,68,0.2)';msg.style.color='#ef4444';setTimeout(()=>msg.style.display='none',3000);return}
+const tokens=PROMO_CODES[code];setBalance(getBalance()+tokens);markCodeAsUsed(code);
+msg.textContent='✅ +'+tokens.toLocaleString()+' токенов!';msg.style.display='block';msg.style.background='rgba(74,222,128,0.2)';msg.style.color='#4ade80';
+input.value='';updateBalanceDisplay();
+setTimeout(()=>{document.querySelectorAll('.tokens-btn').forEach(btn=>{btn.style.transform='scale(1.15)';setTimeout(()=>btn.style.transform='',300)});msg.style.display='none'},2000);
+}
+
+window.openModelModal=function(){document.getElementById('modelModal').classList.add('active');document.body.style.overflow='hidden';renderModelsList()}
+window.closeModelModal=function(){document.getElementById('modelModal').classList.remove('active');document.body.style.overflow=''}
+
+function renderModelsList(){
+const container=document.getElementById('modelsList');const balance=getBalance();
+let html='<h3 style="color:#4ade80;margin-bottom:15px;">🆓 Бесплатные на сайте</h3>';
+MODELS.filter(m=>m.siteFree).forEach(model=>{
+const isActive=currentModel.id===model.id;
+html+=`<div class="model-item ${isActive?'active':''}" onclick="selectModel('${model.id}')"><div class="model-name"><span>${model.name}</span><span class="model-badge ${model.vision?'badge-vision':'badge-text'}">${model.vision?'📷 ТЕКСТ+ФОТО':'📝 ТОЛЬКО ТЕКСТ'}</span><span class="model-badge badge-free">БЕСПЛАТНО</span></div><div class="model-info">${model.provider}</div></div>`;
+});
+html+='<h3 style="color:#fbbf24;margin:20px 0 15px 0;">💎 За токены (лучше)</h3><p style="color:rgba(255,255,255,0.5);font-size:0.85em;margin-bottom:15px;">Все модели :free на OpenRouter</p>';
+MODELS.filter(m=>!m.siteFree).forEach(model=>{
+const isActive=currentModel.id===model.id;const canAfford=balance>=model.cost;
+html+=`<div class="model-item ${isActive?'active':''}" onclick="selectModel('${model.id}')"><div class="model-name"><span>${model.name}</span><span class="model-badge ${model.vision?'badge-vision':'badge-text'}">${model.vision?'📷 ТЕКСТ+ФОТО':'📝 ТОЛЬКО ТЕКСТ'}</span><span class="model-badge badge-paid">${model.cost} 💎</span>${!canAfford?'<span style="color:#ef4444;font-size:0.85em;"> ⚠️</span>':''}</div><div class="model-info">${model.provider} • :free на OpenRouter</div></div>`;
+});
+container.innerHTML=html;
+}
+
+window.selectModel=function(modelId){
+const model=MODELS.find(m=>m.id===modelId);if(!model)return;
+if(!model.siteFree&&!canUseModel(model)){alert('❌ Недостаточно токенов!');closeModelModal();openTokensModal();return}
+currentModel=model;updateModelUI();closeModelModal();
+console.log('✅ Выбрана:',model.name,model.siteFree?'(бесплатно)':'('+model.cost+' токенов)');
+}
+
+function updateModelUI(){
+const mobName=document.getElementById('mobModelName');const deskName=document.getElementById('deskModelName');const deskCost=document.getElementById('deskModelCost');
+if(mobName)mobName.textContent=currentModel.name;if(deskName)deskName.textContent=currentModel.name;
+if(deskCost){if(currentModel.siteFree){deskCost.textContent='🆓 Бесплатно';deskCost.style.color='#4ade80'}else{deskCost.textContent='💎 '+currentModel.cost;deskCost.style.color='#fbbf24'}}
+}
+
+// ПЕРЕХВАТ fetch С ВОЗВРАТОМ ТОКЕНОВ ПРИ ОШИБКЕ
+const originalFetch=window.fetch;
+window.fetch=function(...args){
+const url=args[0];
+if(typeof url==='string'&&url.includes('/api/chat')){
+let spentAmount=0;
+if(!currentModel.siteFree){
+if(!spendTokens(currentModel.cost)){alert('❌ Недостаточно токенов!');openTokensModal();return Promise.reject(new Error('Insufficient tokens'))}
+spentAmount=currentModel.cost;
+console.log('💎 Потрачено:',spentAmount,'| Осталось:',getBalance());
+}
+return originalFetch.apply(this,args).then(response=>{
+if(!response.ok){if(spentAmount>0){refundTokens(spentAmount);console.log('❌ Ошибка API, токены возвращены')}}
+return response;
+}).catch(error=>{
+if(spentAmount>0){refundTokens(spentAmount);console.log('❌ Ошибка запроса, токены возвращены')}
+throw error;
+});
+}
+return originalFetch.apply(this,args);
 };
 
-// Получить баланс из localStorage
-function getBalance() {
-    return parseInt(localStorage.getItem('userTokens') || '0');
-}
-
-// Установить баланс
-function setBalance(amount) {
-    localStorage.setItem('userTokens', amount.toString());
-}
-
-// Проверить использованные промокоды
-function getUsedCodes() {
-    const used = localStorage.getItem('usedPromoCodes');
-    return used ? JSON.parse(used) : [];
-}
-
-// Сохранить использованный промокод
-function markCodeAsUsed(code) {
-    const used = getUsedCodes();
-    used.push(code);
-    localStorage.setItem('usedPromoCodes', JSON.stringify(used));
-}
-
-// Открыть модальное окно токенов
-window.openTokensModal = function() {
-    const modal = document.getElementById('tokensModal');
-    if (modal) {
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        updateBalanceDisplay();
-    }
-}
-
-// Закрыть модальное окно
-window.closeTokensModal = function() {
-    const modal = document.getElementById('tokensModal');
-    if (modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-}
-
-// Обновить отображение баланса
-function updateBalanceDisplay() {
-    const balance = getBalance();
-
-    const mobEl = document.getElementById('tokenCountMob');
-    const deskEl = document.getElementById('tokenCountDesk');
-    const currentEl = document.getElementById('currentBalance');
-
-    if (mobEl) mobEl.textContent = balance.toLocaleString();
-    if (deskEl) deskEl.textContent = balance.toLocaleString();
-    if (currentEl) currentEl.textContent = balance.toLocaleString() + ' токенов';
-}
-
-// Активировать промокод
-function activatePromoCode() {
-    const input = document.getElementById('activationCodeInput');
-    const msgEl = document.getElementById('activationResultMsg');
-    const code = input.value.trim().toUpperCase();
-
-    if (!code) {
-        showMessage(msgEl, '❌ Введите промокод', 'error');
-        return;
-    }
-
-    // Проверка: код существует?
-    if (!PROMO_CODES[code]) {
-        showMessage(msgEl, '❌ Неверный промокод', 'error');
-        return;
-    }
-
-    // Проверка: код уже использован?
-    const usedCodes = getUsedCodes();
-    if (usedCodes.includes(code)) {
-        showMessage(msgEl, '❌ Этот промокод уже использован', 'error');
-        return;
-    }
-
-    // Активируем код
-    const tokens = PROMO_CODES[code];
-    const currentBalance = getBalance();
-    const newBalance = currentBalance + tokens;
-
-    setBalance(newBalance);
-    markCodeAsUsed(code);
-
-    showMessage(msgEl, '✅ Успешно! Начислено: +' + tokens.toLocaleString() + ' токенов', 'success');
-
-    input.value = '';
-    updateBalanceDisplay();
-
-    // Анимация кнопок токенов
-    setTimeout(() => {
-        const tokenBtns = document.querySelectorAll('.tokens-btn');
-        tokenBtns.forEach(btn => {
-            btn.style.transform = 'scale(1.15)';
-            setTimeout(() => btn.style.transform = '', 300);
-        });
-    }, 100);
-}
-
-// Показать сообщение
-function showMessage(element, text, type) {
-    element.textContent = text;
-    element.style.display = 'block';
-
-    if (type === 'success') {
-        element.style.background = 'rgba(74,222,128,0.2)';
-        element.style.color = '#4ade80';
-        element.style.border = '1px solid #4ade80';
-    } else {
-        element.style.background = 'rgba(239,68,68,0.2)';
-        element.style.color = '#ef4444';
-        element.style.border = '1px solid #ef4444';
-    }
-
-    setTimeout(() => {
-        element.style.display = 'none';
-    }, 3000);
-}
-
-// Инициализация
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ Система токенов готова');
-    console.log('💎 Рабочих промокодов:', Object.keys(PROMO_CODES).length);
-
-    // Обновляем баланс
-    updateBalanceDisplay();
-
-    // Кнопка активации
-    const activateBtn = document.getElementById('activateCodeBtn');
-    if (activateBtn) {
-        activateBtn.onclick = activatePromoCode;
-    }
-
-    // Enter в поле ввода
-    const codeInput = document.getElementById('activationCodeInput');
-    if (codeInput) {
-        codeInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                activatePromoCode();
-            }
-        });
-    }
-
-    // Закрытие по клику вне окна
-    const tokensModal = document.getElementById('tokensModal');
-    if (tokensModal) {
-        tokensModal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeTokensModal();
-            }
-        });
-    }
-
-    // Закрытие по ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            const modal = document.getElementById('tokensModal');
-            if (modal && modal.classList.contains('active')) {
-                closeTokensModal();
-            }
-        }
-    });
+document.addEventListener('DOMContentLoaded',function(){
+console.log('✅ Flux AI | Моделей:',MODELS.length,'| Бесплатных:',MODELS.filter(m=>m.siteFree).length);
+console.log('✅ Возврат токенов при ошибке: включён');
+console.log('❌ Claude и DeepSeek R1 удалены');
+updateBalanceDisplay();updateModelUI();
+const activateBtn=document.getElementById('activateCodeBtn');if(activateBtn)activateBtn.onclick=activatePromoCode;
+const codeInput=document.getElementById('activationCodeInput');if(codeInput)codeInput.onkeypress=(e)=>{if(e.key==='Enter')activatePromoCode()};
+['tokensModal','modelModal'].forEach(id=>{const modal=document.getElementById(id);if(modal){modal.onclick=(e)=>{if(e.target===modal){if(id==='tokensModal')closeTokensModal();else closeModelModal()}}}});
+document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){closeTokensModal();closeModelModal()}});
 });
 </script>
 
 </body>
     </html>
+
+
 
 
 
