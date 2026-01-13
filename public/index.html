@@ -258,7 +258,359 @@
             #chat-stream { padding-top: 70px; padding-bottom: 80px; }
             .modal-box { width: 95%; max-height: 85vh; padding: 20px; }
         }
-    </style>
+    
+
+/* ===================================== */
+/* СЕЛЕКТОР МОДЕЛЕЙ С ФОТО */
+/* ===================================== */
+.model-selector-new {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.model-btn-custom {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #fff;
+    font-family: inherit;
+}
+
+.model-btn-custom:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.3);
+    transform: translateY(-1px);
+}
+
+.model-avatar-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.model-text-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.model-name-main {
+    font-size: 0.95em;
+    font-weight: 500;
+    color: #fff;
+}
+
+.model-name-short {
+    font-size: 0.9em;
+    color: #fff;
+}
+
+.model-cost-label {
+    font-size: 0.75em;
+    color: rgba(255,255,255,0.6);
+}
+
+/* ===================================== */
+/* МОДАЛЬНОЕ ОКНО */
+/* ===================================== */
+.flux-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.flux-modal.active {
+    display: flex !important;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.flux-modal-content {
+    background: #0a0a0a;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 650px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.flux-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.flux-modal-header h2 {
+    color: #fff;
+    font-size: 1.4em;
+    font-weight: 600;
+    margin: 0;
+}
+
+.flux-close-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.6);
+    font-size: 2em;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.flux-close-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+}
+
+.flux-search-box {
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.flux-search-box input {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    color: #fff;
+    font-size: 0.95em;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.flux-search-box input::placeholder {
+    color: rgba(255,255,255,0.4);
+}
+
+.flux-search-box input:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.08);
+}
+
+.flux-models-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 24px;
+}
+
+.flux-models-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.flux-models-list::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.03);
+}
+
+.flux-models-list::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+}
+
+.flux-models-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.loading-text {
+    text-align: center;
+    color: rgba(255,255,255,0.5);
+    padding: 40px;
+    font-size: 0.95em;
+}
+
+.model-group-title {
+    color: #fff;
+    font-size: 0.85em;
+    font-weight: 600;
+    margin: 16px 0 8px 0;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.model-group-title:first-child {
+    margin-top: 0;
+}
+
+/* КАРТОЧКА МОДЕЛИ С ФОТО */
+.flux-model-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.flux-model-card:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.15);
+    transform: translateX(2px);
+}
+
+.flux-model-card.selected {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.25);
+}
+
+.flux-model-card.free-model {
+    border-left: 3px solid #4ade80;
+}
+
+.flux-model-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    flex-shrink: 0;
+}
+
+.flux-model-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.flux-model-name {
+    color: #fff;
+    font-size: 0.95em;
+    font-weight: 500;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.flux-free-badge {
+    background: #4ade80;
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7em;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.flux-model-provider {
+    color: rgba(255,255,255,0.5);
+    font-size: 0.8em;
+    margin-bottom: 6px;
+}
+
+.flux-model-costs {
+    display: flex;
+    gap: 12px;
+    font-size: 0.8em;
+}
+
+.flux-cost-item {
+    color: rgba(255,255,255,0.7);
+}
+
+.flux-cost-item.free {
+    color: #4ade80;
+}
+
+@media (max-width: 768px) {
+    .flux-modal-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .model-avatar-img {
+        width: 28px;
+        height: 28px;
+    }
+
+    .flux-model-avatar {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+
+
+/* HEADER RIGHT GROUP */
+.header-right-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* TOKENS BUTTON */
+.tokens-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: #fff;
+    transition: all 0.3s;
+}
+
+.tokens-btn:hover {
+    background: rgba(255,255,255,0.1);
+    transform: translateY(-1px);
+}
+
+.token-icon { font-size: 1.2em; }
+.token-count { font-weight: 600; }
+
+@media (max-width: 768px) {
+    .tokens-btn { padding: 6px 10px; font-size: 0.9em; }
+}
+
+</style>
 </head>
 <body>
 
@@ -403,7 +755,7 @@
                     </div>
                 </div>
 
-                <button class="btn-upgrade-sidebar" onclick="document.getElementById('pricingModal').classList.add('active')">💎 АКТИВИРОВАТЬ ПОДПИСКУ</button>
+                
 
                 <div class="footer-credit" id="secretTrigger">CREATED BY <span>1XCODE</span></div>
             </div>
@@ -412,16 +764,31 @@
         <main class="main-content">
             <header class="mobile-header">
                 <button class="burger-btn" onclick="toggleSidebar(true)">☰</button>
-                <div class="model-selector">
-                    <div class="model-option active" id="mobStd" onclick="switchMode('std')">Free</div>
-                    <div class="model-option locked" id="mobPro" onclick="switchMode('pro')">Pro</div>
+                <div class="header-right-group">
+                    <button class="tokens-btn" id="tokensBtnMob" onclick="openTokensModal()">
+                        <span class="token-icon">💎</span>
+                        <span class="token-count" id="tokenCountMob">0</span>
+                    </button>
+                    <button class="model-btn-custom" id="mobModelBtn">
+                        <img class="model-avatar-img" id="mobModelAvatar" src="https://api.dicebear.com/7.x/shapes/svg?seed=ai" alt="">
+                        <span class="model-name-short" id="mobModelName">Выбрать</span>
+                    </button>
                 </div>
             </header>
 
             <div class="top-bar-desktop">
-                <div class="model-selector">
-                    <div class="model-option active" id="deskStd" onclick="switchMode('std')">Flux Free</div>
-                    <div class="model-option locked" id="deskPro" onclick="switchMode('pro')">Flux Pro</div>
+                <div class="header-right-group">
+                    <button class="tokens-btn" id="tokensBtnDesk" onclick="openTokensModal()">
+                        <span class="token-icon">💎</span>
+                        <span class="token-count" id="tokenCountDesk">0</span>
+                    </button>
+                    <button class="model-btn-custom" id="deskModelBtn">
+                        <img class="model-avatar-img" id="deskModelAvatar" src="https://api.dicebear.com/7.x/shapes/svg?seed=ai" alt="">
+                        <div class="model-text-info">
+                            <span class="model-name-main" id="deskModelName">Выберите модель</span>
+                            <span class="model-cost-label" id="deskModelCost">-</span>
+                        </div>
+                    </button>
                 </div>
             </div>
 
@@ -931,9 +1298,552 @@
         }
 
         document.getElementById('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
-    </script>
+    
+
+// ============================================
+// API URL (если нет - работаем с моками)
+// ============================================
+const API_URL = window.location.protocol + '//' + window.location.hostname + ':3000/api';
+
+// ============================================
+// СИСТЕМА ВЫБОРА МОДЕЛЕЙ
+// ============================================
+let allModelsData = [];
+let selectedModelId = null;
+let selectedModelData = null;
+
+// URL логотипов провайдеров
+const modelAvatars = {
+    'google': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/240px-Google_%22G%22_logo.svg.png',
+    'meta': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/240px-Meta_Platforms_Inc._logo.svg.png',
+    'anthropic': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSWsN5dCAR9b0mEfOGD-FQ2UjLV_FKxwzLmhg&s',
+    'qwen': 'https://avatars.githubusercontent.com/u/126577875?s=200&v=4',
+    'deepseek': 'https://avatars.githubusercontent.com/u/165250351?s=200&v=4',
+    'cohere': 'https://asset.brandfetch.io/idSUrLOga4/idV22zCm7j.png',
+    'mistralai': 'https://avatars.githubusercontent.com/u/132372032?s=200&v=4',
+    'microsoft': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Microsoft_logo.svg/240px-Microsoft_logo.svg.png',
+    'nousresearch': 'https://avatars.githubusercontent.com/u/109786622?s=200&v=4',
+    'liquid': 'https://avatars.githubusercontent.com/u/177124478?s=200&v=4',
+    'default': 'https://api.dicebear.com/7.x/shapes/svg?seed=ai&backgroundColor=4f46e5'
+};
+
+// Названия моделей
+const modelDisplayNames = {
+    'google/gemini-2.0-flash-exp:free': 'Gemini 2.0 Flash',
+    'meta-llama/llama-3.3-70b-instruct:free': 'Llama 3.3 70B',
+    'meta-llama/llama-3.1-405b-instruct:free': 'Llama 3.1 405B',
+    'meta-llama/llama-3.1-70b-instruct:free': 'Llama 3.1 70B',
+    'meta-llama/llama-3.2-11b-vision-instruct:free': 'Llama 3.2 11B Vision',
+    'meta-llama/llama-3.2-90b-vision-instruct:free': 'Llama 3.2 90B Vision',
+    'anthropic/claude-3.5-sonnet:free': 'Claude 3.5 Sonnet',
+    'qwen/qwen-2-vl-7b-instruct:free': 'Qwen 2 VL 7B',
+    'qwen/qwen-2-vl-72b-instruct:free': 'Qwen 2 VL 72B',
+    'qwen/qwen-2.5-coder-32b-instruct:free': 'Qwen 2.5 Coder 32B',
+    'deepseek/deepseek-r1:free': 'DeepSeek R1',
+    'deepseek/deepseek-coder-33b-instruct:free': 'DeepSeek Coder 33B',
+    'cohere/command-r-plus:free': 'Command R+',
+    'mistralai/mistral-nemo:free': 'Mistral Nemo',
+    'mistralai/codestral-mamba:free': 'Codestral Mamba',
+    'microsoft/phi-3-medium-128k-instruct:free': 'Phi-3 Medium 128K',
+    'nousresearch/hermes-3-llama-3.1-405b:free': 'Hermes 3 Llama 405B',
+    'liquid/lfm-40b:free': 'LFM 40B',
+    'google/gemini-flash-1.5:free': 'Gemini Flash 1.5',
+    'google/gemini-pro-vision:free': 'Gemini Pro Vision',
+    'google/gemini-2.0-flash-thinking-exp:free': 'Gemini 2.0 Thinking',
+    'google/gemma-2-9b-it:free': 'Gemma 2 9B'
+};
+
+// МОКОВЫЕ ДАННЫЕ
+const mockModelsData = [
+    {id: 'google/gemini-2.0-flash-exp:free', name: 'gemini-2.0-flash-exp', provider: 'google', inputCost: 0, outputCost: 0, isFree: true, supportsVision: false, supportsText: true},
+    {id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'llama-3.3-70b-instruct', provider: 'meta', inputCost: 0, outputCost: 0, isFree: true, supportsVision: false, supportsText: true},
+    {id: 'qwen/qwen-2-vl-7b-instruct:free', name: 'qwen-2-vl-7b-instruct', provider: 'qwen', inputCost: 0, outputCost: 0, isFree: true, supportsVision: true, supportsText: true},
+    {id: 'anthropic/claude-3.5-sonnet:free', name: 'claude-3.5-sonnet', provider: 'anthropic', inputCost: 70, outputCost: 100, isFree: false, supportsVision: false, supportsText: true},
+    {id: 'deepseek/deepseek-r1:free', name: 'deepseek-r1', provider: 'deepseek', inputCost: 50, outputCost: 70, isFree: false, supportsVision: false, supportsText: true},
+    {id: 'meta-llama/llama-3.1-405b-instruct:free', name: 'llama-3.1-405b-instruct', provider: 'meta', inputCost: 60, outputCost: 90, isFree: false, supportsVision: false, supportsText: true},
+    {id: 'qwen/qwen-2.5-coder-32b-instruct:free', name: 'qwen-2.5-coder-32b-instruct', provider: 'qwen', inputCost: 40, outputCost: 60, isFree: false, supportsVision: false, supportsText: true},
+    {id: 'cohere/command-r-plus:free', name: 'command-r-plus', provider: 'cohere', inputCost: 30, outputCost: 50, isFree: false, supportsVision: false, supportsText: true},
+    {id: 'mistralai/mistral-nemo:free', name: 'mistral-nemo', provider: 'mistralai', inputCost: 25, outputCost: 40, isFree: false, supportsVision: false, supportsText: true}
+];
+
+function getModelAvatar(provider) {
+    return modelAvatars[provider.toLowerCase()] || modelAvatars['default'];
+}
+
+function getModelDisplayName(modelId, fallbackName) {
+    return modelDisplayNames[modelId] || fallbackName;
+}
+
+// Загрузка моделей
+async function loadModelsData() {
+    try {
+        const response = await fetch(API_URL + '/models', {timeout: 3000});
+        if (response.ok) {
+            const data = await response.json();
+            allModelsData = data.models;
+            console.log('✅ Загружено моделей с API:', allModelsData.length);
+        } else {
+            throw new Error('API недоступен');
+        }
+    } catch (error) {
+        console.warn('⚠️ API недоступен, используем моковые данные');
+        allModelsData = mockModelsData;
+    }
+
+    const firstFree = allModelsData.find(m => m.isFree);
+    if (firstFree) {
+        selectModelById(firstFree.id);
+    }
+
+    renderModelsInModal();
+}
+
+// Открыть модальное окно
+function openModelModal() {
+    const modal = document.getElementById('modelModal');
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        if (allModelsData.length === 0) {
+            loadModelsData();
+        } else {
+            renderModelsInModal();
+        }
+    }
+}
+
+// Закрыть модальное окно
+function closeModalWindow() {
+    const modal = document.getElementById('modelModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+
+// Отрисовка моделей
+function renderModelsInModal() {
+    const container = document.getElementById('modelModalBody');
+    if (!container) return;
+
+    const searchQuery = document.getElementById('modelSearchInput')?.value.toLowerCase() || '';
+
+    if (allModelsData.length === 0) {
+        container.innerHTML = '<div class="loading-text">Загрузка моделей...</div>';
+        return;
+    }
+
+    let filtered = allModelsData;
+    if (searchQuery) {
+        filtered = allModelsData.filter(m => {
+            const displayName = getModelDisplayName(m.id, m.name).toLowerCase();
+            return displayName.includes(searchQuery) ||
+                   m.provider.toLowerCase().includes(searchQuery) ||
+                   m.name.toLowerCase().includes(searchQuery);
+        });
+    }
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="loading-text">🔍 Модели не найдены</div>';
+        return;
+    }
+
+    const freeModels = filtered.filter(m => m.isFree);
+    const paidModels = filtered.filter(m => !m.isFree);
+
+    let html = '';
+
+    if (freeModels.length > 0) {
+        html += '<div class="model-group-title">🆓 Бесплатные модели</div>';
+        freeModels.forEach(model => {
+            html += createModelCard(model);
+        });
+    }
+
+    if (paidModels.length > 0) {
+        html += '<div class="model-group-title">💰 Платные модели</div>';
+        paidModels.forEach(model => {
+            html += createModelCard(model);
+        });
+    }
+
+    container.innerHTML = html;
+
+    // Добавляем обработчики кликов
+    container.querySelectorAll('.flux-model-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const modelId = this.getAttribute('data-model-id');
+            if (modelId) {
+                selectModelById(modelId);
+            }
+        });
+    });
+}
+
+// Создать карточку
+function createModelCard(model) {
+    const isSelected = selectedModelId === model.id;
+    const avatar = getModelAvatar(model.provider);
+    const displayName = getModelDisplayName(model.id, model.name);
+    const freeClass = model.isFree ? 'free-model' : '';
+    const selectedClass = isSelected ? 'selected' : '';
+
+    const inputCost = model.isFree ? '🆓 Free' : model.inputCost + ' tok/1K';
+    const outputCost = model.isFree ? '🆓 Free' : model.outputCost + ' tok/1K';
+    const costClass = model.isFree ? 'free' : '';
+
+    return `
+        <div class="flux-model-card ${freeClass} ${selectedClass}" data-model-id="${model.id}">
+            <img class="flux-model-avatar" src="${avatar}" alt="${model.provider}" onerror="this.src='https://api.dicebear.com/7.x/shapes/svg?seed=${model.provider}'">
+            <div class="flux-model-details">
+                <div class="flux-model-name">
+                    ${displayName}
+                    ${model.isFree ? '<span class="flux-free-badge">Free</span>' : ''}
+                </div>
+                <div class="flux-model-provider">${model.provider}</div>
+                <div class="flux-model-costs">
+                    <div class="flux-cost-item ${costClass}">📥 ${inputCost}</div>
+                    <div class="flux-cost-item ${costClass}">📤 ${outputCost}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Фильтрация
+function filterModelsInModal() {
+    renderModelsInModal();
+}
+
+// Выбрать модель
+function selectModelById(modelId) {
+    selectedModelId = modelId;
+    selectedModelData = allModelsData.find(m => m.id === modelId);
+
+    if (selectedModelData) {
+        const avatar = getModelAvatar(selectedModelData.provider);
+        const displayName = getModelDisplayName(selectedModelData.id, selectedModelData.name);
+
+        // Обновляем мобильную версию
+        const mobAvatar = document.getElementById('mobModelAvatar');
+        const mobName = document.getElementById('mobModelName');
+        if (mobAvatar && mobName) {
+            mobAvatar.src = avatar;
+            mobName.textContent = displayName.split(' ')[0];
+        }
+
+        // Обновляем десктопную версию
+        const deskAvatar = document.getElementById('deskModelAvatar');
+        const deskName = document.getElementById('deskModelName');
+        const deskCost = document.getElementById('deskModelCost');
+        if (deskAvatar && deskName && deskCost) {
+            deskAvatar.src = avatar;
+            deskName.textContent = displayName;
+
+            const costText = selectedModelData.isFree 
+                ? '🆓 Free' 
+                : `${selectedModelData.inputCost}/${selectedModelData.outputCost} tok/1K`;
+            deskCost.textContent = costText;
+        }
+
+        console.log('✅ Выбрана модель:', displayName);
+        renderModelsInModal();
+    }
+
+    closeModalWindow();
+}
+
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Инициализация выбора моделей...');
+
+    // Добавляем обработчики кликов на кнопки
+    const mobBtn = document.getElementById('mobModelBtn');
+    const deskBtn = document.getElementById('deskModelBtn');
+
+    if (mobBtn) {
+        mobBtn.addEventListener('click', openModelModal);
+        console.log('✅ Мобильная кнопка подключена');
+    }
+
+    if (deskBtn) {
+        deskBtn.addEventListener('click', openModelModal);
+        console.log('✅ Десктопная кнопка подключена');
+    }
+
+    // Кнопка закрытия
+    const closeBtn = document.getElementById('modalCloseBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModalWindow);
+    }
+
+    // Закрытие по клику вне окна
+    const modal = document.getElementById('modelModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target.id === 'modelModal') {
+                closeModalWindow();
+            }
+        });
+    }
+
+    // Поиск
+    const searchInput = document.getElementById('modelSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', filterModelsInModal);
+    }
+
+    // Закрытие по ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeModalWindow();
+        }
+    });
+
+    // Загружаем модели
+    loadModelsData();
+});
+
+</script>
+
+<!-- МОДАЛЬНОЕ ОКНО ВЫБОРА МОДЕЛЕЙ -->
+<div id="modelModal" class="flux-modal">
+    <div class="flux-modal-content">
+        <div class="flux-modal-header">
+            <h2>Выбор модели</h2>
+            <button class="flux-close-btn" id="modalCloseBtn">&times;</button>
+        </div>
+
+        <div class="flux-search-box">
+            <input type="text" id="modelSearchInput" placeholder="Поиск модели...">
+        </div>
+
+        <div class="flux-models-list" id="modelModalBody">
+            <div class="loading-text">Загрузка моделей...</div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- МОДАЛЬНОЕ ОКНО ТОКЕНОВ -->
+<div id="tokensModal" class="modal-overlay">
+    <div class="modal-container" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>💎 Пополнение токенов</h2>
+            <button class="modal-close" onclick="closeTokensModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="text-align:center;padding:20px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:20px;">
+                <div style="color:rgba(255,255,255,0.6);margin-bottom:8px;">Текущий баланс:</div>
+                <div id="currentBalance" style="color:#fff;font-size:1.8em;font-weight:700;">0 токенов</div>
+            </div>
+            <input type="text" id="activationCodeInput" placeholder="Введите промокод" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;margin-bottom:10px;box-sizing:border-box;">
+            <button id="activateCodeBtn" style="width:100%;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;">✨ Активировать</button>
+            <div id="activationResultMsg" style="display:none;padding:12px;margin-top:10px;border-radius:6px;text-align:center;"></div>
+            <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);">
+                <h4 style="color:#fff;font-size:0.9em;margin-bottom:10px;">💡 Пример промокода:</h4>
+                <div style="text-align:center;">
+                    <code style="background:rgba(255,255,255,0.1);padding:6px 12px;border-radius:6px;font-size:1.2em;color:#4ade80;">FREE500</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+// ============================================
+// СИСТЕМА ТОКЕНОВ (localStorage)
+// ============================================
+
+// ПРОМОКОДЫ (все работают, но в UI показан только FREE500)
+const PROMO_CODES = {
+    'FREE500': 500,
+    'PREMIUM10K': 10000,
+    'ULTRA50K': 50000,
+    'ADMIN100K': 100000,
+    'TEST1000': 1000,
+    'BONUS5K': 5000,
+    'MEGA20K': 20000,
+    'VIP200K': 200000,
+    'START100': 100,
+    'GIFT3K': 3000
+};
+
+// Получить баланс из localStorage
+function getBalance() {
+    return parseInt(localStorage.getItem('userTokens') || '0');
+}
+
+// Установить баланс
+function setBalance(amount) {
+    localStorage.setItem('userTokens', amount.toString());
+}
+
+// Проверить использованные промокоды
+function getUsedCodes() {
+    const used = localStorage.getItem('usedPromoCodes');
+    return used ? JSON.parse(used) : [];
+}
+
+// Сохранить использованный промокод
+function markCodeAsUsed(code) {
+    const used = getUsedCodes();
+    used.push(code);
+    localStorage.setItem('usedPromoCodes', JSON.stringify(used));
+}
+
+// Открыть модальное окно токенов
+window.openTokensModal = function() {
+    const modal = document.getElementById('tokensModal');
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        updateBalanceDisplay();
+    }
+}
+
+// Закрыть модальное окно
+window.closeTokensModal = function() {
+    const modal = document.getElementById('tokensModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+
+// Обновить отображение баланса
+function updateBalanceDisplay() {
+    const balance = getBalance();
+
+    const mobEl = document.getElementById('tokenCountMob');
+    const deskEl = document.getElementById('tokenCountDesk');
+    const currentEl = document.getElementById('currentBalance');
+
+    if (mobEl) mobEl.textContent = balance.toLocaleString();
+    if (deskEl) deskEl.textContent = balance.toLocaleString();
+    if (currentEl) currentEl.textContent = balance.toLocaleString() + ' токенов';
+}
+
+// Активировать промокод
+function activatePromoCode() {
+    const input = document.getElementById('activationCodeInput');
+    const msgEl = document.getElementById('activationResultMsg');
+    const code = input.value.trim().toUpperCase();
+
+    if (!code) {
+        showMessage(msgEl, '❌ Введите промокод', 'error');
+        return;
+    }
+
+    // Проверка: код существует?
+    if (!PROMO_CODES[code]) {
+        showMessage(msgEl, '❌ Неверный промокод', 'error');
+        return;
+    }
+
+    // Проверка: код уже использован?
+    const usedCodes = getUsedCodes();
+    if (usedCodes.includes(code)) {
+        showMessage(msgEl, '❌ Этот промокод уже использован', 'error');
+        return;
+    }
+
+    // Активируем код
+    const tokens = PROMO_CODES[code];
+    const currentBalance = getBalance();
+    const newBalance = currentBalance + tokens;
+
+    setBalance(newBalance);
+    markCodeAsUsed(code);
+
+    showMessage(msgEl, '✅ Успешно! Начислено: +' + tokens.toLocaleString() + ' токенов', 'success');
+
+    input.value = '';
+    updateBalanceDisplay();
+
+    // Анимация кнопок токенов
+    setTimeout(() => {
+        const tokenBtns = document.querySelectorAll('.tokens-btn');
+        tokenBtns.forEach(btn => {
+            btn.style.transform = 'scale(1.15)';
+            setTimeout(() => btn.style.transform = '', 300);
+        });
+    }, 100);
+}
+
+// Показать сообщение
+function showMessage(element, text, type) {
+    element.textContent = text;
+    element.style.display = 'block';
+
+    if (type === 'success') {
+        element.style.background = 'rgba(74,222,128,0.2)';
+        element.style.color = '#4ade80';
+        element.style.border = '1px solid #4ade80';
+    } else {
+        element.style.background = 'rgba(239,68,68,0.2)';
+        element.style.color = '#ef4444';
+        element.style.border = '1px solid #ef4444';
+    }
+
+    setTimeout(() => {
+        element.style.display = 'none';
+    }, 3000);
+}
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ Система токенов готова');
+    console.log('💎 Рабочих промокодов:', Object.keys(PROMO_CODES).length);
+
+    // Обновляем баланс
+    updateBalanceDisplay();
+
+    // Кнопка активации
+    const activateBtn = document.getElementById('activateCodeBtn');
+    if (activateBtn) {
+        activateBtn.onclick = activatePromoCode;
+    }
+
+    // Enter в поле ввода
+    const codeInput = document.getElementById('activationCodeInput');
+    if (codeInput) {
+        codeInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                activatePromoCode();
+            }
+        });
+    }
+
+    // Закрытие по клику вне окна
+    const tokensModal = document.getElementById('tokensModal');
+    if (tokensModal) {
+        tokensModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeTokensModal();
+            }
+        });
+    }
+
+    // Закрытие по ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('tokensModal');
+            if (modal && modal.classList.contains('active')) {
+                closeTokensModal();
+            }
+        }
+    });
+});
+</script>
+
 </body>
     </html>
+
 
 
 
