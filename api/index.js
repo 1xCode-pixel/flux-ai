@@ -15,8 +15,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
-// Здесь можно указать домен Vercel, когда он у тебя появится, или оставить так
-const SITE_URL = "https://flux-ai.vercel.app"; 
+const SITE_URL = "https://flux-ai-inky.vercel.app"; 
 const SITE_NAME = "Flux AI";
 
 // ==========================================
@@ -152,8 +151,8 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-// ДЛЯ VERCEL ВАЖНО: ЭКСПОРТ, А НЕ LISTEN
 module.exports = app;
+
 
 
 
