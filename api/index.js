@@ -15,7 +15,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
-const SITE_URL = "https://flux-ai.1xcode.dev"; 
+const SITE_URL = "https://flux-ai-inky.vercel.app"; 
 const SITE_NAME = "Flux AI";
 
 // ==========================================
@@ -152,6 +152,7 @@ app.post('/api/chat', async (req, res) => {
 });
 
 module.exports = app;
+
 
 
 
