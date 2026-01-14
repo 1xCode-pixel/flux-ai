@@ -792,8 +792,7 @@
 
     <script type="module">
         const PASS_HASH = "Zmx1eDIwMjU="; 
-        const API_URL = '/api'; // URL ДЛЯ VERCEL
-
+        
         let chats = JSON.parse(localStorage.getItem('chats_v57') || '[]');
         let currentTier = localStorage.getItem('flux_tier') || 'FREE';
         let myUID = localStorage.getItem('myUID');
@@ -801,7 +800,7 @@
         let currFile = null;
         let clicks = 0;
         let maintClicks = 0;
-        let isCodeMode = false; 
+        let isCodeMode = false; // Состояние режима кодера
         
         let isPro = (currentTier === 'PRO' || currentTier === 'ULTRA');
         let isAdmin = (currentTier === 'ADMIN');
@@ -830,20 +829,25 @@
 // ✅ СОХРАНЕНИЕ БЕЗ base64 фото
 function saveChats() {
     try {
+        // УДАЛЯЕМ base64 перед сохранением!
         const chatsToSave = chats.map(chat => ({
             ...chat,
             msgs: chat.msgs.map(msg => {
                 if (msg.file && msg.file.data) {
+                    // НЕ сохраняем base64!
                     return { ...msg, file: { name: msg.file.name, type: msg.file.type } };
                 }
                 return msg;
             })
         }));
-        localStorage.setItem('chats_v57', JSON.stringify(chatsToSave));
+
+        localStorage.setItem('chats' + STORAGE_VERSION, JSON.stringify(chatsToSave));
     } catch (e) {
         console.error('⚠️ Ошибка сохранения:', e);
+        // Если переполнение - удаляем старые
         if (chats.length > 10) {
             chats = chats.slice(0, 10);
+            console.log('🗑️ Удалены старые чаты (оставлено 10)');
             saveChats();
         }
     }
@@ -853,11 +857,15 @@ function saveChats() {
 async function compressImage(file, maxSize = 1024, quality = 0.85) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
+
         reader.onload = (e) => {
             const img = new Image();
+
             img.onload = () => {
                 let width = img.width;
                 let height = img.height;
+
+                // Уменьшаем до 1024x1024
                 if (width > maxSize || height > maxSize) {
                     if (width > height) {
                         height = (height / width) * maxSize;
@@ -867,17 +875,23 @@ async function compressImage(file, maxSize = 1024, quality = 0.85) {
                         height = maxSize;
                     }
                 }
+
                 const canvas = document.createElement('canvas');
                 canvas.width = width;
                 canvas.height = height;
+
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
+
+                // JPEG 85% качество
                 const compressed = canvas.toDataURL('image/jpeg', quality);
                 resolve(compressed);
             };
+
             img.onerror = () => reject(new Error('Не удалось загрузить изображение'));
             img.src = e.target.result;
         };
+
         reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
         reader.readAsDataURL(file);
     });
@@ -890,6 +904,7 @@ window.onload = async () => {
             
             setTimeout(() => { document.getElementById('splash-screen').classList.add('hidden'); }, 3000);
 
+            // Close menu on click outside
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.btn-plus') && !e.target.closest('.action-menu')) {
                     document.getElementById('actionMenu').classList.remove('active');
@@ -910,11 +925,19 @@ window.onload = async () => {
             const mEnd = parseInt(localStorage.getItem('maintEnd_v57')||'0');
             if(mEnd > Date.now()) {
                 document.getElementById('maint-screen').classList.add('active');
+                setInterval(()=>{
+                    const left=mEnd-Date.now();
+                    if(left<=0) location.reload();
+                    const h=Math.floor(left/3600000).toString().padStart(2,'0');
+                    const m=Math.floor((left%3600000)/60000).toString().padStart(2,'0');
+                    document.getElementById('maintTimer').innerText = `${h}:${m}`;
+                },1000);
             }
 
             if(!localStorage.getItem('disc_v57')) document.getElementById('disclaimerPopup').classList.add('active');
             
             checkProStatus();
+            setInterval(checkProStatus, 1000);
             updateStatusUI(); 
             
             if(chats.length > 0) {
@@ -953,6 +976,13 @@ window.onload = async () => {
             } catch(e) { alert("Server Error"); }
         }
 
+        window.activateMaintenance = function() {
+            const hours = parseInt(document.getElementById('maintTime').value);
+            const endTime = Date.now() + (hours * 60 * 60 * 1000);
+            localStorage.setItem('maintEnd_v57', endTime.toString());
+            location.reload();
+        }
+
         window.secretUnblock = function() {
             maintClicks++;
             if(maintClicks === 5) {
@@ -976,6 +1006,7 @@ window.onload = async () => {
 
         window.toggleCodeMode = function() {
             isCodeMode = !isCodeMode;
+            const wrap = document.getElementById('inputWrapper');
             const area = document.getElementById('userInput');
             
             if(isCodeMode) {
@@ -993,41 +1024,40 @@ window.onload = async () => {
             const txt = inp.value.trim();
             if(!txt && !currFile) return;
 
-            // TOKEN CHECK BEFORE SEND
-            if(!currentModel.siteFree) {
-                if(!spendTokens(currentModel.cost)){ alert('❌ Недостаточно токенов!'); openTokensModal(); return; }
-            }
-
             if(!activeId) {
                 const nid = Date.now();
                 chats.unshift({id:nid, title: txt.slice(0,15)||'Чат', ts:nid, msgs:[]});
                 activeId = nid;
             }
             const c = chats.find(x=>x.id===activeId);
+            c.ts = Date.now(); 
             c.msgs.push({role:'user', text:txt, file:currFile});
             appendMsg('user', txt, currFile, false);
             
+            // Sending 'mode' for server
             const payload = { 
                 message: txt, 
                 file: currFile ? currFile.data : null, 
                 tier: currentTier, 
                 uid: myUID,
-                mode: isCodeMode ? 'code' : 'general',
-                model: currentModel.id // SEND SELECTED MODEL
+                mode: isCodeMode ? 'code' : 'general' 
             };
             
             inp.value=''; currFile=null;
             document.getElementById('filePreview').style.display='none';
             document.getElementById('fileIn').value='';
-            saveChats();
+            localStorage.setItem('chats_v57', JSON.stringify(chats));
             renderHistory();
 
             const aiDiv = appendMsg('ai', '', null, true);
             const textEl = aiDiv.querySelector('.message-text');
             textEl.classList.add('typing');
 
+            const stream = document.getElementById('chat-stream');
+            stream.scrollTop = stream.scrollHeight;
+
             try {
-                const response = await fetch(API_URL + '/chat', { 
+                const response = await fetch('/api/chat', { 
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                 });
                 
@@ -1039,12 +1069,11 @@ window.onload = async () => {
                 renderMathInElement(textEl, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}] });
 
                 c.msgs.push({role:'ai', text:ans});
-                saveChats();
+                localStorage.setItem('chats_v57', JSON.stringify(chats));
 
             } catch (error) {
-                textEl.innerText = "Ошибка соединения: " + error.message;
-                // REFUND TOKENS ON ERROR
-                if(!currentModel.siteFree) refundTokens(currentModel.cost);
+                textEl.innerText = "Ошибка соединения.";
+                textEl.classList.remove('typing');
             }
         }
 
@@ -1054,6 +1083,7 @@ window.onload = async () => {
             let fh = '';
             if(file) fh = `<div>📄 ${file.name}</div>`;
             
+            // Проверка на админа для аватарки
             let ac = 'avatar ';
             if (role === 'user') ac += 'user';
             else {
@@ -1131,11 +1161,12 @@ window.onload = async () => {
 
         window.grantSubscription = function() {
             let uid = document.getElementById('targetUID').value.trim();
-            const dur = document.getElementById('proDuration').value; 
+            const dur = document.getElementById('proDuration').value; // игнор в демо, всегда perm
             const type = document.getElementById('grantType').value;
             
             if(uid === "" || uid === myUID) {
                 let add = 0;
+                // Всегда выдаем вечный для теста
                 if(dur) add=5000000000000;
 
                 isPro = true;
@@ -1176,7 +1207,33 @@ window.onload = async () => {
         window.closeAdmin = function() { document.getElementById('adminModal').classList.remove('active'); }
 
         window.generateLegalText = function() {
-             const text = `ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (РЕДАКЦИЯ 2025)\n\n1. ОБЩИЕ ПОЛОЖЕНИЯ (1xCode)\n...\n(Полный текст соглашения)`;
+             const text = `ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (РЕДАКЦИЯ 2025)\n\n1. ОБЩИЕ ПОЛОЖЕНИЯ (1xCode)\n...\n(ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (РЕДАКЦИЯ 2025)
+
+1. ОБЩИЕ ПОЛОЖЕНИЯ
+
+1.1. Настоящее Соглашение регулирует отношения между разработчиком (1xCodeTeam) и пользователем сервиса Flux AI.
+
+1.2. Используя сервис, вы безоговорочно принимаете условия данного соглашения.
+
+2. ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ
+
+2.1. Сервис предоставляется на условиях "как есть". Разработчик не гарантирует безошибочную работу алгоритмов AI.
+
+2.2. Пользователь осознает, что ответы нейросети могут содержать неточности.
+
+3. КОНФИДЕНЦИАЛЬНОСТЬ И БЕЗОПАСНОСТЬ
+
+3.1. Все данные чатов передаются по защищенному протоколу.
+
+3.2. Ваш уникальный идентификатор (UID) является ключом доступа к истории.
+
+4. PRO-ДОСТУП
+
+4.1. Статус PRO является добровольным пожертвованием.
+
+4.2. PRO-статус предоставляет доступ к приоритетной очереди и расширенным моделям.
+
+Дата последнего обновления: 01.01.2025)`;
              document.getElementById('kilometerText').innerText = text;
         }
         window.openLegal = function() { document.getElementById('legalModal').classList.add('active'); }
@@ -1208,7 +1265,7 @@ window.onload = async () => {
             e.stopPropagation(); 
             if(confirm('Удалить чат?')){ 
                 chats=chats.filter(x=>x.id!==id); 
-                saveChats();
+                localStorage.setItem('chats_v57', JSON.stringify(chats)); 
                 if(activeId===id) startNewChat(); 
                 else renderHistory(); 
             } 
@@ -1236,15 +1293,20 @@ window.onload = async () => {
                 b.classList.add('admin-enabled');
                 if(badge) { badge.innerText = "ADMIN"; badge.classList.add('admin'); badge.style.display = 'inline-block'; }
                 avatar.classList.add('admin-mode');
+                btns.forEach(x => document.getElementById(x).classList.remove('locked'));
             } else if (currentTier === 'ULTRA') {
                 b.classList.add('pro-enabled');
                 if(badge) { badge.innerText = "ULTRA"; badge.style.background = "var(--ultra-color)"; badge.style.display = 'inline-block'; }
                 avatar.classList.add('ultra-mode');
+                btns.forEach(x => document.getElementById(x).classList.remove('locked'));
             } else if (isPro) {
                 b.classList.add('pro-enabled');
                 if(badge) { badge.innerText = "PRO"; badge.style.background = "var(--pro-color)"; badge.style.display = 'inline-block'; }
                 avatar.style.borderColor = "var(--pro-color)";
                 avatar.style.color = "var(--pro-color)";
+                btns.forEach(x => document.getElementById(x).classList.remove('locked'));
+            } else {
+                btns.forEach(x => document.getElementById(x).classList.add('locked'));
             }
         }
         
@@ -1257,10 +1319,8 @@ window.onload = async () => {
             const f = i.files[0];
             if(f){
                 const r = new FileReader();
-                r.onload = async (e) => {
-                    // Compress Image to avoid payload size errors
-                    const compressedBase64 = await compressImage(f);
-                    currFile = {name:f.name, type:f.type, data:compressedBase64};
+                r.onload = e => {
+                    currFile = {name:f.name, type:f.type, data:e.target.result};
                     document.getElementById('filePreview').style.display='flex';
                     document.getElementById('fileName').innerText=f.name;
                 };
@@ -1279,7 +1339,7 @@ window.onload = async () => {
 // ============================================
 // API URL (если нет - работаем с моками)
 // ============================================
-// API URL is set at the top as const API_URL = '/api';
+const API_URL = '/api';
 
 // ============================================
 // СИСТЕМА ВЫБОРА МОДЕЛЕЙ
@@ -1445,12 +1505,25 @@ function getModelDisplayName(modelId, fallbackName) {
 
 // Загрузка моделей
 async function loadModelsData() {
-    // USING MOCKS FOR NOW AS API IS OPTIONAL FOR MODELS LIST
-    allModelsData = mockModelsData;
+    try {
+        const response = await fetch(API_URL + '/models', {timeout: 3000});
+        if (response.ok) {
+            const data = await response.json();
+            allModelsData = data.models;
+            console.log('✅ Загружено моделей с API:', allModelsData.length);
+        } else {
+            throw new Error('API недоступен');
+        }
+    } catch (error) {
+        console.warn('⚠️ API недоступен, используем моковые данные');
+        allModelsData = mockModelsData;
+    }
+
     const firstFree = allModelsData.find(m => m.isFree);
     if (firstFree) {
         selectModelById(firstFree.id);
     }
+
     renderModelsInModal();
 }
 
@@ -1548,9 +1621,6 @@ function createModelCard(model) {
     const inputCost = model.isFree ? '🆓 Free' : model.inputCost + ' tok/1K';
     const outputCost = model.isFree ? '🆓 Free' : model.outputCost + ' tok/1K';
     const costClass = model.isFree ? 'free' : '';
-    
-    // Vision badge
-    const visionBadge = model.supportsVision ? '<span class="model-badge badge-vision" style="margin-left:5px;font-size:0.6em;">📷 VISION</span>' : '';
 
     return `
         <div class="flux-model-card ${freeClass} ${selectedClass}" data-model-id="${model.id}">
@@ -1559,7 +1629,6 @@ function createModelCard(model) {
                 <div class="flux-model-name">
                     ${displayName}
                     ${model.isFree ? '<span class="flux-free-badge">Free</span>' : ''}
-                    ${visionBadge}
                 </div>
                 <div class="flux-model-provider">${model.provider}</div>
                 <div class="flux-model-costs">
@@ -1580,16 +1649,6 @@ function filterModelsInModal() {
 function selectModelById(modelId) {
     selectedModelId = modelId;
     selectedModelData = allModelsData.find(m => m.id === modelId);
-
-    // Update global state for chat
-    currentModel = {
-        id: selectedModelData.id,
-        name: selectedModelData.name,
-        provider: selectedModelData.provider,
-        siteFree: selectedModelData.isFree,
-        vision: selectedModelData.supportsVision,
-        cost: Math.max(selectedModelData.inputCost, selectedModelData.outputCost) // Approx cost logic
-    };
 
     if (selectedModelData) {
         const avatar = getModelAvatar(selectedModelData.provider);
@@ -1634,10 +1693,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (mobBtn) {
         mobBtn.addEventListener('click', openModelModal);
+        console.log('✅ Мобильная кнопка подключена');
     }
 
     if (deskBtn) {
         deskBtn.addEventListener('click', openModelModal);
+        console.log('✅ Десктопная кнопка подключена');
     }
 
     // Кнопка закрытия
@@ -1675,8 +1736,197 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </script>
 
+<!-- МОДАЛЬНОЕ ОКНО ВЫБОРА МОДЕЛЕЙ -->
+<div id="modelModal" class="flux-modal">
+    <div class="flux-modal-content">
+        <div class="flux-modal-header">
+            <h2>Выбор модели</h2>
+            <button class="flux-close-btn" id="modalCloseBtn">&times;</button>
+        </div>
+
+        <div class="flux-search-box">
+            <input type="text" id="modelSearchInput" placeholder="Поиск модели...">
+        </div>
+
+        <div class="flux-models-list" id="modelModalBody">
+            <div class="loading-text">Загрузка моделей...</div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- МОДАЛЬНОЕ ОКНО ТОКЕНОВ -->
+<div id="tokensModal" class="modal-overlay">
+    <div class="modal-container" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>💎 Пополнение токенов</h2>
+            <button class="modal-close" onclick="closeTokensModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="text-align:center;padding:20px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:20px;">
+                <div style="color:rgba(255,255,255,0.6);margin-bottom:8px;">Текущий баланс:</div>
+                <div id="currentBalance" style="color:#fff;font-size:1.8em;font-weight:700;">0 токенов</div>
+            </div>
+            <input type="text" id="activationCodeInput" placeholder="Введите промокод" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;margin-bottom:10px;box-sizing:border-box;">
+            <button id="activateCodeBtn" style="width:100%;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;">✨ Активировать</button>
+            <div id="activationResultMsg" style="display:none;padding:12px;margin-top:10px;border-radius:6px;text-align:center;"></div>
+            <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);">
+                <h4 style="color:#fff;font-size:0.9em;margin-bottom:10px;">💡 Пример промокода:</h4>
+                <div style="text-align:center;">
+                    <code style="background:rgba(255,255,255,0.1);padding:6px 12px;border-radius:6px;font-size:1.2em;color:#4ade80;">FREE500</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО ВЫБОРА МОДЕЛИ -->
+<div id="modelModal" class="modal-overlay">
+    <div class="modal-container" style="max-width: 650px;">
+        <div class="modal-header">
+            <h2>🤖 Выбор модели</h2>
+            <button class="modal-close" onclick="closeModelModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height:500px;overflow-y:auto;">
+            <div id="modelsList"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+.header-right-group{display:flex;align-items:center;gap:8px;margin-left:auto}
+.tokens-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:6px;cursor:pointer;color:#fff;transition:all 0.3s}
+.tokens-btn:hover{background:rgba(255,255,255,0.1);transform:translateY(-1px)}
+.token-icon{font-size:1.2em}
+.token-count{font-weight:600}
+@media(max-width:768px){.tokens-btn{padding:6px 10px;font-size:0.9em}}
+.model-item{padding:15px;margin-bottom:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;transition:all 0.3s}
+.model-item:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2);transform:translateX(5px)}
+.model-item.active{background:rgba(102,126,234,0.2);border-color:#667eea}
+.model-name{color:#fff;font-weight:600;font-size:1.1em;margin-bottom:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.model-info{color:rgba(255,255,255,0.6);font-size:0.85em}
+.model-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:0.75em;font-weight:600}
+.badge-free{background:rgba(74,222,128,0.2);color:#4ade80}
+.badge-paid{background:rgba(251,191,36,0.2);color:#fbbf24}
+.badge-text{background:rgba(59,130,246,0.2);color:#3b82f6}
+.badge-vision{background:rgba(139,92,246,0.2);color:#8b5cf6}
+</style>
+
+<script>
+const PROMO_CODES={'FREE500':500,'PREMIUM10K':10000,'ULTRA50K':50000,'ADMIN100K':100000,'TEST1000':1000,'BONUS5K':5000,'MEGA20K':20000,'VIP200K':200000};
+
+// ТОЛЬКО РЕАЛЬНЫЕ :free МОДЕЛИ OPENROUTER (БЕЗ Claude и DeepSeek R1!)
+const MODELS=[
+{id:'mistralai/mistral-7b-instruct:free',name:'Mistral 7B',provider:'Mistral AI',siteFree:true,vision:false,cost:0},
+{id:'google/gemma-2-9b-it:free',name:'Gemma 2 9B',provider:'Google',siteFree:true,vision:false,cost:0},
+{id:'meta-llama/llama-3.2-11b-vision-instruct:free',name:'Llama 3.2 11B Vision',provider:'Meta',siteFree:true,vision:true,cost:0},
+{id:'meta-llama/llama-3.3-70b-instruct:free',name:'Llama 3.3 70B 🚀',provider:'Meta',siteFree:false,vision:false,cost:100},
+{id:'mistralai/mixtral-8x7b-instruct:free',name:'Mixtral 8x7B',provider:'Mistral AI',siteFree:false,vision:false,cost:90},
+{id:'meta-llama/llama-3-8b-instruct:free',name:'Llama 3 8B',provider:'Meta',siteFree:false,vision:false,cost:60},
+{id:'google/gemma-3-27b-it:free',name:'Gemma 3 27B',provider:'Google',siteFree:false,vision:false,cost:110},
+{id:'qwen/qwen-2.5-coder-32b-instruct:free',name:'Qwen 2.5 Coder 💻',provider:'Qwen',siteFree:false,vision:false,cost:80},
+{id:'google/gemini-2.0-flash-exp:free',name:'Gemini 2.0 Flash 👁️',provider:'Google',siteFree:false,vision:true,cost:150},
+{id:'meta-llama/llama-3.2-90b-vision-instruct:free',name:'Llama 3.2 90B Vision 👁️',provider:'Meta',siteFree:false,vision:true,cost:200},
+{id:'google/gemini-pro-1.5:free',name:'Gemini Pro 1.5',provider:'Google',siteFree:false,vision:false,cost:100}
+];
+
+let currentModel=MODELS[0];
+function getBalance(){return parseInt(localStorage.getItem('userTokens')||'0')}
+function setBalance(amount){localStorage.setItem('userTokens',amount.toString())}
+function getUsedCodes(){const u=localStorage.getItem('usedPromoCodes');return u?JSON.parse(u):[]}
+function markCodeAsUsed(code){const u=getUsedCodes();u.push(code);localStorage.setItem('usedPromoCodes',JSON.stringify(u))}
+function spendTokens(amount){const balance=getBalance();if(balance<amount)return false;setBalance(balance-amount);updateBalanceDisplay();return true}
+function refundTokens(amount){setBalance(getBalance()+amount);updateBalanceDisplay();console.log('💰 Токены возвращены:',amount)}
+function canUseModel(model){if(model.siteFree)return true;return getBalance()>=model.cost}
+
+window.openTokensModal=function(){document.getElementById('tokensModal').classList.add('active');document.body.style.overflow='hidden';updateBalanceDisplay()}
+window.closeTokensModal=function(){document.getElementById('tokensModal').classList.remove('active');document.body.style.overflow=''}
+
+function updateBalanceDisplay(){
+const balance=getBalance();
+['tokenCountMob','tokenCountDesk'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=balance.toLocaleString()});
+const cur=document.getElementById('currentBalance');if(cur)cur.textContent=balance.toLocaleString()+' токенов';
+}
+
+function activatePromoCode(){
+const input=document.getElementById('activationCodeInput');const msg=document.getElementById('activationResultMsg');const code=input.value.trim().toUpperCase();
+if(!code||!PROMO_CODES[code]){msg.textContent='❌ Неверный промокод';msg.style.display='block';msg.style.background='rgba(239,68,68,0.2)';msg.style.color='#ef4444';setTimeout(()=>msg.style.display='none',3000);return}
+if(getUsedCodes().includes(code)){msg.textContent='❌ Уже использован';msg.style.display='block';msg.style.background='rgba(239,68,68,0.2)';msg.style.color='#ef4444';setTimeout(()=>msg.style.display='none',3000);return}
+const tokens=PROMO_CODES[code];setBalance(getBalance()+tokens);markCodeAsUsed(code);
+msg.textContent='✅ +'+tokens.toLocaleString()+' токенов!';msg.style.display='block';msg.style.background='rgba(74,222,128,0.2)';msg.style.color='#4ade80';
+input.value='';updateBalanceDisplay();
+setTimeout(()=>{document.querySelectorAll('.tokens-btn').forEach(btn=>{btn.style.transform='scale(1.15)';setTimeout(()=>btn.style.transform='',300)});msg.style.display='none'},2000);
+}
+
+window.openModelModal=function(){document.getElementById('modelModal').classList.add('active');document.body.style.overflow='hidden';renderModelsList()}
+window.closeModelModal=function(){document.getElementById('modelModal').classList.remove('active');document.body.style.overflow=''}
+
+function renderModelsList(){
+const container=document.getElementById('modelsList');const balance=getBalance();
+let html='<h3 style="color:#4ade80;margin-bottom:15px;">🆓 Бесплатные на сайте</h3>';
+MODELS.filter(m=>m.siteFree).forEach(model=>{
+const isActive=currentModel.id===model.id;
+html+=`<div class="model-item ${isActive?'active':''}" onclick="selectModel('${model.id}')"><div class="model-name"><span>${model.name}</span><span class="model-badge ${model.vision?'badge-vision':'badge-text'}">${model.vision?'📷 ТЕКСТ+ФОТО':'📝 ТОЛЬКО ТЕКСТ'}</span><span class="model-badge badge-free">БЕСПЛАТНО</span></div><div class="model-info">${model.provider}</div></div>`;
+});
+html+='<h3 style="color:#fbbf24;margin:20px 0 15px 0;">💎 За токены (лучше)</h3><p style="color:rgba(255,255,255,0.5);font-size:0.85em;margin-bottom:15px;">Все модели :free на OpenRouter</p>';
+MODELS.filter(m=>!m.siteFree).forEach(model=>{
+const isActive=currentModel.id===model.id;const canAfford=balance>=model.cost;
+html+=`<div class="model-item ${isActive?'active':''}" onclick="selectModel('${model.id}')"><div class="model-name"><span>${model.name}</span><span class="model-badge ${model.vision?'badge-vision':'badge-text'}">${model.vision?'📷 ТЕКСТ+ФОТО':'📝 ТОЛЬКО ТЕКСТ'}</span><span class="model-badge badge-paid">${model.cost} 💎</span>${!canAfford?'<span style="color:#ef4444;font-size:0.85em;"> ⚠️</span>':''}</div><div class="model-info">${model.provider} • :free на OpenRouter</div></div>`;
+});
+container.innerHTML=html;
+}
+
+window.selectModel=function(modelId){
+const model=MODELS.find(m=>m.id===modelId);if(!model)return;
+if(!model.siteFree&&!canUseModel(model)){alert('❌ Недостаточно токенов!');closeModelModal();openTokensModal();return}
+currentModel=model;updateModelUI();closeModelModal();
+console.log('✅ Выбрана:',model.name,model.siteFree?'(бесплатно)':'('+model.cost+' токенов)');
+}
+
+function updateModelUI(){
+const mobName=document.getElementById('mobModelName');const deskName=document.getElementById('deskModelName');const deskCost=document.getElementById('deskModelCost');
+if(mobName)mobName.textContent=currentModel.name;if(deskName)deskName.textContent=currentModel.name;
+if(deskCost){if(currentModel.siteFree){deskCost.textContent='🆓 Бесплатно';deskCost.style.color='#4ade80'}else{deskCost.textContent='💎 '+currentModel.cost;deskCost.style.color='#fbbf24'}}
+}
+
+// ПЕРЕХВАТ fetch С ВОЗВРАТОМ ТОКЕНОВ ПРИ ОШИБКЕ
+const originalFetch=window.fetch;
+window.fetch=function(...args){
+const url=args[0];
+if(typeof url==='string'&&url.includes('/api/chat')){
+let spentAmount=0;
+if(!currentModel.siteFree){
+if(!spendTokens(currentModel.cost)){alert('❌ Недостаточно токенов!');openTokensModal();return Promise.reject(new Error('Insufficient tokens'))}
+spentAmount=currentModel.cost;
+console.log('💎 Потрачено:',spentAmount,'| Осталось:',getBalance());
+}
+return originalFetch.apply(this,args).then(response=>{
+if(!response.ok){if(spentAmount>0){refundTokens(spentAmount);console.log('❌ Ошибка API, токены возвращены')}}
+return response;
+}).catch(error=>{
+if(spentAmount>0){refundTokens(spentAmount);console.log('❌ Ошибка запроса, токены возвращены')}
+throw error;
+});
+}
+return originalFetch.apply(this,args);
+};
+
+document.addEventListener('DOMContentLoaded',function(){
+console.log('✅ Flux AI | Моделей:',MODELS.length,'| Бесплатных:',MODELS.filter(m=>m.siteFree).length);
+console.log('✅ Возврат токенов при ошибке: включён');
+console.log('❌ Claude и DeepSeek R1 удалены');
+updateBalanceDisplay();updateModelUI();
+const activateBtn=document.getElementById('activateCodeBtn');if(activateBtn)activateBtn.onclick=activatePromoCode;
+const codeInput=document.getElementById('activationCodeInput');if(codeInput)codeInput.onkeypress=(e)=>{if(e.key==='Enter')activatePromoCode()};
+['tokensModal','modelModal'].forEach(id=>{const modal=document.getElementById(id);if(modal){modal.onclick=(e)=>{if(e.target===modal){if(id==='tokensModal')closeTokensModal();else closeModelModal()}}}});
+document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){closeTokensModal();closeModelModal()}});
+});
+</script>
+
 </body>
-    </html>
+                        </html>
+
 
 
 
