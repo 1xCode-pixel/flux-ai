@@ -32,6 +32,25 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--bg-body); color: var(--text-main); font-family: 'Inter', sans-serif; margin: 0; height: 100dvh; display: flex; overflow: hidden; transition: --accent 0.5s; }
 
+        /* --- STYLES FOR CODE BLOCKS --- */
+        pre { background: #111; border: 1px solid #333; border-radius: 8px; margin: 10px 0; overflow: hidden; position: relative; }
+        .code-header { background: #1a1a1a; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; font-family: 'Inter', sans-serif; font-size: 0.75rem; color: #888; }
+        .copy-code-btn { background: none; border: none; color: #888; cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
+        .copy-code-btn:hover { color: #fff; }
+        code { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; display: block; padding: 15px; overflow-x: auto; color: #e0e0e0; }
+
+        /* --- MOBILE FIXES --- */
+        @media (max-width: 768px) {
+            code { font-size: 0.75rem !important; padding: 10px; }
+            .code-header { padding: 4px 10px; }
+            .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 85%; transform: translateX(-100%); box-shadow: 5px 0 30px rgba(0,0,0,0.5); }
+            .sidebar.open { transform: translateX(0); }
+            .mobile-header { display: flex; }
+            .top-bar-desktop { display: none; }
+            #chat-stream { padding-top: 70px; padding-bottom: 80px; }
+            .modal-box { width: 95%; max-height: 85vh; padding: 20px; }
+        }
+
         /* --- ANIMATIONS --- */
         .snowflake { position: absolute; top: -10px; background: #fff; border-radius: 50%; opacity: 0.8; animation: fall linear infinite; pointer-events: none; z-index: 100000; }
         @keyframes fall { to { transform: translateY(105vh); } }
@@ -39,13 +58,11 @@
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         
-        /* OMEGA FIRE (ADMIN) */
         @keyframes adminTurbulence {
             0% { transform: rotate(0deg) scale(1); border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%; box-shadow: 0 0 15px 5px rgba(255,255,255,0.5); }
             50% { transform: rotate(180deg) scale(1.05); border-radius: 50% 45% 55% 50% / 45% 55% 50% 50%; box-shadow: 0 0 25px 10px rgba(255,255,255,0.8); }
             100% { transform: rotate(360deg) scale(1); border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%; box-shadow: 0 0 15px 5px rgba(255,255,255,0.5); }
         }
-        /* ULTRA NEON PULSE */
         @keyframes ultraPulse {
             0% { box-shadow: 0 0 10px var(--ultra-color); border-color: var(--ultra-color); }
             50% { box-shadow: 0 0 20px var(--ultra-color), 0 0 40px var(--ultra-color); border-color: #fff; }
@@ -77,504 +94,89 @@
         .maint-timer { font-family: 'JetBrains Mono'; font-size: 2rem; color: #fff; background: #111; border: 1px solid #333; padding: 15px; border-radius: 12px; margin-bottom: 20px; letter-spacing: 2px; }
 
         /* MODALS (FIXED) */
-        .modal-overlay { 
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
-            background: rgba(0,0,0,0.85); z-index: 20000; 
-            display: none; align-items: center; justify-content: center; 
-            backdrop-filter: blur(8px); 
-        }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 20000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
         .modal-overlay.active { display: flex; animation: zoomIn 0.25s ease; }
         .modal-box { background: #0a0a0a; border: 1px solid #333; padding: 25px; border-radius: 20px; width: 95%; max-width: 550px; text-align: center; position: relative; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.9); }
         .close-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; color: #666; cursor: pointer; font-size: 1.5rem; line-height: 1; }
         .close-btn:hover { color: #fff; }
 
-        /* PRICING CARDS */
-        .pricing-container { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding: 5px; align-items: stretch; }
-        .price-card { 
-            flex: 1; background: #111; border: 1px solid #333; border-radius: 12px; 
-            padding: 15px; min-width: 130px; display: flex; flex-direction: column; 
-            align-items: center; justify-content: flex-start; position: relative; transition: 0.3s;
-        }
-        .price-card:hover { transform: translateY(-3px); }
-        
-        .price-title { font-family: 'JetBrains Mono'; font-weight: bold; margin-bottom: 10px; font-size: 1.1rem; }
-        .price-features { font-size: 0.75rem; color: #aaa; line-height: 1.8; margin-bottom: 15px; text-align: left; width: 100%; list-style: none; padding: 0; }
-        .price-features li::before { content: '✓ '; color: var(--success); }
-        .price-badge { font-size: 0.7rem; padding: 6px 12px; border-radius: 20px; font-weight: bold; margin-top: auto; width: 100%; text-align:center; }
-        
-        /* Free */
-        .pc-free .price-title { color: #888; }
-        .pc-free .price-badge { background: #222; color: #ccc; }
-        /* Pro */
-        .pc-pro { border-color: rgba(212, 175, 55, 0.3); }
-        .pc-pro .price-title { color: var(--pro-color); }
-        .pc-pro .price-badge { background: var(--pro-color); color: #000; }
-        /* Ultra */
-        .pc-ultra { border-color: rgba(176, 38, 255, 0.4); background: linear-gradient(180deg, #120516, #0a0a0a); }
-        .pc-ultra .price-title { color: var(--ultra-color); text-shadow: 0 0 10px rgba(176,38,255,0.6); }
-        .pc-ultra .price-badge { background: var(--ultra-color); color: #fff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.4); }
-
-        .key-input-section { border-top: 1px solid #333; padding-top: 20px; margin-top: 10px; }
-        .key-input { width: 100%; background: #151515; border: 1px solid #333; padding: 15px; color: #fff; border-radius: 10px; text-align: center; font-family: 'JetBrains Mono'; margin-bottom: 10px; outline: none; font-size: 1rem; }
-        .key-input:focus { border-color: var(--accent); }
-
         /* BUTTONS */
         .auth-btn { background: #fff; color: #000; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; text-transform: uppercase; font-size: 0.9rem; transition: 0.2s; }
         .auth-btn:hover { opacity: 0.9; }
 
-        /* UPGRADE BUTTON (SIDEBAR) */
-        .btn-upgrade-sidebar { 
-            width: 100%; padding: 12px; margin-top: 5px;
-            background: linear-gradient(90deg, #1a1a1a, #0a0a0a); 
-            border: 1px solid var(--pro-color); color: var(--pro-color); 
-            border-radius: 10px; cursor: pointer; 
-            font-size: 0.75rem; font-weight: bold; text-align: center; 
-            transition: 0.3s; letter-spacing: 1px;
-        }
-        .btn-upgrade-sidebar:hover { background: var(--pro-color); color: #000; box-shadow: 0 0 15px rgba(212, 175, 55, 0.3); }
-
-        /* ADMIN & SECURITY */
-        .admin-pass-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 1px solid var(--pro-color); padding: 40px; border-radius: 16px; z-index: 21000; display: none; text-align: center; box-shadow: 0 0 50px rgba(212, 175, 55, 0.2); width: 320px; }
-        .security-title { color: var(--pro-color); margin-bottom: 25px; font-weight: bold; letter-spacing: 3px; font-family: 'JetBrains Mono'; font-size: 1.1rem; }
-        .admin-key-input { background: #111; border: 1px solid #333; color: #fff; padding: 15px; border-radius: 8px; width: 100%; margin-bottom: 20px; text-align: center; font-family: inherit; outline: none; font-size: 1.1rem; }
-        .unlock-btn { background: #fff; color: #000; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 0.9rem; }
-        
-        .admin-section { border-bottom: 1px solid #222; padding-bottom: 20px; margin-bottom: 20px; }
-        .admin-input { width: 100%; background: #111; border: 1px solid #333; padding: 12px; border-radius: 8px; color: #fff; margin-bottom: 10px; text-align: center; font-family: 'JetBrains Mono'; outline: none; }
-        .admin-select { width: 100%; background: #111; color: #fff; border: 1px solid #333; padding: 12px; border-radius: 8px; margin-bottom: 15px; cursor: pointer; text-align: center; }
-        
-        .toggle-switch { width: 50px; height: 26px; background: #333; border-radius: 13px; position: relative; cursor: pointer; margin: 0 auto; transition: 0.3s; }
-        .toggle-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: 0.3s; }
-        .toggle-switch.active { background: var(--pro-color); }
-        .toggle-switch.active::after { transform: translateX(24px); }
-        .toggle-switch.admin-on { background: #fff; }
-
-        .legal-content { text-align: left; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.8rem; color: #aaa; max-height: 60vh; overflow-y: auto; line-height: 1.5; }
-        .small-modal { width: 90%; max-width: 340px; background: #080808; border: 1px solid var(--accent); border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); animation: zoomIn 0.3s ease; }
-        .popup-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 25000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
-        .popup-overlay.active { display: flex; }
-
         /* LAYOUT */
         #app { display: flex; width: 100%; height: 100%; flex-direction: row; }
         .sidebar { width: 280px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; position: relative; }
-        
         .logo { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 1.4rem; display: flex; align-items: center; gap: 8px; margin-bottom: 25px; }
-        .pro-badge-logo { font-size: 0.6rem; background: var(--pro-color); color: #000; padding: 2px 5px; border-radius: 4px; display: none; }
-        .pro-badge-logo.admin { background: #fff; color: #000; box-shadow: 0 0 10px rgba(255,255,255,0.8); display: inline-block !important; }
-        body.pro-enabled .pro-badge-logo { display: inline-block; }
-
         .btn-new-chat { width: 100%; padding: 12px; background: var(--frost); border: 1px solid #333; color: #fff; border-radius: 8px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px; -webkit-overflow-scrolling: touch; }
         .history-item { padding: 12px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; color: #aaa; display: flex; justify-content: space-between; }
         .history-item:hover { background: #1a1a1a; color: #fff; }
         .delete-btn { background: transparent; border: none; color: #444; cursor: pointer; padding: 0 10px; display: flex; opacity: 0; font-size: 1.2rem; }
         .history-item:hover .delete-btn { opacity: 1; }
-
         .sidebar-footer { margin-top: auto; padding-top: 15px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
         .user-profile { display: flex; align-items: center; gap: 10px; padding: 5px; user-select: none; }
-        
-        /* AVATARS */
         .user-avatar { width: 36px; height: 36px; background: #222; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 1px solid #333; transition: 0.3s; position: relative; z-index: 2; }
-        body.tier-pro .user-avatar { border-color: var(--pro-color); color: var(--pro-color); }
-        .user-avatar.ultra-mode { background: #1a0520; color: #fff; border: 1px solid #b026ff; animation: ultraPulse 2s infinite alternate; }
-        .user-avatar.admin-mode { background: #fff; color: #000; border: none; }
-        .user-avatar.admin-mode::before { content: ''; position: absolute; z-index: -1; top: -6px; left: -6px; right: -6px; bottom: -6px; background: linear-gradient(45deg, #ffffff, #e0e0e0); filter: blur(5px); opacity: 0.8; animation: adminTurbulence 3s linear infinite; }
-
         #userId { font-size: 0.7rem; color: #666; font-family: 'JetBrains Mono'; cursor: pointer; margin-top: 2px; }
         #userId:hover { color: var(--accent); }
-        .pro-timer { font-size: 0.65rem; color: var(--pro-color); font-family: 'JetBrains Mono'; margin-top: 4px; display: none; }
-        body.pro-enabled .pro-timer { display: block; }
         .footer-credit { font-size: 0.65rem; color: #444; text-align: center; font-family: 'JetBrains Mono'; margin-top: 5px; cursor: default; }
 
         /* MAIN CONTENT */
         .main-content { flex: 1; display: flex; flex-direction: column; background-color: var(--chat-bg); position: relative; width: 100%; height: 100%; }
-        
         .mobile-header { display: none; height: 60px; padding: 0 15px; border-bottom: 1px solid var(--border); align-items: center; justify-content: space-between; background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); position: absolute; top: 0; left: 0; width: 100%; z-index: 50; }
-        .top-bar-desktop { padding: 15px; display: flex; justify-content: center; position: absolute; top: 0; left: 0; right: 0; z-index: 10; pointer-events: none; }
-
-        .model-selector { background: #111; border: 1px solid #333; padding: 4px; border-radius: 8px; display: flex; gap: 4px; pointer-events: auto; }
-        .model-option { padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; color: #666; transition: 0.2s; font-weight: 500; }
-        .model-option.active { background: #333; color: #fff; }
-        .model-option.pro-active { background: rgba(212, 175, 55, 0.15); color: var(--pro-color); }
-        .model-option.locked { opacity: 0.5; cursor: not-allowed; position: relative; }
-        .model-option.locked::after { content: '🔒'; font-size: 0.7rem; position: absolute; top: -4px; right: -4px; }
+        .top-bar-desktop { padding: 15px; display: flex; justify-content: flex-end; position: absolute; top: 0; left: 0; right: 0; z-index: 10; pointer-events: none; }
+        .top-bar-desktop > * { pointer-events: auto; }
 
         #chat-stream { flex: 1; overflow-y: auto; padding: 80px 20px 20px 20px; scroll-behavior: auto; -webkit-overflow-scrolling: touch; }
         .message-container { max-width: 800px; margin: 0 auto 25px auto; display: flex; gap: 15px; animation: slideUp 0.3s ease forwards; }
         .avatar { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; transition: 0.5s; position: relative; z-index: 1; }
         .avatar.ai { background: #fff; color: #000; }
         .avatar.user { background: #222; color: #fff; }
-        
-        .avatar.ai.pro-mode { background: var(--pro-color); box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
-        .avatar.ai.ultra-mode { background: var(--ultra-color); color: #fff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.5); }
-        .avatar.ai.admin-mode { background: #fff; color: #000; animation: adminTurbulence 3s infinite alternate; }
 
         .input-wrapper { max-width: 800px; margin: 0 auto; width: 100%; padding: 15px; background: linear-gradient(to top, #000 80%, transparent); display: flex; flex-direction: column; z-index: 60; }
         .input-box { background: #111; border: 1px solid var(--border); border-radius: 14px; padding: 10px 14px; display: flex; align-items: flex-end; gap: 10px; transition: 0.2s; }
         .input-box:focus-within { border-color: var(--accent); box-shadow: 0 0 20px rgba(255,255,255,0.05); }
         textarea { width: 100%; background: transparent; border: none; color: white; font-family: inherit; font-size: 1rem; resize: none; outline: none; max-height: 120px; padding: 10px 0; line-height: 1.3; }
-        
         .file-preview { display: none; padding: 8px 12px; margin-bottom: 8px; background: #1a1a1a; border-radius: 8px; font-size: 0.8rem; color: #ccc; align-items: center; justify-content: space-between; max-width: 800px; margin: 0 auto 10px auto; border: 1px dashed #444; }
         .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 900; display: none; }
         .overlay.active { display: block; }
-        
-        /* === NEW: BUTTON PLUS AND ACTION MENU === */
-        .btn-plus {
-            background: transparent; border: 1px solid #444; color: #aaa;
-            border-radius: 50%; width: 30px; height: 30px;
-            font-size: 1.2rem; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; margin-bottom: 6px; transition: 0.2s;
-        }
-        .btn-plus:hover { color: #fff; border-color: #fff; background: #222; }
+        .burger-btn { background: none; border: none; color: #fff; cursor: pointer; padding: 5px; font-size: 1.5rem; }
 
-        .action-menu {
-            position: absolute; bottom: 60px; left: 15px;
-            background: #111; border: 1px solid #333; border-radius: 10px;
-            display: none; flex-direction: column; overflow: hidden;
-            z-index: 200; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            min-width: 160px;
-        }
+        /* BUTTON PLUS AND MENU */
+        .btn-plus { background: transparent; border: 1px solid #444; color: #aaa; border-radius: 50%; width: 30px; height: 30px; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 6px; transition: 0.2s; }
+        .btn-plus:hover { color: #fff; border-color: #fff; background: #222; }
+        .action-menu { position: absolute; bottom: 60px; left: 15px; background: #111; border: 1px solid #333; border-radius: 10px; display: none; flex-direction: column; overflow: hidden; z-index: 200; box-shadow: 0 10px 30px rgba(0,0,0,0.8); min-width: 160px; }
         .action-menu.active { display: flex; animation: slideUp 0.15s ease; }
-        
-        .action-item {
-            padding: 12px 15px; color: #ccc; font-size: 0.9rem; cursor: pointer;
-            display: flex; gap: 10px; align-items: center; border-bottom: 1px solid #222;
-        }
+        .action-item { padding: 12px 15px; color: #ccc; font-size: 0.9rem; cursor: pointer; display: flex; gap: 10px; align-items: center; border-bottom: 1px solid #222; }
         .action-item:last-child { border-bottom: none; }
         .action-item:hover { background: #222; color: #fff; }
-        .action-item i { width: 20px; text-align: center; color: var(--accent); }
-
-        /* Code Mode visual indicator */
         .code-mode-active .input-box { border-color: var(--success); box-shadow: 0 0 10px rgba(0,255,136,0.1); }
         .code-mode-active textarea { color: var(--success); }
 
-        .burger-btn { background: none; border: none; color: #fff; cursor: pointer; padding: 5px; font-size: 1.5rem; }
-
-        @media (max-width: 768px) {
-            .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 85%; transform: translateX(-100%); box-shadow: 5px 0 30px rgba(0,0,0,0.5); }
-            .sidebar.open { transform: translateX(0); }
-            .mobile-header { display: flex; }
-            .top-bar-desktop { display: none; }
-            #chat-stream { padding-top: 70px; padding-bottom: 80px; }
-            .modal-box { width: 95%; max-height: 85vh; padding: 20px; }
-        }
-    
-
-/* ===================================== */
-/* СЕЛЕКТОР МОДЕЛЕЙ С ФОТО */
-/* ===================================== */
-.model-selector-new {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.model-btn-custom {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    padding: 8px 16px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    color: #fff;
-    font-family: inherit;
-}
-
-.model-btn-custom:hover {
-    background: rgba(255,255,255,0.1);
-    border-color: rgba(255,255,255,0.3);
-    transform: translateY(-1px);
-}
-
-.model-avatar-img {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
-}
-
-.model-text-info {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-}
-
-.model-name-main {
-    font-size: 0.95em;
-    font-weight: 500;
-    color: #fff;
-}
-
-.model-name-short {
-    font-size: 0.9em;
-    color: #fff;
-}
-
-.model-cost-label {
-    font-size: 0.75em;
-    color: rgba(255,255,255,0.6);
-}
-
-/* ===================================== */
-/* МОДАЛЬНОЕ ОКНО */
-/* ===================================== */
-.flux-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(8px);
-    z-index: 99999;
-    align-items: center;
-    justify-content: center;
-    animation: fadeIn 0.2s ease;
-}
-
-.flux-modal.active {
-    display: flex !important;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.flux-modal-content {
-    background: #0a0a0a;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
-    width: 90%;
-    max-width: 650px;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-    animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-    from { transform: translateY(30px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-.flux-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 24px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-
-.flux-modal-header h2 {
-    color: #fff;
-    font-size: 1.4em;
-    font-weight: 600;
-    margin: 0;
-}
-
-.flux-close-btn {
-    background: none;
-    border: none;
-    color: rgba(255,255,255,0.6);
-    font-size: 2em;
-    cursor: pointer;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    transition: all 0.2s;
-    line-height: 1;
-}
-
-.flux-close-btn:hover {
-    background: rgba(255,255,255,0.1);
-    color: #fff;
-}
-
-.flux-search-box {
-    padding: 16px 24px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-
-.flux-search-box input {
-    width: 100%;
-    padding: 10px 14px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 6px;
-    color: #fff;
-    font-size: 0.95em;
-    font-family: inherit;
-    transition: all 0.2s;
-}
-
-.flux-search-box input::placeholder {
-    color: rgba(255,255,255,0.4);
-}
-
-.flux-search-box input:focus {
-    outline: none;
-    border-color: rgba(255,255,255,0.3);
-    background: rgba(255,255,255,0.08);
-}
-
-.flux-models-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px 24px;
-}
-
-.flux-models-list::-webkit-scrollbar {
-    width: 6px;
-}
-
-.flux-models-list::-webkit-scrollbar-track {
-    background: rgba(255,255,255,0.03);
-}
-
-.flux-models-list::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.2);
-    border-radius: 3px;
-}
-
-.flux-models-list::-webkit-scrollbar-thumb:hover {
-    background: rgba(255,255,255,0.3);
-}
-
-.loading-text {
-    text-align: center;
-    color: rgba(255,255,255,0.5);
-    padding: 40px;
-    font-size: 0.95em;
-}
-
-.model-group-title {
-    color: #fff;
-    font-size: 0.85em;
-    font-weight: 600;
-    margin: 16px 0 8px 0;
-    opacity: 0.6;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.model-group-title:first-child {
-    margin-top: 0;
-}
-
-/* КАРТОЧКА МОДЕЛИ С ФОТО */
-.flux-model-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.flux-model-card:hover {
-    background: rgba(255,255,255,0.08);
-    border-color: rgba(255,255,255,0.15);
-    transform: translateX(2px);
-}
-
-.flux-model-card.selected {
-    background: rgba(255,255,255,0.12);
-    border-color: rgba(255,255,255,0.25);
-}
-
-.flux-model-card.free-model {
-    border-left: 3px solid #4ade80;
-}
-
-.flux-model-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    object-fit: cover;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.15);
-    flex-shrink: 0;
-}
-
-.flux-model-details {
-    flex: 1;
-    min-width: 0;
-}
-
-.flux-model-name {
-    color: #fff;
-    font-size: 0.95em;
-    font-weight: 500;
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.flux-free-badge {
-    background: #4ade80;
-    color: #000;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.7em;
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
-.flux-model-provider {
-    color: rgba(255,255,255,0.5);
-    font-size: 0.8em;
-    margin-bottom: 6px;
-}
-
-.flux-model-costs {
-    display: flex;
-    gap: 12px;
-    font-size: 0.8em;
-}
-
-.flux-cost-item {
-    color: rgba(255,255,255,0.7);
-}
-
-.flux-cost-item.free {
-    color: #4ade80;
-}
-
-@media (max-width: 768px) {
-    .flux-modal-content {
-        width: 95%;
-        max-height: 90vh;
-    }
-
-    .model-avatar-img {
-        width: 28px;
-        height: 28px;
-    }
-
-    .flux-model-avatar {
-        width: 40px;
-        height: 40px;
-    }
-}
-
-</style>
+        /* CUSTOM MODAL & MODEL SELECTOR */
+        .modal-container { background: #0a0a0a; border: 1px solid #333; width: 90%; max-width: 600px; border-radius: 16px; padding: 20px; position: relative; max-height: 80vh; display: flex; flex-direction: column; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #222; padding-bottom: 10px; }
+        .modal-header h2 { margin: 0; color: #fff; font-size: 1.2rem; }
+        .modal-close { background: none; border: none; color: #666; font-size: 1.5rem; cursor: pointer; }
+        .modal-close:hover { color: #fff; }
+        .header-right-group { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        .tokens-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #fff; transition: all 0.3s; }
+        .tokens-btn:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
+        .model-btn-custom { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 8px 16px; cursor: pointer; transition: all 0.3s ease; color: #fff; font-family: inherit; }
+        .model-btn-custom:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); transform: translateY(-1px); }
+        .model-avatar-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
+        .model-text-info { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+        .model-name-main { font-size: 0.95em; font-weight: 500; color: #fff; }
+        .model-cost-label { font-size: 0.75em; color: rgba(255,255,255,0.6); }
+        .model-item { padding: 15px; margin-bottom: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 0.3s; }
+        .model-item:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); transform: translateX(5px); }
+        .model-item.active { background: rgba(102,126,234,0.2); border-color: #667eea; }
+        .model-name { color: #fff; font-weight: 600; font-size: 1.1em; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .model-info { color: rgba(255,255,255,0.6); font-size: 0.85em; }
+        .model-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.75em; font-weight: 600; }
+        .badge-free { background: rgba(74,222,128,0.2); color: #4ade80; }
+        .badge-paid { background: rgba(251,191,36,0.2); color: #fbbf24; }
+    </style>
 </head>
 <body>
 
@@ -586,115 +188,31 @@
         <div class="splash-credit">BY 1XCODE</div>
     </div>
 
-    <div class="modal-overlay" id="pricingModal">
-        <div class="modal-box">
-            <button class="close-btn" onclick="document.getElementById('pricingModal').classList.remove('active')">✕</button>
-            <h3 style="color: #fff; margin-bottom: 20px;">ТАРИФЫ FLUX</h3>
-            
-            <div class="pricing-container">
-                <div class="price-card pc-free">
-                    <div class="price-title">FREE</div>
-                    <ul class="price-features">
-                        <li>3 запроса/час</li>
-                        <li>1 анализ фото</li>
-                        <li>Стандарт скорость</li>
-                    </ul>
-                    <div class="price-badge">Ваш тариф</div>
-                </div>
-                <div class="price-card pc-pro">
-                    <div class="price-title">PRO</div>
-                    <ul class="price-features">
-                        <li>100 запросов/час</li>
-                        <li>50 фото/час</li>
-                        <li>Модель v66 Pro</li>
-                    </ul>
-                    <div class="price-badge">199₽</div>
-                </div>
-                <div class="price-card pc-ultra">
-                    <div class="price-title">ULTRA</div>
-                    <ul class="price-features">
-                        <li>500 запросов/час</li>
-                        <li>500 фото/час</li>
-                        <li>Модель Flux MAX</li>
-                    </ul>
-                    <div class="price-badge">499₽</div>
-                </div>
+    <div id="tokensModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>💎 Пополнение токенов</h2>
+                <button class="modal-close" onclick="closeTokensModal()">&times;</button>
             </div>
-
-            <div class="key-input-section">
-                <div style="font-size:0.8rem; color:#aaa; margin-bottom:10px;">Активация ключа доступа:</div>
-                <input type="text" id="licenseKey" class="key-input" placeholder="Введите ключ (PRO-XXX)">
-                <button class="auth-btn" style="background:var(--accent); color:#000;" onclick="activateKey()">🚀 АКТИВИРОВАТЬ</button>
-                <div style="margin-top:10px; font-size:0.7rem; color:#666;">
-                    Приобрести ключ: <a href="shop.html" target="_blank" style="color:var(--accent); font-weight: bold; text-decoration: underline;">Купить онлайн (Flux Shop)</a>
-                </div>
+            <div style="text-align:center;padding:20px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:20px;">
+                <div style="color:rgba(255,255,255,0.6);margin-bottom:8px;">Текущий баланс:</div>
+                <div id="currentBalance" style="color:#fff;font-size:1.8em;font-weight:700;">0 токенов</div>
             </div>
+            <input type="text" id="activationCodeInput" placeholder="Введите промокод" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;margin-bottom:10px;">
+            <button id="activateCodeBtn" style="width:100%;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;">✨ Активировать</button>
+            <div id="activationResultMsg" style="display:none;padding:12px;margin-top:10px;border-radius:6px;text-align:center;"></div>
         </div>
     </div>
 
-    <div class="admin-pass-popup" id="adminPassPopup">
-        <div class="security-title">/// SECURITY CHECK ///</div>
-        <input type="password" id="adminKey" class="admin-key-input" placeholder="Admin Key">
-        <button class="unlock-btn" onclick="verifyAdmin()">UNLOCK</button>
-    </div>
-
-    <div class="modal-overlay" id="adminModal">
-        <div class="modal-box">
-            <button class="close-btn" onclick="closeAdmin()">✕</button>
-            <div style="font-family: 'JetBrains Mono'; color: var(--success); font-weight: bold; margin-bottom: 20px;">АДМИН ПАНЕЛЬ</div>
-            
-            <div class="admin-section">
-                <span style="color: #888; font-size: 0.7rem; display: block; margin-bottom: 10px;">МОЙ СТАТУС</span>
-                <div style="display: flex; justify-content: center; align-items: center; gap: 15px;">
-                    <span style="color: #ccc;">PRO</span>
-                    <div class="toggle-switch" id="proToggle" onclick="togglePro()"></div>
-                </div>
-                <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top:10px;">
-                    <span style="color: #fff; font-weight:bold;">ADMIN</span>
-                    <div class="toggle-switch" id="adminToggle" onclick="toggleAdmin()"></div>
-                </div>
+    <div id="modelModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>🤖 Выбор модели</h2>
+                <button class="modal-close" onclick="closeModelModal()">&times;</button>
             </div>
-
-            <div class="admin-section">
-                <span style="color: #888; font-size: 0.7rem; display: block; margin-bottom: 10px;">ВЫДАЧА ПРАВ</span>
-                <input type="text" id="targetUID" class="admin-input" placeholder="UID Пользователя">
-                <select id="grantType" class="admin-select">
-                    <option value="PRO">PRO</option>
-                    <option value="ULTRA">ULTRA</option>
-                </select>
-                <button class="unlock-btn" style="background:#222; border:1px solid #444; color:#fff;" onclick="grantSubscription()">ВЫДАТЬ</button>
+            <div class="modal-body" style="max-height:500px;overflow-y:auto;">
+                <div id="modelsList"></div>
             </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="legalModal">
-        <div class="modal-box" style="text-align: left; max-width: 600px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
-                <h3 style="color: var(--accent); margin:0;">Пользовательское Соглашение</h3>
-                <button class="close-btn" style="position:static;" onclick="document.getElementById('legalModal').classList.remove('active')">✕</button>
-            </div>
-            <div class="legal-content" id="kilometerText"></div>
-        </div>
-    </div>
-
-    <div class="popup-overlay" id="disclaimerPopup">
-        <div class="small-modal">
-            <h2 style="font-size: 3rem; margin: 0 0 10px 0;">🎄</h2>
-            <h3 style="color: var(--accent); margin-bottom: 15px;">Flux AI Update</h3>
-            <p style="color: #aaa; font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px;">
-                Node: 1xCode.
-            </p>
-            <button class="auth-btn" style="width: 100%; padding: 10px;" onclick="acceptDisclaimer()">ПРИНЯТЬ</button>
-        </div>
-    </div>
-
-    <div id="maint-screen">
-        <div class="maint-panel">
-            <div class="maint-icon" onclick="secretUnblock()">⚠️</div>
-            <div class="maint-title">ТЕХНИЧЕСКИЕ РАБОТЫ</div>
-            <div class="maint-text">Сервер временно недоступен.</div>
-            <div class="maint-timer" id="maintTimer">00:00:00</div>
-            <button class="unlock-btn" onclick="location.reload()" style="margin-top:20px;">ОБНОВИТЬ</button>
         </div>
     </div>
 
@@ -709,18 +227,13 @@
             <div class="history-list" id="historyList"></div>
             <div class="sidebar-footer">
                 <button onclick="localStorage.clear();location.reload();" style="background:none; border:none; color:#666; cursor:pointer; font-size: 0.8rem; text-align: left;">🗑 Сброс данных</button>
-                
                 <div class="user-profile">
                     <div class="user-avatar" id="myAvatar">U</div>
                     <div class="user-info">
                         <div style="font-size:0.9rem;" id="userName">Гость</div>
                         <div style="font-size:0.65rem; color:#666; font-family: 'JetBrains Mono';" id="userId" onclick="copyID()">UID...</div>
-                        <div class="pro-timer" id="subTimer"></div>
                     </div>
                 </div>
-
-                
-
                 <div class="footer-credit" id="secretTrigger">CREATED BY <span>1XCODE</span></div>
             </div>
         </aside>
@@ -730,11 +243,10 @@
                 <button class="burger-btn" onclick="toggleSidebar(true)">☰</button>
                 <div class="header-right-group">
                     <button class="tokens-btn" id="tokensBtnMob" onclick="openTokensModal()">
-                        <span class="token-icon">💎</span>
-                        <span class="token-count" id="tokenCountMob">0</span>
+                        <span class="token-icon">💎</span> <span class="token-count" id="tokenCountMob">0</span>
                     </button>
                     <button class="model-btn-custom" id="mobModelBtn" onclick="openModelModal()">
-                        <img class="model-avatar-img" id="mobModelAvatar" src="https://api.dicebear.com/7.x/shapes/svg?seed=ai" alt="">
+                        <img class="model-avatar-img" id="mobModelAvatar" src="" alt="">
                         <span class="model-name-short" id="mobModelName">Выбрать</span>
                     </button>
                 </div>
@@ -743,11 +255,10 @@
             <div class="top-bar-desktop">
                 <div class="header-right-group">
                     <button class="tokens-btn" id="tokensBtnDesk" onclick="openTokensModal()">
-                        <span class="token-icon">💎</span>
-                        <span class="token-count" id="tokenCountDesk">0</span>
+                        <span class="token-icon">💎</span> <span class="token-count" id="tokenCountDesk">0</span>
                     </button>
                     <button class="model-btn-custom" id="deskModelBtn" onclick="openModelModal()">
-                        <img class="model-avatar-img" id="deskModelAvatar" src="https://api.dicebear.com/7.x/shapes/svg?seed=ai" alt="">
+                        <img class="model-avatar-img" id="deskModelAvatar" src="" alt="">
                         <div class="model-text-info">
                             <span class="model-name-main" id="deskModelName">Выберите модель</span>
                             <span class="model-cost-label" id="deskModelCost">-</span>
@@ -759,7 +270,7 @@
             <div id="chat-stream">
                 <div class="message-container">
                     <div class="avatar ai">◈</div>
-                    <div class="message-text">Система готова. Тариф: <span id="introTier">FREE</span> 🎄</div>
+                    <div class="message-text">Система готова. Выберите модель и начните чат! 🎄</div>
                 </div>
             </div>
 
@@ -770,15 +281,10 @@
                     <div style="position: relative;">
                         <button class="btn-plus" onclick="toggleActionMenu()">+</button>
                         <div class="action-menu" id="actionMenu">
-                            <div class="action-item" onclick="triggerFileUpload()">
-                                <i class="fas fa-image"></i> Загрузить фото
-                            </div>
-                            <div class="action-item" onclick="toggleCodeMode()">
-                                <i class="fas fa-code"></i> Flux Coder
-                            </div>
+                            <div class="action-item" onclick="triggerFileUpload()"><i class="fas fa-image"></i> Загрузить фото</div>
+                            <div class="action-item" onclick="toggleCodeMode()"><i class="fas fa-code"></i> Flux Coder</div>
                         </div>
                     </div>
-
                     <input type="file" id="fileIn" style="display:none" onchange="handleFile(this)">
                     <textarea id="userInput" rows="1" placeholder="Сообщение..." oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
                     <button class="auth-btn" style="margin:0; padding:0; width:35px; height:35px;" onclick="sendMsg()">→</button>
@@ -791,238 +297,94 @@
     </div>
 
     <script type="module">
-        const PASS_HASH = "Zmx1eDIwMjU="; 
-        
+        // ИСПРАВЛЕННЫЙ URL ДЛЯ VERCEL:
+        const API_URL = '/api'; 
+
         let chats = JSON.parse(localStorage.getItem('chats_v57') || '[]');
-        let currentTier = localStorage.getItem('flux_tier') || 'FREE';
-        let myUID = localStorage.getItem('myUID');
+        let myUID = localStorage.getItem('myUID') || 'u-' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('myUID', myUID);
         let activeId = null;
         let currFile = null;
-        let clicks = 0;
-        let maintClicks = 0;
-        let isCodeMode = false; // Состояние режима кодера
+        let isCodeMode = false;
+
+        const PROMO_CODES = {'FREE500':500,'PREMIUM10K':10000,'VIP':50000};
+        const MODELS=[
+            {id:'mistralai/mistral-7b-instruct:free',name:'Mistral 7B',provider:'Mistral AI',siteFree:true,vision:false,cost:0},
+            {id:'google/gemma-2-9b-it:free',name:'Gemma 2 9B',provider:'Google',siteFree:true,vision:false,cost:0},
+            {id:'meta-llama/llama-3.2-11b-vision-instruct:free',name:'Llama 3.2 11B',provider:'Meta',siteFree:true,vision:true,cost:0},
+            {id:'meta-llama/llama-3.3-70b-instruct:free',name:'Llama 3.3 70B',provider:'Meta',siteFree:false,vision:false,cost:100},
+            {id:'qwen/qwen-2.5-coder-32b-instruct:free',name:'Qwen 2.5 Coder',provider:'Qwen',siteFree:false,vision:false,cost:80},
+            {id:'google/gemini-2.0-flash-exp:free',name:'Gemini 2.0 Flash',provider:'Google',siteFree:false,vision:true,cost:150}
+        ];
+        let currentModel=MODELS[0];
+
+        function getBalance(){return parseInt(localStorage.getItem('userTokens')||'0')}
+        function setBalance(amount){localStorage.setItem('userTokens',amount.toString())}
+        function updateBalanceDisplay(){
+            const bal=getBalance();
+            ['tokenCountMob','tokenCountDesk'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerText=bal});
+            const cur=document.getElementById('currentBalance');if(cur)cur.innerText=bal+' токенов';
+        }
+
+        window.openTokensModal=function(){document.getElementById('tokensModal').classList.add('active');updateBalanceDisplay()}
+        window.closeTokensModal=function(){document.getElementById('tokensModal').classList.remove('active')}
         
-        let isPro = (currentTier === 'PRO' || currentTier === 'ULTRA');
-        let isAdmin = (currentTier === 'ADMIN');
-        let proExpiry = parseInt(localStorage.getItem('proExpiry_v57') || '0');
-
-        function createSnow() {
-            const c = document.getElementById('snow-container');
-            if(!c) return;
-            for(let i=0; i<30; i++) {
-                const s = document.createElement('div');
-                s.className = 'snowflake';
-                s.style.left = Math.random() * 100 + 'vw';
-                s.style.width = Math.random() * 3 + 2 + 'px';
-                s.style.height = s.style.width;
-                s.style.animationDuration = Math.random() * 3 + 5 + 's';
-                c.appendChild(s);
-            }
-        }
-
-        if (!myUID) { 
-            myUID = 'u-' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('myUID', myUID);
-        }
-
-        
-// ✅ СОХРАНЕНИЕ БЕЗ base64 фото
-function saveChats() {
-    try {
-        // УДАЛЯЕМ base64 перед сохранением!
-        const chatsToSave = chats.map(chat => ({
-            ...chat,
-            msgs: chat.msgs.map(msg => {
-                if (msg.file && msg.file.data) {
-                    // НЕ сохраняем base64!
-                    return { ...msg, file: { name: msg.file.name, type: msg.file.type } };
-                }
-                return msg;
-            })
-        }));
-
-        localStorage.setItem('chats' + STORAGE_VERSION, JSON.stringify(chatsToSave));
-    } catch (e) {
-        console.error('⚠️ Ошибка сохранения:', e);
-        // Если переполнение - удаляем старые
-        if (chats.length > 10) {
-            chats = chats.slice(0, 10);
-            console.log('🗑️ Удалены старые чаты (оставлено 10)');
-            saveChats();
-        }
-    }
-}
-
-// ✅ СЖАТИЕ ФОТО 5MB → 150KB!
-async function compressImage(file, maxSize = 1024, quality = 0.85) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-
-        reader.onload = (e) => {
-            const img = new Image();
-
-            img.onload = () => {
-                let width = img.width;
-                let height = img.height;
-
-                // Уменьшаем до 1024x1024
-                if (width > maxSize || height > maxSize) {
-                    if (width > height) {
-                        height = (height / width) * maxSize;
-                        width = maxSize;
-                    } else {
-                        width = (width / height) * maxSize;
-                        height = maxSize;
-                    }
-                }
-
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                // JPEG 85% качество
-                const compressed = canvas.toDataURL('image/jpeg', quality);
-                resolve(compressed);
-            };
-
-            img.onerror = () => reject(new Error('Не удалось загрузить изображение'));
-            img.src = e.target.result;
-        };
-
-        reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
-        reader.readAsDataURL(file);
-    });
-}
-
-window.onload = async () => {
-            document.getElementById('userId').innerText = "UID: " + myUID;
-            generateLegalText();
-            createSnow();
-            
-            setTimeout(() => { document.getElementById('splash-screen').classList.add('hidden'); }, 3000);
-
-            // Close menu on click outside
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.btn-plus') && !e.target.closest('.action-menu')) {
-                    document.getElementById('actionMenu').classList.remove('active');
-                }
+        window.openModelModal=function(){
+            document.getElementById('modelModal').classList.add('active');
+            const list=document.getElementById('modelsList');
+            let html='';
+            MODELS.forEach(m => {
+                const active = currentModel.id === m.id ? 'active' : '';
+                const cost = m.siteFree ? 'FREE' : `💎 ${m.cost}`;
+                html += `<div class="model-item ${active}" onclick="selectModel('${m.id}')">
+                            <div class="model-name">${m.name} <span class="model-badge badge-free">${cost}</span></div>
+                            <div class="model-info">${m.provider}</div>
+                         </div>`;
             });
-
-            // MAINT CHECK
-            try {
-                const res = await fetch('/api/status');
-                const d = await res.json();
-                if(d.status==='maintenance'){
-                    document.getElementById('maint-screen').classList.add('active');
-                    document.getElementById('splash-screen').style.display='none';
-                    return;
-                }
-            } catch(e){}
-
-            const mEnd = parseInt(localStorage.getItem('maintEnd_v57')||'0');
-            if(mEnd > Date.now()) {
-                document.getElementById('maint-screen').classList.add('active');
-                setInterval(()=>{
-                    const left=mEnd-Date.now();
-                    if(left<=0) location.reload();
-                    const h=Math.floor(left/3600000).toString().padStart(2,'0');
-                    const m=Math.floor((left%3600000)/60000).toString().padStart(2,'0');
-                    document.getElementById('maintTimer').innerText = `${h}:${m}`;
-                },1000);
-            }
-
-            if(!localStorage.getItem('disc_v57')) document.getElementById('disclaimerPopup').classList.add('active');
-            
-            checkProStatus();
-            setInterval(checkProStatus, 1000);
-            updateStatusUI(); 
-            
-            if(chats.length > 0) {
-                chats.sort((a,b) => b.ts - a.ts);
-                loadChat(chats[0].id);
-            } else {
-                renderHistory();
-            }
-        };
-
-        window.activateKey = async function() {
-            const key = document.getElementById('licenseKey').value.trim();
-            if(!key) return;
-            try {
-                const res = await fetch('/api/activate-key', {
-                    method: 'POST',
-                    headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({ key, uid: myUID })
-                });
-                const data = await res.json();
-                if(data.status === 'success') {
-                    if (data.tier === 'PRO' || data.tier === 'ULTRA') {
-                        currentTier = data.tier;
-                        isPro = true;
-                        localStorage.setItem('isPro_v57', 'true');
-                        localStorage.setItem('flux_tier', currentTier);
-                    }
-                    proExpiry = 5000000000000; 
-                    localStorage.setItem('proExpiry_v57', proExpiry);
-                    updateStatusUI();
-                    document.getElementById('pricingModal').classList.remove('active');
-                    alert(`✅ ACTIVATED: ${data.tier}!`);
-                } else {
-                    alert("❌ Invalid Key");
-                }
-            } catch(e) { alert("Server Error"); }
+            list.innerHTML=html;
         }
-
-        window.activateMaintenance = function() {
-            const hours = parseInt(document.getElementById('maintTime').value);
-            const endTime = Date.now() + (hours * 60 * 60 * 1000);
-            localStorage.setItem('maintEnd_v57', endTime.toString());
-            location.reload();
-        }
-
-        window.secretUnblock = function() {
-            maintClicks++;
-            if(maintClicks === 5) {
-                if(confirm("АДМИН: Снять блокировку?")) {
-                    localStorage.setItem('maintEnd_v57', '0');
-                    location.reload();
-                }
-                maintClicks = 0;
+        window.closeModelModal=function(){document.getElementById('modelModal').classList.remove('active')}
+        window.selectModel=function(id){
+            const m = MODELS.find(x=>x.id===id);
+            if(m){
+                if(!m.siteFree && getBalance()<m.cost){ alert('Недостаточно токенов!'); openTokensModal(); return; }
+                currentModel=m; 
+                document.getElementById('mobModelName').innerText = m.name;
+                document.getElementById('deskModelName').innerText = m.name;
+                closeModelModal();
             }
         }
 
-        // --- ACTION MENU FUNCTIONS ---
-        window.toggleActionMenu = function() {
-            document.getElementById('actionMenu').classList.toggle('active');
+        // --- CORE CHAT LOGIC ---
+        window.onload = () => {
+            document.getElementById('userId').innerText = "UID: " + myUID;
+            updateBalanceDisplay();
+            selectModel(currentModel.id);
+            createSnow();
+            setTimeout(()=>document.getElementById('splash-screen').style.display='none', 2000);
+            if(chats.length) { chats.sort((a,b)=>b.ts-a.ts); loadChat(chats[0].id); }
         }
 
-        window.triggerFileUpload = function() {
-            document.getElementById('fileIn').click();
-            document.getElementById('actionMenu').classList.remove('active');
-        }
-
-        window.toggleCodeMode = function() {
+        window.toggleActionMenu = () => document.getElementById('actionMenu').classList.toggle('active');
+        window.triggerFileUpload = () => { document.getElementById('fileIn').click(); toggleActionMenu(); }
+        window.toggleCodeMode = () => {
             isCodeMode = !isCodeMode;
-            const wrap = document.getElementById('inputWrapper');
             const area = document.getElementById('userInput');
-            
-            if(isCodeMode) {
-                document.body.classList.add('code-mode-active');
-                area.placeholder = "Flux Coder: Опишите задачу для кода...";
-            } else {
-                document.body.classList.remove('code-mode-active');
-                area.placeholder = "Сообщение...";
-            }
-            document.getElementById('actionMenu').classList.remove('active');
+            if(isCodeMode) { document.body.classList.add('code-mode-active'); area.placeholder="Flux Coder Mode..."; }
+            else { document.body.classList.remove('code-mode-active'); area.placeholder="Сообщение..."; }
+            toggleActionMenu();
         }
 
-        window.sendMsg = async function() {
-            const inp = document.getElementById('userInput');
-            const txt = inp.value.trim();
+        window.sendMsg = async () => {
+            const txt = document.getElementById('userInput').value.trim();
             if(!txt && !currFile) return;
+            
+            // Check tokens
+            if(!currentModel.siteFree) {
+                if(getBalance() < currentModel.cost) { alert('Нужны токены!'); openTokensModal(); return; }
+                setBalance(getBalance() - currentModel.cost);
+                updateBalanceDisplay();
+            }
 
             if(!activeId) {
                 const nid = Date.now();
@@ -1030,291 +392,75 @@ window.onload = async () => {
                 activeId = nid;
             }
             const c = chats.find(x=>x.id===activeId);
-            c.ts = Date.now(); 
             c.msgs.push({role:'user', text:txt, file:currFile});
-            appendMsg('user', txt, currFile, false);
+            appendMsg('user', txt, currFile);
             
-            // Sending 'mode' for server
-            const payload = { 
-                message: txt, 
-                file: currFile ? currFile.data : null, 
-                tier: currentTier, 
+            const payload = {
+                message: txt,
+                file: currFile ? currFile.data : null,
                 uid: myUID,
-                mode: isCodeMode ? 'code' : 'general' 
+                model: currentModel.id,
+                mode: isCodeMode ? 'code' : 'general'
             };
-            
-            inp.value=''; currFile=null;
+
+            document.getElementById('userInput').value=''; currFile=null;
             document.getElementById('filePreview').style.display='none';
-            document.getElementById('fileIn').value='';
-            localStorage.setItem('chats_v57', JSON.stringify(chats));
             renderHistory();
 
             const aiDiv = appendMsg('ai', '', null, true);
             const textEl = aiDiv.querySelector('.message-text');
             textEl.classList.add('typing');
 
-            const stream = document.getElementById('chat-stream');
-            stream.scrollTop = stream.scrollHeight;
-
             try {
-                const response = await fetch('/api/chat', { 
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                const res = await fetch(API_URL + '/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                textEl.classList.remove('typing');
+                textEl.innerHTML = marked.parse(data.reply);
+                // Add Copy Button to Code Blocks
+                textEl.querySelectorAll('pre code').forEach((block) => {
+                    const pre = block.parentElement;
+                    const header = document.createElement('div');
+                    header.className = 'code-header';
+                    header.innerHTML = `<span>Code</span> <button class="copy-code-btn" onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)">📋 Copy</button>`;
+                    pre.insertBefore(header, block);
                 });
                 
-                const data = await response.json();
-                let ans = data.reply || "Ошибка сервера";
-
-                textEl.classList.remove('typing'); 
-                textEl.innerHTML = marked.parse(ans);
-                renderMathInElement(textEl, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}] });
-
-                c.msgs.push({role:'ai', text:ans});
+                c.msgs.push({role:'ai', text:data.reply});
                 localStorage.setItem('chats_v57', JSON.stringify(chats));
-
-            } catch (error) {
-                textEl.innerText = "Ошибка соединения.";
-                textEl.classList.remove('typing');
+            } catch(e) {
+                textEl.innerText = "Ошибка: " + e.message;
             }
         }
 
-        window.appendMsg = function(role, text, file, anim) {
-            const s = document.getElementById('chat-stream');
+        window.appendMsg = (role, text, file, anim) => {
             const d = document.createElement('div'); d.className='message-container';
-            let fh = '';
-            if(file) fh = `<div>📄 ${file.name}</div>`;
-            
-            // Проверка на админа для аватарки
-            let ac = 'avatar ';
-            if (role === 'user') ac += 'user';
-            else {
-                ac += 'ai';
-                if (currentTier === 'PRO') ac += ' pro-mode';
-                if (currentTier === 'ULTRA') ac += ' ultra-mode';
-                if (currentTier === 'ADMIN') ac += ' admin-mode';
-            }
-
+            let fh = file ? `<div>📄 ${file.name}</div>` : '';
             let content = anim ? `<div class="message-text typing"></div>` : `<div class="message-text">${marked.parse(text)}</div>`;
-            d.innerHTML = `<div class="${ac}">${role==='user'?'U':'◈'}</div><div>${fh}${content}</div>`;
-            s.appendChild(d); 
-            if(!anim && role === 'ai') renderMathInElement(d);
-            s.scrollTop = s.scrollHeight;
+            d.innerHTML = `<div class="avatar ${role}">${role==='user'?'U':'◈'}</div><div>${fh}${content}</div>`;
+            document.getElementById('chat-stream').appendChild(d);
+            // Render Math
+            if(!anim && role==='ai') renderMathInElement(d);
+            // Render Code Copy
+            if(!anim && role==='ai') {
+                d.querySelectorAll('pre code').forEach((block) => {
+                    const pre = block.parentElement;
+                    if(!pre.querySelector('.code-header')) {
+                        const header = document.createElement('div');
+                        header.className = 'code-header';
+                        header.innerHTML = `<span>Code</span> <button class="copy-code-btn" onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.innerText)">📋 Copy</button>`;
+                        pre.insertBefore(header, block);
+                    }
+                });
+            }
             return d;
         }
 
-        function checkProStatus() {
-            if (isAdmin) {
-                document.getElementById('subTimer').innerText = "GOD MODE";
-                currentTier = 'ADMIN';
-                return;
-            }
-            if (!isPro) {
-                document.getElementById('subTimer').innerText = "";
-                currentTier = 'FREE';
-                return;
-            }
-            const now = Date.now();
-            const left = proExpiry - now;
-            
-            if(proExpiry > 4000000000000) { 
-                document.getElementById('subTimer').innerText = "БЕССРОЧНО"; 
-                return; 
-            }
-            
-            if (left <= 0) {
-                isPro = false;
-                localStorage.setItem('isPro_v57', 'false');
-                currentTier = 'FREE';
-                updateStatusUI();
-                alert("⏳ PRO истек.");
-            } else {
-                const days = Math.floor(left / 86400000);
-                document.getElementById('subTimer').innerText = `Ост: ${days}д`;
-            }
-        }
-
-        window.copyID = function() {
-            navigator.clipboard.writeText(myUID);
-            alert("UID Copied");
-        }
-
-        window.acceptDisclaimer = function() {
-            localStorage.setItem('disc_v57', 'true');
-            document.getElementById('disclaimerPopup').classList.remove('active');
-        }
-
-        document.getElementById('secretTrigger').onclick = () => {
-            clicks++;
-            if(clicks===7) { 
-                document.getElementById('adminPassPopup').style.display='block'; 
-                clicks=0; 
-            }
-        };
-
-        window.verifyAdmin = function() {
-            if(btoa(document.getElementById('adminKey').value)===PASS_HASH) {
-                document.getElementById('adminPassPopup').style.display='none';
-                document.getElementById('adminModal').classList.add('active');
-                if(isPro) document.getElementById('proToggle').classList.add('active');
-                if(isAdmin) document.getElementById('adminToggle').classList.add('active', 'admin-on');
-            } else alert('⛔️ Доступ запрещен');
-        }
-
-        window.grantSubscription = function() {
-            let uid = document.getElementById('targetUID').value.trim();
-            const dur = document.getElementById('proDuration').value; // игнор в демо, всегда perm
-            const type = document.getElementById('grantType').value;
-            
-            if(uid === "" || uid === myUID) {
-                let add = 0;
-                // Всегда выдаем вечный для теста
-                if(dur) add=5000000000000;
-
-                isPro = true;
-                currentTier = type;
-                proExpiry = Date.now() + add;
-                localStorage.setItem('isPro_v57', 'true');
-                localStorage.setItem('flux_tier', type);
-                localStorage.setItem('proExpiry_v57', proExpiry.toString());
-                updateStatusUI();
-                alert(`✅ ${type} выдан локально!`);
-            } else {
-                alert(`❌ В "No DB" режиме можно выдать только себе.`);
-            }
-            checkProStatus();
-        }
-
-        window.togglePro = function() {
-            if(currentTier === 'PRO') { currentTier = 'FREE'; isPro = false; } 
-            else { currentTier = 'PRO'; isPro = true; proExpiry = 5000000000000; }
-            localStorage.setItem('flux_tier', currentTier);
-            localStorage.setItem('isPro_v57', isPro);
-            localStorage.setItem('proExpiry_v57', proExpiry);
-            updateStatusUI();
-        }
-
-        window.toggleAdmin = function() {
-            isAdmin = !isAdmin;
-            localStorage.setItem('isAdmin_v57', isAdmin);
-            if(isAdmin) currentTier = 'ADMIN'; else currentTier = isPro ? 'PRO' : 'FREE';
-            
-            const btn = document.getElementById('adminToggle');
-            if(isAdmin) btn.classList.add('active', 'admin-on'); else btn.classList.remove('active', 'admin-on');
-            
-            updateStatusUI();
-            checkProStatus();
-        }
-
-        window.closeAdmin = function() { document.getElementById('adminModal').classList.remove('active'); }
-
-        window.generateLegalText = function() {
-             const text = `ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (РЕДАКЦИЯ 2025)\n\n1. ОБЩИЕ ПОЛОЖЕНИЯ (1xCode)\n...\n(ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ (РЕДАКЦИЯ 2025)
-
-1. ОБЩИЕ ПОЛОЖЕНИЯ
-
-1.1. Настоящее Соглашение регулирует отношения между разработчиком (1xCodeTeam) и пользователем сервиса Flux AI.
-
-1.2. Используя сервис, вы безоговорочно принимаете условия данного соглашения.
-
-2. ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ
-
-2.1. Сервис предоставляется на условиях "как есть". Разработчик не гарантирует безошибочную работу алгоритмов AI.
-
-2.2. Пользователь осознает, что ответы нейросети могут содержать неточности.
-
-3. КОНФИДЕНЦИАЛЬНОСТЬ И БЕЗОПАСНОСТЬ
-
-3.1. Все данные чатов передаются по защищенному протоколу.
-
-3.2. Ваш уникальный идентификатор (UID) является ключом доступа к истории.
-
-4. PRO-ДОСТУП
-
-4.1. Статус PRO является добровольным пожертвованием.
-
-4.2. PRO-статус предоставляет доступ к приоритетной очереди и расширенным моделям.
-
-Дата последнего обновления: 01.01.2025)`;
-             document.getElementById('kilometerText').innerText = text;
-        }
-        window.openLegal = function() { document.getElementById('legalModal').classList.add('active'); }
-
-        window.renderHistory = function() {
-            const l = document.getElementById('historyList'); l.innerHTML='';
-            chats.forEach(c => {
-                const i = document.createElement('div');
-                i.className = `history-item ${activeId===c.id?'active':''}`;
-                i.innerHTML = `<span class="chat-title">${c.title}</span> <button class="delete-btn" onclick="delChat(event,${c.id})">✕</button>`;
-                i.onclick = (e) => { if(e.target.tagName!=='BUTTON') loadChat(c.id); };
-                l.appendChild(i);
-            });
-        }
-        window.startNewChat = function() { activeId=null; document.getElementById('chat-stream').innerHTML=`<div class="message-container"><div class="avatar ai">◈</div><div class="message-text">Система готова. Тариф: <span id="introTier">FREE</span> 🎄</div></div>`; renderHistory(); if(window.innerWidth<768) toggleSidebar(false); }
-        window.loadChat = function(id) { 
-            const c=chats.find(x=>x.id===id); 
-            if(c){ 
-                activeId=id; 
-                const s = document.getElementById('chat-stream');
-                s.innerHTML = '';
-                c.msgs.forEach(m => appendMsg(m.role, m.text, m.file, false));
-                renderHistory(); 
-                if(window.innerWidth<768) toggleSidebar(false); 
-            } 
-        }
-        
-        window.delChat = function(e,id) { 
-            e.stopPropagation(); 
-            if(confirm('Удалить чат?')){ 
-                chats=chats.filter(x=>x.id!==id); 
-                localStorage.setItem('chats_v57', JSON.stringify(chats)); 
-                if(activeId===id) startNewChat(); 
-                else renderHistory(); 
-            } 
-        }
-        
-        window.updateStatusUI = function() {
-            const b = document.body; 
-            const btns = ['deskPro','mobPro'];
-            const badge = document.querySelector('.pro-badge-logo');
-            const avatar = document.getElementById('myAvatar');
-            const intro = document.getElementById('introTier');
-
-            // Сброс
-            b.classList.remove('pro-enabled', 'admin-enabled');
-            if(badge) {
-                badge.style.display = 'none';
-                badge.classList.remove('admin');
-            }
-            avatar.style.borderColor = "#333";
-            avatar.style.color = "#fff";
-            avatar.classList.remove('admin-mode', 'ultra-mode');
-            if(intro) intro.innerText = currentTier;
-
-            if (isAdmin) {
-                b.classList.add('admin-enabled');
-                if(badge) { badge.innerText = "ADMIN"; badge.classList.add('admin'); badge.style.display = 'inline-block'; }
-                avatar.classList.add('admin-mode');
-                btns.forEach(x => document.getElementById(x).classList.remove('locked'));
-            } else if (currentTier === 'ULTRA') {
-                b.classList.add('pro-enabled');
-                if(badge) { badge.innerText = "ULTRA"; badge.style.background = "var(--ultra-color)"; badge.style.display = 'inline-block'; }
-                avatar.classList.add('ultra-mode');
-                btns.forEach(x => document.getElementById(x).classList.remove('locked'));
-            } else if (isPro) {
-                b.classList.add('pro-enabled');
-                if(badge) { badge.innerText = "PRO"; badge.style.background = "var(--pro-color)"; badge.style.display = 'inline-block'; }
-                avatar.style.borderColor = "var(--pro-color)";
-                avatar.style.color = "var(--pro-color)";
-                btns.forEach(x => document.getElementById(x).classList.remove('locked'));
-            } else {
-                btns.forEach(x => document.getElementById(x).classList.add('locked'));
-            }
-        }
-        
-        window.switchMode = function(m) { 
-            if(m==='pro' && !isPro && !isAdmin) return alert('🔒 Только для PRO/ADMIN'); 
-        }
-        window.toggleSidebar = function(o) { const s=document.getElementById('sidebar'); const ov=document.getElementById('overlay'); if(o){s.classList.add('open');ov.classList.add('active');}else{s.classList.remove('open');ov.classList.remove('active');} }
-        
+        // --- UTILS ---
         window.handleFile = function(i) {
             const f = i.files[0];
             if(f){
@@ -1327,605 +473,28 @@ window.onload = async () => {
                 r.readAsDataURL(f);
             }
         }
-        window.clearFile = function() {
-            currFile = null;
-            document.getElementById('filePreview').style.display='none';
-            document.getElementById('fileIn').value='';
+        window.clearFile = function() { currFile = null; document.getElementById('filePreview').style.display='none'; }
+        window.copyID = () => navigator.clipboard.writeText(myUID);
+        window.openLegal = () => document.getElementById('legalModal').classList.add('active');
+        window.startNewChat = () => { activeId=null; document.getElementById('chat-stream').innerHTML=''; renderHistory(); }
+        window.loadChat = (id) => { 
+            const c=chats.find(x=>x.id===id); 
+            if(c){ activeId=id; document.getElementById('chat-stream').innerHTML=''; c.msgs.forEach(m=>appendMsg(m.role,m.text,m.file)); renderHistory(); }
         }
-
-        document.getElementById('userInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
-    
-
-// ============================================
-// API URL (если нет - работаем с моками)
-// ============================================
-const API_URL = window.location.protocol + '//' + window.location.hostname + ':3000/api';
-
-// ============================================
-// СИСТЕМА ВЫБОРА МОДЕЛЕЙ
-// ============================================
-let allModelsData = [];
-let selectedModelId = null;
-let selectedModelData = null;
-
-// URL логотипов провайдеров
-const modelAvatars = {
-    'google': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/240px-Google_%22G%22_logo.svg.png',
-    'meta': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/240px-Meta_Platforms_Inc._logo.svg.png',
-    'anthropic': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSWsN5dCAR9b0mEfOGD-FQ2UjLV_FKxwzLmhg&s',
-    'qwen': 'https://avatars.githubusercontent.com/u/126577875?s=200&v=4',
-    'deepseek': 'https://avatars.githubusercontent.com/u/165250351?s=200&v=4',
-    'cohere': 'https://asset.brandfetch.io/idSUrLOga4/idV22zCm7j.png',
-    'mistralai': 'https://avatars.githubusercontent.com/u/132372032?s=200&v=4',
-    'microsoft': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Microsoft_logo.svg/240px-Microsoft_logo.svg.png',
-    'nousresearch': 'https://avatars.githubusercontent.com/u/109786622?s=200&v=4',
-    'liquid': 'https://avatars.githubusercontent.com/u/177124478?s=200&v=4',
-    'default': 'https://api.dicebear.com/7.x/shapes/svg?seed=ai&backgroundColor=4f46e5'
-};
-
-// Названия моделей
-const modelDisplayNames = {
-    "mistralai/mistral-7b-instruct:free": "Mistral 7B",
-    "google/gemma-2-9b-it:free": "Gemma 2 9B",
-    "meta-llama/llama-3.2-11b-vision-instruct:free": "Llama 3.2 11B Vision",
-    "meta-llama/llama-3.3-70b-instruct:free": "Llama 3.3 70B",
-    "mistralai/mixtral-8x7b-instruct:free": "Mixtral 8x7B",
-    "meta-llama/llama-3-8b-instruct:free": "Llama 3 8B",
-    "google/gemma-3-27b-it:free": "Gemma 3 27B",
-    "qwen/qwen-2.5-coder-32b-instruct:free": "Qwen 2.5 Coder 32B",
-    "google/gemini-2.0-flash-exp:free": "Gemini 2.0 Flash",
-    "meta-llama/llama-3.2-90b-vision-instruct:free": "Llama 3.2 90B Vision",
-    "google/gemini-pro-1.5:free": "Gemini Pro 1.5"
-};
-
-// МОКОВЫЕ ДАННЫЕ
-const mockModelsData = [
-    // ✅ БЕСПЛАТНЫЕ (siteFree: true)
-    { 
-        id: "mistralai/mistral-7b-instruct:free", 
-        name: "Mistral 7B", 
-        provider: "mistralai", 
-        inputCost: 0, 
-        outputCost: 0, 
-        isFree: true, 
-        supportsVision: false, 
-        supportsText: true 
-    },
-    { 
-        id: "google/gemma-2-9b-it:free", 
-        name: "Gemma 2 9B", 
-        provider: "google", 
-        inputCost: 0, 
-        outputCost: 0, 
-        isFree: true, 
-        supportsVision: false, 
-        supportsText: true 
-    },
-    { 
-        id: "meta-llama/llama-3.2-11b-vision-instruct:free", 
-        name: "Llama 3.2 11B Vision", 
-        provider: "meta", 
-        inputCost: 0, 
-        outputCost: 0, 
-        isFree: true, 
-        supportsVision: true, 
-        supportsText: true 
-    },
-
-    // 💰 ПЛАТНЫЕ (siteFree: false)
-    { 
-        id: "meta-llama/llama-3.3-70b-instruct:free", 
-        name: "Llama 3.3 70B", 
-        provider: "meta", 
-        inputCost: 100, 
-        outputCost: 100, 
-        isFree: false, 
-        supportsVision: false, 
-        supportsText: true 
-    },
-    { 
-        id: "mistralai/mixtral-8x7b-instruct:free", 
-        name: "Mixtral 8x7B", 
-        provider: "mistralai", 
-        inputCost: 90, 
-        outputCost: 90, 
-        isFree: false, 
-        supportsVision: false, 
-        supportsText: true 
-    },
-    { 
-        id: "meta-llama/llama-3-8b-instruct:free", 
-        name: "Llama 3 8B", 
-        provider: "meta", 
-        inputCost: 60, 
-        outputCost: 60, 
-        isFree: false, 
-        supportsVision: false, 
-        supportsText: true 
-    },
-    { 
-        id: "google/gemma-3-27b-it:free", 
-        name: "Gemma 3 27B", 
-        provider: "google", 
-        inputCost: 110, 
-        outputCost: 110, 
-        isFree: false, 
-        supportsVision: false, 
-        supportsText: true 
-    },
-    { 
-        id: "qwen/qwen-2.5-coder-32b-instruct:free", 
-        name: "Qwen 2.5 Coder 32B", 
-        provider: "qwen", 
-        inputCost: 80, 
-        outputCost: 80, 
-        isFree: false, 
-        supportsVision: false, 
-        supportsText: true 
-    },
-    { 
-        id: "google/gemini-2.0-flash-exp:free", 
-        name: "Gemini 2.0 Flash", 
-        provider: "google", 
-        inputCost: 150, 
-        outputCost: 150, 
-        isFree: false, 
-        supportsVision: true, 
-        supportsText: true 
-    },
-    { 
-        id: "meta-llama/llama-3.2-90b-vision-instruct:free", 
-        name: "Llama 3.2 90B Vision", 
-        provider: "meta", 
-        inputCost: 200, 
-        outputCost: 200, 
-        isFree: false, 
-        supportsVision: true, 
-        supportsText: true 
-    },
-    { 
-        id: "google/gemini-pro-1.5:free", 
-        name: "Gemini Pro 1.5", 
-        provider: "google", 
-        inputCost: 100, 
-        outputCost: 100, 
-        isFree: false, 
-        supportsVision: false, 
-        supportsText: true 
-    }
-];
-
-function getModelAvatar(provider) {
-    return modelAvatars[provider.toLowerCase()] || modelAvatars['default'];
-}
-
-function getModelDisplayName(modelId, fallbackName) {
-    return modelDisplayNames[modelId] || fallbackName;
-}
-
-// Загрузка моделей
-async function loadModelsData() {
-    try {
-        const response = await fetch(API_URL + '/models', {timeout: 3000});
-        if (response.ok) {
-            const data = await response.json();
-            allModelsData = data.models;
-            console.log('✅ Загружено моделей с API:', allModelsData.length);
-        } else {
-            throw new Error('API недоступен');
+        window.renderHistory = () => {
+            const l=document.getElementById('historyList'); l.innerHTML='';
+            chats.forEach(c => {
+                const i=document.createElement('div'); i.className='history-item';
+                i.innerHTML=`<span>${c.title}</span>`;
+                i.onclick=()=>loadChat(c.id);
+                l.appendChild(i);
+            });
         }
-    } catch (error) {
-        console.warn('⚠️ API недоступен, используем моковые данные');
-        allModelsData = mockModelsData;
-    }
-
-    const firstFree = allModelsData.find(m => m.isFree);
-    if (firstFree) {
-        selectModelById(firstFree.id);
-    }
-
-    renderModelsInModal();
-}
-
-// Открыть модальное окно
-function openModelModal() {
-    const modal = document.getElementById('modelModal');
-    if (modal) {
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-
-        if (allModelsData.length === 0) {
-            loadModelsData();
-        } else {
-            renderModelsInModal();
-        }
-    }
-}
-
-// Закрыть модальное окно
-function closeModalWindow() {
-    const modal = document.getElementById('modelModal');
-    if (modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-}
-
-// Отрисовка моделей
-function renderModelsInModal() {
-    const container = document.getElementById('modelModalBody');
-    if (!container) return;
-
-    const searchQuery = document.getElementById('modelSearchInput')?.value.toLowerCase() || '';
-
-    if (allModelsData.length === 0) {
-        container.innerHTML = '<div class="loading-text">Загрузка моделей...</div>';
-        return;
-    }
-
-    let filtered = allModelsData;
-    if (searchQuery) {
-        filtered = allModelsData.filter(m => {
-            const displayName = getModelDisplayName(m.id, m.name).toLowerCase();
-            return displayName.includes(searchQuery) ||
-                   m.provider.toLowerCase().includes(searchQuery) ||
-                   m.name.toLowerCase().includes(searchQuery);
-        });
-    }
-
-    if (filtered.length === 0) {
-        container.innerHTML = '<div class="loading-text">🔍 Модели не найдены</div>';
-        return;
-    }
-
-    const freeModels = filtered.filter(m => m.isFree);
-    const paidModels = filtered.filter(m => !m.isFree);
-
-    let html = '';
-
-    if (freeModels.length > 0) {
-        html += '<div class="model-group-title">🆓 Бесплатные модели</div>';
-        freeModels.forEach(model => {
-            html += createModelCard(model);
-        });
-    }
-
-    if (paidModels.length > 0) {
-        html += '<div class="model-group-title">💰 Платные модели</div>';
-        paidModels.forEach(model => {
-            html += createModelCard(model);
-        });
-    }
-
-    container.innerHTML = html;
-
-    // Добавляем обработчики кликов
-    container.querySelectorAll('.flux-model-card').forEach(card => {
-        card.addEventListener('click', function() {
-            const modelId = this.getAttribute('data-model-id');
-            if (modelId) {
-                selectModelById(modelId);
-            }
-        });
-    });
-}
-
-// Создать карточку
-function createModelCard(model) {
-    const isSelected = selectedModelId === model.id;
-    const avatar = getModelAvatar(model.provider);
-    const displayName = getModelDisplayName(model.id, model.name);
-    const freeClass = model.isFree ? 'free-model' : '';
-    const selectedClass = isSelected ? 'selected' : '';
-
-    const inputCost = model.isFree ? '🆓 Free' : model.inputCost + ' tok/1K';
-    const outputCost = model.isFree ? '🆓 Free' : model.outputCost + ' tok/1K';
-    const costClass = model.isFree ? 'free' : '';
-
-    return `
-        <div class="flux-model-card ${freeClass} ${selectedClass}" data-model-id="${model.id}">
-            <img class="flux-model-avatar" src="${avatar}" alt="${model.provider}" onerror="this.src='https://api.dicebear.com/7.x/shapes/svg?seed=${model.provider}'">
-            <div class="flux-model-details">
-                <div class="flux-model-name">
-                    ${displayName}
-                    ${model.isFree ? '<span class="flux-free-badge">Free</span>' : ''}
-                </div>
-                <div class="flux-model-provider">${model.provider}</div>
-                <div class="flux-model-costs">
-                    <div class="flux-cost-item ${costClass}">📥 ${inputCost}</div>
-                    <div class="flux-cost-item ${costClass}">📤 ${outputCost}</div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// Фильтрация
-function filterModelsInModal() {
-    renderModelsInModal();
-}
-
-// Выбрать модель
-function selectModelById(modelId) {
-    selectedModelId = modelId;
-    selectedModelData = allModelsData.find(m => m.id === modelId);
-
-    if (selectedModelData) {
-        const avatar = getModelAvatar(selectedModelData.provider);
-        const displayName = getModelDisplayName(selectedModelData.id, selectedModelData.name);
-
-        // Обновляем мобильную версию
-        const mobAvatar = document.getElementById('mobModelAvatar');
-        const mobName = document.getElementById('mobModelName');
-        if (mobAvatar && mobName) {
-            mobAvatar.src = avatar;
-            mobName.textContent = displayName.split(' ')[0];
-        }
-
-        // Обновляем десктопную версию
-        const deskAvatar = document.getElementById('deskModelAvatar');
-        const deskName = document.getElementById('deskModelName');
-        const deskCost = document.getElementById('deskModelCost');
-        if (deskAvatar && deskName && deskCost) {
-            deskAvatar.src = avatar;
-            deskName.textContent = displayName;
-
-            const costText = selectedModelData.isFree 
-                ? '🆓 Free' 
-                : `${selectedModelData.inputCost}/${selectedModelData.outputCost} tok/1K`;
-            deskCost.textContent = costText;
-        }
-
-        console.log('✅ Выбрана модель:', displayName);
-        renderModelsInModal();
-    }
-
-    closeModalWindow();
-}
-
-// Инициализация при загрузке
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Инициализация выбора моделей...');
-
-    // Добавляем обработчики кликов на кнопки
-    const mobBtn = document.getElementById('mobModelBtn');
-    const deskBtn = document.getElementById('deskModelBtn');
-
-    if (mobBtn) {
-        mobBtn.addEventListener('click', openModelModal);
-        console.log('✅ Мобильная кнопка подключена');
-    }
-
-    if (deskBtn) {
-        deskBtn.addEventListener('click', openModelModal);
-        console.log('✅ Десктопная кнопка подключена');
-    }
-
-    // Кнопка закрытия
-    const closeBtn = document.getElementById('modalCloseBtn');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closeModalWindow);
-    }
-
-    // Закрытие по клику вне окна
-    const modal = document.getElementById('modelModal');
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target.id === 'modelModal') {
-                closeModalWindow();
-            }
-        });
-    }
-
-    // Поиск
-    const searchInput = document.getElementById('modelSearchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', filterModelsInModal);
-    }
-
-    // Закрытие по ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeModalWindow();
-        }
-    });
-
-    // Загружаем модели
-    loadModelsData();
-});
-
-</script>
-
-<!-- МОДАЛЬНОЕ ОКНО ВЫБОРА МОДЕЛЕЙ -->
-<div id="modelModal" class="flux-modal">
-    <div class="flux-modal-content">
-        <div class="flux-modal-header">
-            <h2>Выбор модели</h2>
-            <button class="flux-close-btn" id="modalCloseBtn">&times;</button>
-        </div>
-
-        <div class="flux-search-box">
-            <input type="text" id="modelSearchInput" placeholder="Поиск модели...">
-        </div>
-
-        <div class="flux-models-list" id="modelModalBody">
-            <div class="loading-text">Загрузка моделей...</div>
-        </div>
-    </div>
-</div>
-
-
-
-<!-- МОДАЛЬНОЕ ОКНО ТОКЕНОВ -->
-<div id="tokensModal" class="modal-overlay">
-    <div class="modal-container" style="max-width: 500px;">
-        <div class="modal-header">
-            <h2>💎 Пополнение токенов</h2>
-            <button class="modal-close" onclick="closeTokensModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div style="text-align:center;padding:20px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:20px;">
-                <div style="color:rgba(255,255,255,0.6);margin-bottom:8px;">Текущий баланс:</div>
-                <div id="currentBalance" style="color:#fff;font-size:1.8em;font-weight:700;">0 токенов</div>
-            </div>
-            <input type="text" id="activationCodeInput" placeholder="Введите промокод" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;margin-bottom:10px;box-sizing:border-box;">
-            <button id="activateCodeBtn" style="width:100%;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;">✨ Активировать</button>
-            <div id="activationResultMsg" style="display:none;padding:12px;margin-top:10px;border-radius:6px;text-align:center;"></div>
-            <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);">
-                <h4 style="color:#fff;font-size:0.9em;margin-bottom:10px;">💡 Пример промокода:</h4>
-                <div style="text-align:center;">
-                    <code style="background:rgba(255,255,255,0.1);padding:6px 12px;border-radius:6px;font-size:1.2em;color:#4ade80;">FREE500</code>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- МОДАЛЬНОЕ ОКНО ВЫБОРА МОДЕЛИ -->
-<div id="modelModal" class="modal-overlay">
-    <div class="modal-container" style="max-width: 650px;">
-        <div class="modal-header">
-            <h2>🤖 Выбор модели</h2>
-            <button class="modal-close" onclick="closeModelModal()">&times;</button>
-        </div>
-        <div class="modal-body" style="max-height:500px;overflow-y:auto;">
-            <div id="modelsList"></div>
-        </div>
-    </div>
-</div>
-
-<style>
-.header-right-group{display:flex;align-items:center;gap:8px;margin-left:auto}
-.tokens-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:6px;cursor:pointer;color:#fff;transition:all 0.3s}
-.tokens-btn:hover{background:rgba(255,255,255,0.1);transform:translateY(-1px)}
-.token-icon{font-size:1.2em}
-.token-count{font-weight:600}
-@media(max-width:768px){.tokens-btn{padding:6px 10px;font-size:0.9em}}
-.model-item{padding:15px;margin-bottom:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;transition:all 0.3s}
-.model-item:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2);transform:translateX(5px)}
-.model-item.active{background:rgba(102,126,234,0.2);border-color:#667eea}
-.model-name{color:#fff;font-weight:600;font-size:1.1em;margin-bottom:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.model-info{color:rgba(255,255,255,0.6);font-size:0.85em}
-.model-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:0.75em;font-weight:600}
-.badge-free{background:rgba(74,222,128,0.2);color:#4ade80}
-.badge-paid{background:rgba(251,191,36,0.2);color:#fbbf24}
-.badge-text{background:rgba(59,130,246,0.2);color:#3b82f6}
-.badge-vision{background:rgba(139,92,246,0.2);color:#8b5cf6}
-</style>
-
-<script>
-const PROMO_CODES={'FREE500':500,'PREMIUM10K':10000,'ULTRA50K':50000,'ADMIN100K':100000,'TEST1000':1000,'BONUS5K':5000,'MEGA20K':20000,'VIP200K':200000};
-
-// ТОЛЬКО РЕАЛЬНЫЕ :free МОДЕЛИ OPENROUTER (БЕЗ Claude и DeepSeek R1!)
-const MODELS=[
-{id:'mistralai/mistral-7b-instruct:free',name:'Mistral 7B',provider:'Mistral AI',siteFree:true,vision:false,cost:0},
-{id:'google/gemma-2-9b-it:free',name:'Gemma 2 9B',provider:'Google',siteFree:true,vision:false,cost:0},
-{id:'meta-llama/llama-3.2-11b-vision-instruct:free',name:'Llama 3.2 11B Vision',provider:'Meta',siteFree:true,vision:true,cost:0},
-{id:'meta-llama/llama-3.3-70b-instruct:free',name:'Llama 3.3 70B 🚀',provider:'Meta',siteFree:false,vision:false,cost:100},
-{id:'mistralai/mixtral-8x7b-instruct:free',name:'Mixtral 8x7B',provider:'Mistral AI',siteFree:false,vision:false,cost:90},
-{id:'meta-llama/llama-3-8b-instruct:free',name:'Llama 3 8B',provider:'Meta',siteFree:false,vision:false,cost:60},
-{id:'google/gemma-3-27b-it:free',name:'Gemma 3 27B',provider:'Google',siteFree:false,vision:false,cost:110},
-{id:'qwen/qwen-2.5-coder-32b-instruct:free',name:'Qwen 2.5 Coder 💻',provider:'Qwen',siteFree:false,vision:false,cost:80},
-{id:'google/gemini-2.0-flash-exp:free',name:'Gemini 2.0 Flash 👁️',provider:'Google',siteFree:false,vision:true,cost:150},
-{id:'meta-llama/llama-3.2-90b-vision-instruct:free',name:'Llama 3.2 90B Vision 👁️',provider:'Meta',siteFree:false,vision:true,cost:200},
-{id:'google/gemini-pro-1.5:free',name:'Gemini Pro 1.5',provider:'Google',siteFree:false,vision:false,cost:100}
-];
-
-let currentModel=MODELS[0];
-function getBalance(){return parseInt(localStorage.getItem('userTokens')||'0')}
-function setBalance(amount){localStorage.setItem('userTokens',amount.toString())}
-function getUsedCodes(){const u=localStorage.getItem('usedPromoCodes');return u?JSON.parse(u):[]}
-function markCodeAsUsed(code){const u=getUsedCodes();u.push(code);localStorage.setItem('usedPromoCodes',JSON.stringify(u))}
-function spendTokens(amount){const balance=getBalance();if(balance<amount)return false;setBalance(balance-amount);updateBalanceDisplay();return true}
-function refundTokens(amount){setBalance(getBalance()+amount);updateBalanceDisplay();console.log('💰 Токены возвращены:',amount)}
-function canUseModel(model){if(model.siteFree)return true;return getBalance()>=model.cost}
-
-window.openTokensModal=function(){document.getElementById('tokensModal').classList.add('active');document.body.style.overflow='hidden';updateBalanceDisplay()}
-window.closeTokensModal=function(){document.getElementById('tokensModal').classList.remove('active');document.body.style.overflow=''}
-
-function updateBalanceDisplay(){
-const balance=getBalance();
-['tokenCountMob','tokenCountDesk'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=balance.toLocaleString()});
-const cur=document.getElementById('currentBalance');if(cur)cur.textContent=balance.toLocaleString()+' токенов';
-}
-
-function activatePromoCode(){
-const input=document.getElementById('activationCodeInput');const msg=document.getElementById('activationResultMsg');const code=input.value.trim().toUpperCase();
-if(!code||!PROMO_CODES[code]){msg.textContent='❌ Неверный промокод';msg.style.display='block';msg.style.background='rgba(239,68,68,0.2)';msg.style.color='#ef4444';setTimeout(()=>msg.style.display='none',3000);return}
-if(getUsedCodes().includes(code)){msg.textContent='❌ Уже использован';msg.style.display='block';msg.style.background='rgba(239,68,68,0.2)';msg.style.color='#ef4444';setTimeout(()=>msg.style.display='none',3000);return}
-const tokens=PROMO_CODES[code];setBalance(getBalance()+tokens);markCodeAsUsed(code);
-msg.textContent='✅ +'+tokens.toLocaleString()+' токенов!';msg.style.display='block';msg.style.background='rgba(74,222,128,0.2)';msg.style.color='#4ade80';
-input.value='';updateBalanceDisplay();
-setTimeout(()=>{document.querySelectorAll('.tokens-btn').forEach(btn=>{btn.style.transform='scale(1.15)';setTimeout(()=>btn.style.transform='',300)});msg.style.display='none'},2000);
-}
-
-window.openModelModal=function(){document.getElementById('modelModal').classList.add('active');document.body.style.overflow='hidden';renderModelsList()}
-window.closeModelModal=function(){document.getElementById('modelModal').classList.remove('active');document.body.style.overflow=''}
-
-function renderModelsList(){
-const container=document.getElementById('modelsList');const balance=getBalance();
-let html='<h3 style="color:#4ade80;margin-bottom:15px;">🆓 Бесплатные на сайте</h3>';
-MODELS.filter(m=>m.siteFree).forEach(model=>{
-const isActive=currentModel.id===model.id;
-html+=`<div class="model-item ${isActive?'active':''}" onclick="selectModel('${model.id}')"><div class="model-name"><span>${model.name}</span><span class="model-badge ${model.vision?'badge-vision':'badge-text'}">${model.vision?'📷 ТЕКСТ+ФОТО':'📝 ТОЛЬКО ТЕКСТ'}</span><span class="model-badge badge-free">БЕСПЛАТНО</span></div><div class="model-info">${model.provider}</div></div>`;
-});
-html+='<h3 style="color:#fbbf24;margin:20px 0 15px 0;">💎 За токены (лучше)</h3><p style="color:rgba(255,255,255,0.5);font-size:0.85em;margin-bottom:15px;">Все модели :free на OpenRouter</p>';
-MODELS.filter(m=>!m.siteFree).forEach(model=>{
-const isActive=currentModel.id===model.id;const canAfford=balance>=model.cost;
-html+=`<div class="model-item ${isActive?'active':''}" onclick="selectModel('${model.id}')"><div class="model-name"><span>${model.name}</span><span class="model-badge ${model.vision?'badge-vision':'badge-text'}">${model.vision?'📷 ТЕКСТ+ФОТО':'📝 ТОЛЬКО ТЕКСТ'}</span><span class="model-badge badge-paid">${model.cost} 💎</span>${!canAfford?'<span style="color:#ef4444;font-size:0.85em;"> ⚠️</span>':''}</div><div class="model-info">${model.provider} • :free на OpenRouter</div></div>`;
-});
-container.innerHTML=html;
-}
-
-window.selectModel=function(modelId){
-const model=MODELS.find(m=>m.id===modelId);if(!model)return;
-if(!model.siteFree&&!canUseModel(model)){alert('❌ Недостаточно токенов!');closeModelModal();openTokensModal();return}
-currentModel=model;updateModelUI();closeModelModal();
-console.log('✅ Выбрана:',model.name,model.siteFree?'(бесплатно)':'('+model.cost+' токенов)');
-}
-
-function updateModelUI(){
-const mobName=document.getElementById('mobModelName');const deskName=document.getElementById('deskModelName');const deskCost=document.getElementById('deskModelCost');
-if(mobName)mobName.textContent=currentModel.name;if(deskName)deskName.textContent=currentModel.name;
-if(deskCost){if(currentModel.siteFree){deskCost.textContent='🆓 Бесплатно';deskCost.style.color='#4ade80'}else{deskCost.textContent='💎 '+currentModel.cost;deskCost.style.color='#fbbf24'}}
-}
-
-// ПЕРЕХВАТ fetch С ВОЗВРАТОМ ТОКЕНОВ ПРИ ОШИБКЕ
-const originalFetch=window.fetch;
-window.fetch=function(...args){
-const url=args[0];
-if(typeof url==='string'&&url.includes('/api/chat')){
-let spentAmount=0;
-if(!currentModel.siteFree){
-if(!spendTokens(currentModel.cost)){alert('❌ Недостаточно токенов!');openTokensModal();return Promise.reject(new Error('Insufficient tokens'))}
-spentAmount=currentModel.cost;
-console.log('💎 Потрачено:',spentAmount,'| Осталось:',getBalance());
-}
-return originalFetch.apply(this,args).then(response=>{
-if(!response.ok){if(spentAmount>0){refundTokens(spentAmount);console.log('❌ Ошибка API, токены возвращены')}}
-return response;
-}).catch(error=>{
-if(spentAmount>0){refundTokens(spentAmount);console.log('❌ Ошибка запроса, токены возвращены')}
-throw error;
-});
-}
-return originalFetch.apply(this,args);
-};
-
-document.addEventListener('DOMContentLoaded',function(){
-console.log('✅ Flux AI | Моделей:',MODELS.length,'| Бесплатных:',MODELS.filter(m=>m.siteFree).length);
-console.log('✅ Возврат токенов при ошибке: включён');
-console.log('❌ Claude и DeepSeek R1 удалены');
-updateBalanceDisplay();updateModelUI();
-const activateBtn=document.getElementById('activateCodeBtn');if(activateBtn)activateBtn.onclick=activatePromoCode;
-const codeInput=document.getElementById('activationCodeInput');if(codeInput)codeInput.onkeypress=(e)=>{if(e.key==='Enter')activatePromoCode()};
-['tokensModal','modelModal'].forEach(id=>{const modal=document.getElementById(id);if(modal){modal.onclick=(e)=>{if(e.target===modal){if(id==='tokensModal')closeTokensModal();else closeModelModal()}}}});
-document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){closeTokensModal();closeModelModal()}});
-});
-</script>
-
+        function createSnow() { /* ... snow logic ... */ }
+    </script>
 </body>
-    </html>
+</html>
+
 
 
 
