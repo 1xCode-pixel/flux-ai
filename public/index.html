@@ -826,7 +826,34 @@
         }
 
         
-// СЖАТИЕ ИЗОБРАЖЕНИЙ
+// ✅ СОХРАНЕНИЕ БЕЗ base64 фото
+function saveChats() {
+    try {
+        // УДАЛЯЕМ base64 перед сохранением!
+        const chatsToSave = chats.map(chat => ({
+            ...chat,
+            msgs: chat.msgs.map(msg => {
+                if (msg.file && msg.file.data) {
+                    // НЕ сохраняем base64!
+                    return { ...msg, file: { name: msg.file.name, type: msg.file.type } };
+                }
+                return msg;
+            })
+        }));
+
+        localStorage.setItem('chats' + STORAGE_VERSION, JSON.stringify(chatsToSave));
+    } catch (e) {
+        console.error('⚠️ Ошибка сохранения:', e);
+        // Если переполнение - удаляем старые
+        if (chats.length > 10) {
+            chats = chats.slice(0, 10);
+            console.log('🗑️ Удалены старые чаты (оставлено 10)');
+            saveChats();
+        }
+    }
+}
+
+// ✅ СЖАТИЕ ФОТО 5MB → 150KB!
 async function compressImage(file, maxSize = 1024, quality = 0.85) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -838,6 +865,7 @@ async function compressImage(file, maxSize = 1024, quality = 0.85) {
                 let width = img.width;
                 let height = img.height;
 
+                // Уменьшаем до 1024x1024
                 if (width > maxSize || height > maxSize) {
                     if (width > height) {
                         height = (height / width) * maxSize;
@@ -855,6 +883,7 @@ async function compressImage(file, maxSize = 1024, quality = 0.85) {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
+                // JPEG 85% качество
                 const compressed = canvas.toDataURL('image/jpeg', quality);
                 resolve(compressed);
             };
@@ -866,64 +895,6 @@ async function compressImage(file, maxSize = 1024, quality = 0.85) {
         reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
         reader.readAsDataURL(file);
     });
-}
-
-// НОВАЯ handleFile с сжатием
-window.handleFile = async function(input) {
-    const file = input.files[0];
-    if (!file) return;
-
-    const preview = document.getElementById('filePreview');
-    const fileName = document.getElementById('fileName');
-    preview.style.display = 'flex';
-    fileName.textContent = '⏳ Сжимаем...';
-
-    try {
-        const compressed = await compressImage(file, 1024, 0.85);
-
-        currFile = {
-            name: file.name,
-            type: file.type,
-            data: compressed
-        };
-
-        fileName.textContent = file.name + ' ✓';
-        console.log('📷 Оригинал:', (file.size / 1024).toFixed(0), 'KB → Сжато:', (compressed.length / 1024).toFixed(0), 'KB');
-    } catch (error) {
-        console.error('Ошибка сжатия:', error);
-        alert('Ошибка обработки изображения');
-        clearFile();
-    }
-};
-
-// Сохранение чатов БЕЗ base64 фото (они огромные!)
-function saveChats() {
-    try {
-        // УДАЛЯЕМ base64 из фото перед сохранением
-        const chatsToSave = chats.map(chat => ({
-            ...chat,
-            msgs: chat.msgs.map(msg => {
-                if (msg.file && msg.file.data) {
-                    // НЕ сохраняем base64! Только имя файла
-                    return {
-                        ...msg,
-                        file: { name: msg.file.name, type: msg.file.type }
-                    };
-                }
-                return msg;
-            })
-        }));
-
-        localStorage.setItem('chats' + STORAGE_VERSION, JSON.stringify(chatsToSave));
-    } catch (e) {
-        console.error('⚠️ Ошибка сохранения (localStorage переполнен?):', e);
-        // Если переполнение - удаляем старые чаты
-        if (chats.length > 10) {
-            chats = chats.slice(0, 10);
-            console.log('🗑️ Удалены старые чаты (оставлено 10)');
-            saveChats(); // Пробуем снова
-        }
-    }
 }
 
 window.onload = async () => {
@@ -1394,41 +1365,134 @@ const modelAvatars = {
 
 // Названия моделей
 const modelDisplayNames = {
-    'google/gemini-2.0-flash-exp:free': 'Gemini 2.0 Flash',
-    'meta-llama/llama-3.3-70b-instruct:free': 'Llama 3.3 70B',
-    'meta-llama/llama-3.1-405b-instruct:free': 'Llama 3.1 405B',
-    'meta-llama/llama-3.1-70b-instruct:free': 'Llama 3.1 70B',
-    'meta-llama/llama-3.2-11b-vision-instruct:free': 'Llama 3.2 11B Vision',
-    'meta-llama/llama-3.2-90b-vision-instruct:free': 'Llama 3.2 90B Vision',
-    'anthropic/claude-3.5-sonnet:free': 'Claude 3.5 Sonnet',
-    'qwen/qwen-2-vl-7b-instruct:free': 'Qwen 2 VL 7B',
-    'qwen/qwen-2-vl-72b-instruct:free': 'Qwen 2 VL 72B',
-    'qwen/qwen-2.5-coder-32b-instruct:free': 'Qwen 2.5 Coder 32B',
-    'deepseek/deepseek-r1:free': 'DeepSeek R1',
-    'deepseek/deepseek-coder-33b-instruct:free': 'DeepSeek Coder 33B',
-    'cohere/command-r-plus:free': 'Command R+',
-    'mistralai/mistral-nemo:free': 'Mistral Nemo',
-    'mistralai/codestral-mamba:free': 'Codestral Mamba',
-    'microsoft/phi-3-medium-128k-instruct:free': 'Phi-3 Medium 128K',
-    'nousresearch/hermes-3-llama-3.1-405b:free': 'Hermes 3 Llama 405B',
-    'liquid/lfm-40b:free': 'LFM 40B',
-    'google/gemini-flash-1.5:free': 'Gemini Flash 1.5',
-    'google/gemini-pro-vision:free': 'Gemini Pro Vision',
-    'google/gemini-2.0-flash-thinking-exp:free': 'Gemini 2.0 Thinking',
-    'google/gemma-2-9b-it:free': 'Gemma 2 9B'
+    "mistralai/mistral-7b-instruct:free": "Mistral 7B",
+    "google/gemma-2-9b-it:free": "Gemma 2 9B",
+    "meta-llama/llama-3.2-11b-vision-instruct:free": "Llama 3.2 11B Vision",
+    "meta-llama/llama-3.3-70b-instruct:free": "Llama 3.3 70B",
+    "mistralai/mixtral-8x7b-instruct:free": "Mixtral 8x7B",
+    "meta-llama/llama-3-8b-instruct:free": "Llama 3 8B",
+    "google/gemma-3-27b-it:free": "Gemma 3 27B",
+    "qwen/qwen-2.5-coder-32b-instruct:free": "Qwen 2.5 Coder 32B",
+    "google/gemini-2.0-flash-exp:free": "Gemini 2.0 Flash",
+    "meta-llama/llama-3.2-90b-vision-instruct:free": "Llama 3.2 90B Vision",
+    "google/gemini-pro-1.5:free": "Gemini Pro 1.5"
 };
 
 // МОКОВЫЕ ДАННЫЕ
 const mockModelsData = [
-    {id: 'google/gemini-2.0-flash-exp:free', name: 'gemini-2.0-flash-exp', provider: 'google', inputCost: 0, outputCost: 0, isFree: true, supportsVision: false, supportsText: true},
-    {id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'llama-3.3-70b-instruct', provider: 'meta', inputCost: 0, outputCost: 0, isFree: true, supportsVision: false, supportsText: true},
-    {id: 'qwen/qwen-2-vl-7b-instruct:free', name: 'qwen-2-vl-7b-instruct', provider: 'qwen', inputCost: 0, outputCost: 0, isFree: true, supportsVision: true, supportsText: true},
-    {id: 'anthropic/claude-3.5-sonnet:free', name: 'claude-3.5-sonnet', provider: 'anthropic', inputCost: 70, outputCost: 100, isFree: false, supportsVision: false, supportsText: true},
-    {id: 'deepseek/deepseek-r1:free', name: 'deepseek-r1', provider: 'deepseek', inputCost: 50, outputCost: 70, isFree: false, supportsVision: false, supportsText: true},
-    {id: 'meta-llama/llama-3.1-405b-instruct:free', name: 'llama-3.1-405b-instruct', provider: 'meta', inputCost: 60, outputCost: 90, isFree: false, supportsVision: false, supportsText: true},
-    {id: 'qwen/qwen-2.5-coder-32b-instruct:free', name: 'qwen-2.5-coder-32b-instruct', provider: 'qwen', inputCost: 40, outputCost: 60, isFree: false, supportsVision: false, supportsText: true},
-    {id: 'cohere/command-r-plus:free', name: 'command-r-plus', provider: 'cohere', inputCost: 30, outputCost: 50, isFree: false, supportsVision: false, supportsText: true},
-    {id: 'mistralai/mistral-nemo:free', name: 'mistral-nemo', provider: 'mistralai', inputCost: 25, outputCost: 40, isFree: false, supportsVision: false, supportsText: true}
+    // ✅ БЕСПЛАТНЫЕ (siteFree: true)
+    { 
+        id: "mistralai/mistral-7b-instruct:free", 
+        name: "Mistral 7B", 
+        provider: "mistralai", 
+        inputCost: 0, 
+        outputCost: 0, 
+        isFree: true, 
+        supportsVision: false, 
+        supportsText: true 
+    },
+    { 
+        id: "google/gemma-2-9b-it:free", 
+        name: "Gemma 2 9B", 
+        provider: "google", 
+        inputCost: 0, 
+        outputCost: 0, 
+        isFree: true, 
+        supportsVision: false, 
+        supportsText: true 
+    },
+    { 
+        id: "meta-llama/llama-3.2-11b-vision-instruct:free", 
+        name: "Llama 3.2 11B Vision", 
+        provider: "meta", 
+        inputCost: 0, 
+        outputCost: 0, 
+        isFree: true, 
+        supportsVision: true, 
+        supportsText: true 
+    },
+
+    // 💰 ПЛАТНЫЕ (siteFree: false)
+    { 
+        id: "meta-llama/llama-3.3-70b-instruct:free", 
+        name: "Llama 3.3 70B", 
+        provider: "meta", 
+        inputCost: 100, 
+        outputCost: 100, 
+        isFree: false, 
+        supportsVision: false, 
+        supportsText: true 
+    },
+    { 
+        id: "mistralai/mixtral-8x7b-instruct:free", 
+        name: "Mixtral 8x7B", 
+        provider: "mistralai", 
+        inputCost: 90, 
+        outputCost: 90, 
+        isFree: false, 
+        supportsVision: false, 
+        supportsText: true 
+    },
+    { 
+        id: "meta-llama/llama-3-8b-instruct:free", 
+        name: "Llama 3 8B", 
+        provider: "meta", 
+        inputCost: 60, 
+        outputCost: 60, 
+        isFree: false, 
+        supportsVision: false, 
+        supportsText: true 
+    },
+    { 
+        id: "google/gemma-3-27b-it:free", 
+        name: "Gemma 3 27B", 
+        provider: "google", 
+        inputCost: 110, 
+        outputCost: 110, 
+        isFree: false, 
+        supportsVision: false, 
+        supportsText: true 
+    },
+    { 
+        id: "qwen/qwen-2.5-coder-32b-instruct:free", 
+        name: "Qwen 2.5 Coder 32B", 
+        provider: "qwen", 
+        inputCost: 80, 
+        outputCost: 80, 
+        isFree: false, 
+        supportsVision: false, 
+        supportsText: true 
+    },
+    { 
+        id: "google/gemini-2.0-flash-exp:free", 
+        name: "Gemini 2.0 Flash", 
+        provider: "google", 
+        inputCost: 150, 
+        outputCost: 150, 
+        isFree: false, 
+        supportsVision: true, 
+        supportsText: true 
+    },
+    { 
+        id: "meta-llama/llama-3.2-90b-vision-instruct:free", 
+        name: "Llama 3.2 90B Vision", 
+        provider: "meta", 
+        inputCost: 200, 
+        outputCost: 200, 
+        isFree: false, 
+        supportsVision: true, 
+        supportsText: true 
+    },
+    { 
+        id: "google/gemini-pro-1.5:free", 
+        name: "Gemini Pro 1.5", 
+        provider: "google", 
+        inputCost: 100, 
+        outputCost: 100, 
+        isFree: false, 
+        supportsVision: false, 
+        supportsText: true 
+    }
 ];
 
 function getModelAvatar(provider) {
@@ -1862,6 +1926,7 @@ document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){closeTokensModal(
 
 </body>
     </html>
+
 
 
 
